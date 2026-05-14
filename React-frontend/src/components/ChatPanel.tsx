@@ -109,6 +109,66 @@ function formatContactTime(iso: string | null | undefined): string {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+/** Prefix for in-band WebRTC signaling over chat (not shown as normal message bubbles). */
+const VIDEO_SIGNAL_PREFIX = "[[SB_VIDEO]]";
+
+const DEFAULT_RTC_CONFIG: RTCConfiguration = {
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+};
+
+type RawChatMessage = {
+    id: number;
+    outgoing: number | string;
+    message: string;
+    date: string;
+    attachments?: MessageAttachment[] | null;
+};
+
+type VideoSignalPayload =
+    | { v: 1; kind: "invite-offer"; callId: string; sdp: RTCSessionDescriptionInit }
+    | { v: 1; kind: "answer"; callId: string; sdp: RTCSessionDescriptionInit }
+    | { v: 1; kind: "hangup"; callId: string }
+    | { v: 1; kind: "decline"; callId: string };
+
+function isVideoSignalMessage(text: string | null | undefined): boolean {
+    return !!text && text.startsWith(VIDEO_SIGNAL_PREFIX);
+}
+
+/** User-visible video call summary lines posted as normal chat messages */
+function isVideoCallLogMessage(text: string | null | undefined): boolean {
+    return !!text && text.startsWith("📹 ");
+}
+
+function tryParseVideoPayload(text: string): VideoSignalPayload | null {
+    if (!isVideoSignalMessage(text)) return null;
+    try {
+        const o = JSON.parse(text.slice(VIDEO_SIGNAL_PREFIX.length)) as VideoSignalPayload;
+        if (o && o.v === 1 && typeof o.callId === "string" && typeof o.kind === "string") return o;
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+function waitIceGatheringComplete(pc: RTCPeerConnection, timeoutMs = 5000): Promise<void> {
+    if (pc.iceGatheringState === "complete") return Promise.resolve();
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(tid);
+            pc.removeEventListener("icegatheringstatechange", onIce);
+            resolve();
+        };
+        const tid = setTimeout(finish, timeoutMs);
+        const onIce = () => {
+            if (pc.iceGatheringState === "complete") finish();
+        };
+        pc.addEventListener("icegatheringstatechange", onIce);
+    });
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 const IconSearch = () => (
@@ -141,23 +201,51 @@ const IconForward = () => (
     </svg>
 );
 
+/** Two-letter initials: first + last word when multiple tokens; else first two letters of the name. */
+function initialsFromName(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) {
+        const w = parts[0];
+        return (w.length >= 2 ? w.slice(0, 2) : w[0]).toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Resolve avatar src: same rules as profile — full URLs, `/api/...`, `/uploads/...`, or legacy filename. */
+function resolveAvatarSrc(src: string): string | null {
+    const s = src.trim();
+    if (!s) return null;
+    if (s.startsWith("http://") || s.startsWith("https://")) return s;
+    if (s.startsWith("/")) return s;
+    return `/uploads/${s}`;
+}
+
 function Avatar({ name, src, className = "w-10 h-10" }: { name: string; src?: string | null; className?: string }) {
-    const initial = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-    if (src) {
-        const url = src.startsWith("http") ? src : `/uploads/${src}`;
+    const initial = initialsFromName(name);
+    const [imgBroken, setImgBroken] = useState(false);
+
+    useEffect(() => {
+        setImgBroken(false);
+    }, [src]);
+
+    const resolved = src && String(src).trim() ? resolveAvatarSrc(String(src)) : null;
+
+    if (!resolved || imgBroken) {
         return (
-            <img
-                src={url}
-                alt={name}
-                className={`${className} rounded-full object-cover shrink-0`}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = ""; }}
-            />
+            <div className={`${className} rounded-full bg-slate-300 flex items-center justify-center text-slate-600 font-semibold text-sm shrink-0`}>
+                {initial}
+            </div>
         );
     }
+
     return (
-        <div className={`${className} rounded-full bg-slate-300 flex items-center justify-center text-slate-600 font-semibold text-sm shrink-0`}>
-            {initial}
-        </div>
+        <img
+            src={resolved}
+            alt=""
+            className={`${className} rounded-full object-cover shrink-0`}
+            onError={() => setImgBroken(true)}
+        />
     );
 }
 
@@ -190,6 +278,8 @@ function AttachmentPreview({ file }: { file: File }) {
 
 export default function ChatPanel({ userType }: ChatPanelProps) {
     const { user } = useAuth();
+    /** Vendor chat lists vendor_employee ids; employee app uses employee table. */
+    const contactProfileUserType = user?.user_type === "vendor" ? "vendor" : undefined;
     const [searchParams] = useSearchParams();
     const location = useLocation();
     const [search, setSearch] = useState("");
@@ -206,6 +296,8 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const [videoCallError, setVideoCallError] = useState<string | null>(null);
     const [isMutedVideo, setIsMutedVideo] = useState(false);
     const [isMutedAudio, setIsMutedAudio] = useState(false);
+    const [incomingCall, setIncomingCall] = useState<{ callId: string; sdp: RTCSessionDescriptionInit } | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
     // ── Reply state ─────────────────────────────────────────────────────────────
     const [replyingTo, setReplyingTo] = useState<MessageItem | null>(null);
@@ -224,6 +316,17 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
+    const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+    const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+    const callIdRef = useRef<string | null>(null);
+    const callRoleRef = useRef<"caller" | "callee" | null>(null);
+    const processedVideoMsgIdsRef = useRef<Set<string>>(new Set());
+    const incomingCallRef = useRef<{ callId: string; sdp: RTCSessionDescriptionInit } | null>(null);
+    const endVideoCallRef = useRef<(opts?: { notifyPeer?: boolean; preserveError?: boolean; recordHistory?: boolean }) => void>(() => {});
+    const applyVideoSignalRef = useRef<(m: RawChatMessage, fromPoll: boolean) => void>(() => {});
+    const prevContactIdForCallRef = useRef<number | null>(null);
+    const selectedContactRef = useRef<Contact | null>(null);
+    const callConnectedAtRef = useRef<number | null>(null);
     const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const lastMessageIdRef = useRef<number>(0);
 
@@ -239,7 +342,10 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                     profile_picture: c.profile_picture,
                     status: c.status,
                     isOnline: c.status === "Online",
-                    lastMessage: c.last_message,
+                    lastMessage:
+                        typeof c.last_message === "string" && c.last_message.startsWith(VIDEO_SIGNAL_PREFIX)
+                            ? "[Video call]"
+                            : c.last_message,
                     lastMsgTime: c.last_msg_time,
                 }));
                 setContacts(mapped);
@@ -259,31 +365,201 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
             .finally(() => setContactsLoading(false));
     }, []);
 
-    // Fetch current user profile picture for "user" message avatars
+    // Fetch current user profile picture for "user" message avatars (same URL rules as Navbar / profile).
     useEffect(() => {
-        if (userType !== "employee") return;
+        if (!user?.id) return;
         api.get<{ id?: number; profile_picture?: string | null }>("/api/profile")
             .then(({ data }) => {
                 if (data?.id != null && data?.profile_picture) {
-                    setCurrentUserAvatarUrl(getGlobalProfileUrl(data.id, data.profile_picture));
+                    setCurrentUserAvatarUrl(getGlobalProfileUrl(data.id, data.profile_picture, user?.user_type));
+                } else {
+                    setCurrentUserAvatarUrl(null);
                 }
             })
             .catch(() => {});
-    }, [userType]);
+    }, [user?.id, user?.user_type]);
+
+    const sendVideoSignal = useCallback(async (toId: number, payload: VideoSignalPayload) => {
+        await api.post<{ success: boolean }>("/api/chat/send", {
+            to_id: toId,
+            message: `${VIDEO_SIGNAL_PREFIX}${JSON.stringify(payload)}`,
+        });
+    }, []);
+
+    useEffect(() => {
+        selectedContactRef.current = selectedContact;
+    }, [selectedContact]);
+
+    const postCallHistoryLine = useCallback(async (toId: number, line: string) => {
+        try {
+            const { data } = await api.post<{ success: boolean; id?: number }>("/api/chat/send", {
+                to_id: toId,
+                message: line,
+            });
+            if (data.success && data.id && selectedContactRef.current?.id === toId) {
+                const now = new Date();
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: String(data.id),
+                        text: line,
+                        sender: "user",
+                        time: formatTime(now),
+                        rawDate: now.toISOString(),
+                    },
+                ]);
+                lastMessageIdRef.current = data.id;
+            }
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    const endVideoCall = useCallback((opts?: { notifyPeer?: boolean; preserveError?: boolean; recordHistory?: boolean }) => {
+        const notifyPeer = opts?.notifyPeer !== false;
+        const recordHistory = opts?.recordHistory === true;
+        const cid = callIdRef.current;
+        const toId = selectedContact?.id;
+        const hadSession = cid != null && callRoleRef.current != null;
+        const connectedAt = callConnectedAtRef.current;
+
+        if (notifyPeer && cid != null && toId != null) {
+            void sendVideoSignal(toId, { v: 1, kind: "hangup", callId: cid });
+        }
+
+        if (recordHistory && toId != null && hadSession) {
+            let line: string;
+            if (connectedAt != null) {
+                const secs = Math.max(0, Math.round((Date.now() - connectedAt) / 1000));
+                if (secs >= 60) {
+                    const mm = Math.floor(secs / 60);
+                    const ss = secs % 60;
+                    line = `📹 Video call · ${mm}m ${ss}s`;
+                } else if (secs > 0) {
+                    line = `📹 Video call · ${secs}s`;
+                } else {
+                    line = "📹 Video call ended";
+                }
+            } else {
+                line = "📹 Video call ended";
+            }
+            void postCallHistoryLine(toId, line);
+        }
+
+        callConnectedAtRef.current = null;
+        peerConnectionRef.current?.close();
+        peerConnectionRef.current = null;
+        callIdRef.current = null;
+        callRoleRef.current = null;
+        localStreamRef.current?.getTracks().forEach((t) => t.stop());
+        localStreamRef.current = null;
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        setRemoteStream(null);
+        setIsVideoCallActive(false);
+        setIsMutedVideo(false);
+        setIsMutedAudio(false);
+        if (!opts?.preserveError) {
+            setVideoCallError(null);
+        }
+        setIncomingCall(null);
+    }, [selectedContact?.id, sendVideoSignal, postCallHistoryLine]);
+
+    useEffect(() => {
+        endVideoCallRef.current = endVideoCall;
+    }, [endVideoCall]);
+
+    useEffect(() => {
+        incomingCallRef.current = incomingCall;
+    }, [incomingCall]);
+
+    const isVideoCallActiveRef = useRef(false);
+    useEffect(() => {
+        isVideoCallActiveRef.current = isVideoCallActive;
+    }, [isVideoCallActive]);
+
+    useEffect(() => {
+        applyVideoSignalRef.current = (m: RawChatMessage, fromPoll: boolean) => {
+            if (!isVideoSignalMessage(m.message)) return;
+            const idStr = String(m.id);
+            if (processedVideoMsgIdsRef.current.has(idStr)) return;
+
+            // Only handle live signaling from polling — never replay DB history (avoids
+            // "Incoming video call" after refresh when an old invite-offer row is still in the thread).
+            if (!fromPoll) {
+                processedVideoMsgIdsRef.current.add(idStr);
+                return;
+            }
+
+            processedVideoMsgIdsRef.current.add(idStr);
+
+            const payload = tryParseVideoPayload(m.message);
+            if (!payload) return;
+
+            const myId = Number(user?.id);
+            const fromSelf = Number(m.outgoing) === myId;
+
+            if (payload.kind === "invite-offer") {
+                if (fromSelf) return;
+                if (incomingCallRef.current) return;
+                if (peerConnectionRef.current && callIdRef.current) return;
+                if (isVideoCallActiveRef.current) return;
+                setIncomingCall({ callId: payload.callId, sdp: payload.sdp });
+                return;
+            }
+            if (payload.kind === "answer") {
+                if (fromSelf) return;
+                if (callRoleRef.current !== "caller" || callIdRef.current !== payload.callId) return;
+                const pc = peerConnectionRef.current;
+                if (!pc) return;
+                void pc.setRemoteDescription(new RTCSessionDescription(payload.sdp)).catch(() => {});
+                return;
+            }
+            if (payload.kind === "hangup") {
+                if (fromSelf) return;
+                const inc = incomingCallRef.current;
+                if (inc && inc.callId === payload.callId) {
+                    setIncomingCall(null);
+                }
+                if (callIdRef.current === payload.callId) {
+                    endVideoCallRef.current({ notifyPeer: false });
+                }
+                return;
+            }
+            if (payload.kind === "decline") {
+                if (fromSelf) return;
+                if (callIdRef.current === payload.callId && callRoleRef.current === "caller") {
+                    setVideoCallError("The other person declined the call.");
+                    endVideoCallRef.current({ notifyPeer: false, preserveError: true });
+                }
+            }
+        };
+    }, [user?.id]);
+
+    useEffect(() => {
+        const id = selectedContact?.id ?? null;
+        if (prevContactIdForCallRef.current != null && prevContactIdForCallRef.current !== id) {
+            processedVideoMsgIdsRef.current.clear();
+            if (incomingCallRef.current || callIdRef.current || isVideoCallActiveRef.current) {
+                endVideoCallRef.current({ notifyPeer: true, recordHistory: false });
+            }
+        }
+        prevContactIdForCallRef.current = id;
+    }, [selectedContact?.id]);
 
     // ── Fetch conversation history ──────────────────────────────────────────────
     const loadConversation = useCallback(async (contactId: number) => {
         setMessagesLoading(true);
         try {
-            const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string; attachments?: MessageAttachment[] | null }> }>(
+            const { data } = await api.get<{ messages: RawChatMessage[] }>(
                 `/api/chat/conversation/${contactId}`
             );
-            // Use Number() comparison to avoid type mismatch (DB may return string, auth returns number)
             const myId = Number(user?.id);
-            const mapped: MessageItem[] = (data.messages || []).map((m) => {
+            const rawMsgs = data.messages || [];
+            const chatOnly = rawMsgs.filter((m) => !isVideoSignalMessage(m.message ?? ""));
+            const mapped: MessageItem[] = chatOnly.map((m) => {
                 let msgText = m.message ?? "";
                 let replyTo: ReplyPreview | undefined = undefined;
-                // Re-hydrate reply bubbles from the embedded ↩ prefix stored in the DB
                 if (msgText.startsWith("\u21A9 ")) {
                     const nlIdx = msgText.indexOf("\n");
                     if (nlIdx !== -1) {
@@ -302,8 +578,8 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                 };
             });
             setMessages(mapped);
-            if (mapped.length > 0) {
-                lastMessageIdRef.current = parseInt(mapped[mapped.length - 1].id, 10);
+            if (rawMsgs.length > 0) {
+                lastMessageIdRef.current = rawMsgs[rawMsgs.length - 1].id;
             } else {
                 lastMessageIdRef.current = 0;
             }
@@ -328,41 +604,53 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         pollIntervalRef.current = setInterval(async () => {
             const lastId = lastMessageIdRef.current;
             try {
-                const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string; attachments?: MessageAttachment[] | null }> }>(
+                const { data } = await api.get<{ messages: RawChatMessage[] }>(
                     `/api/chat/conversation/${selectedContact.id}/since/${lastId}`
                 );
                 const myId = Number(user?.id);
-                const newMsgs = (data.messages || []);
+                const newMsgs = data.messages || [];
                 if (newMsgs.length > 0) {
-                    const mapped: MessageItem[] = newMsgs.map((m) => {
-                        let msgText = m.message ?? "";
-                        let replyTo: ReplyPreview | undefined = undefined;
-                        if (msgText.startsWith("\u21A9 ")) {
-                            const nlIdx = msgText.indexOf("\n");
-                            if (nlIdx !== -1) {
-                                replyTo = { id: "quoted", text: msgText.slice(2, nlIdx), sender: "contact" };
-                                msgText = msgText.slice(nlIdx + 1);
-                            }
+                    let maxId = lastId;
+                    const chatRows: RawChatMessage[] = [];
+                    for (const m of newMsgs) {
+                        maxId = Math.max(maxId, m.id);
+                        if (isVideoSignalMessage(m.message)) {
+                            applyVideoSignalRef.current(m, true);
+                        } else {
+                            chatRows.push(m);
                         }
-                        return {
-                            id: String(m.id),
-                            text: msgText,
-                            sender: Number(m.outgoing) === myId ? "user" : "contact",
-                            time: formatTime(m.date),
-                            rawDate: m.date,
-                            attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
-                            replyTo,
-                        };
-                    });
-                    setMessages((prev) => {
-                        const existingIds = new Set(prev.map((x) => x.id));
-                        const fresh = mapped.filter((m) => !existingIds.has(m.id));
-                        return fresh.length > 0 ? [...prev, ...fresh] : prev;
-                    });
-                    lastMessageIdRef.current = newMsgs[newMsgs.length - 1].id;
+                    }
+                    if (chatRows.length > 0) {
+                        const mapped: MessageItem[] = chatRows.map((m) => {
+                            let msgText = m.message ?? "";
+                            let replyTo: ReplyPreview | undefined = undefined;
+                            if (msgText.startsWith("\u21A9 ")) {
+                                const nlIdx = msgText.indexOf("\n");
+                                if (nlIdx !== -1) {
+                                    replyTo = { id: "quoted", text: msgText.slice(2, nlIdx), sender: "contact" };
+                                    msgText = msgText.slice(nlIdx + 1);
+                                }
+                            }
+                            return {
+                                id: String(m.id),
+                                text: msgText,
+                                sender: Number(m.outgoing) === myId ? "user" : "contact",
+                                time: formatTime(m.date),
+                                rawDate: m.date,
+                                attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
+                                replyTo,
+                            };
+                        });
+                        setMessages((prev) => {
+                            const existingIds = new Set(prev.map((x) => x.id));
+                            const fresh = mapped.filter((m) => !existingIds.has(m.id));
+                            return fresh.length > 0 ? [...prev, ...fresh] : prev;
+                        });
+                    }
+                    lastMessageIdRef.current = maxId;
                 }
             } catch { /* ignore poll error */ }
-        }, 4000);
+        }, 2500);
 
         return () => {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -378,10 +666,10 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         if (contextMenu) { window.addEventListener("click", close); return () => window.removeEventListener("click", close); }
     }, [contextMenu]);
 
-    // ── Cleanup camera on unmount ───────────────────────────────────────────────
+    // ── Cleanup camera / WebRTC on unmount ─────────────────────────────────────
     useEffect(() => {
         return () => {
-            localStreamRef.current?.getTracks().forEach((t) => t.stop());
+            endVideoCallRef.current({ notifyPeer: true, recordHistory: false });
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         };
     }, []);
@@ -527,26 +815,138 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     };
 
-    // ── Video call ──────────────────────────────────────────────────────────────
-    const startVideoCall = async () => {
+    // ── Video call (WebRTC over chat signaling) ─────────────────────────────────
+    const declineIncomingCall = () => {
+        if (!incomingCall || !selectedContact) return;
+        const { callId } = incomingCall;
+        const toId = selectedContact.id;
+        setIncomingCall(null);
+        void (async () => {
+            await sendVideoSignal(toId, { v: 1, kind: "decline", callId });
+            await postCallHistoryLine(toId, "📹 Video call declined");
+        })();
+    };
+
+    const acceptIncomingCall = async () => {
+        if (!incomingCall || !selectedContact) return;
+        const { callId, sdp } = incomingCall;
+        setIncomingCall(null);
         setVideoCallError(null);
+
+        let stream: MediaStream;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localStreamRef.current = stream;
-            setIsVideoCallActive(true);
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         } catch (err) {
             setVideoCallError(err instanceof Error ? err.message : "Could not access camera or microphone");
+            void sendVideoSignal(selectedContact.id, { v: 1, kind: "decline", callId });
+            return;
+        }
+
+        localStreamRef.current = stream;
+        callIdRef.current = callId;
+        callRoleRef.current = "callee";
+        callConnectedAtRef.current = null;
+
+        const pc = new RTCPeerConnection(DEFAULT_RTC_CONFIG);
+        peerConnectionRef.current = pc;
+        pc.ontrack = (ev) => {
+            const rs = ev.streams[0];
+            if (rs) setRemoteStream(rs);
+        };
+        pc.oniceconnectionstatechange = () => {
+            if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+                callConnectedAtRef.current = callConnectedAtRef.current ?? Date.now();
+            }
+            if (pc.iceConnectionState === "failed") {
+                setVideoCallError("Connection lost.");
+                endVideoCallRef.current({ notifyPeer: false, recordHistory: true, preserveError: true });
+            }
+        };
+        stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+
+        try {
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await waitIceGatheringComplete(pc);
+            const loc = pc.localDescription;
+            if (!loc) throw new Error("No local answer");
+            await sendVideoSignal(selectedContact.id, {
+                v: 1,
+                kind: "answer",
+                callId,
+                sdp: { type: loc.type, sdp: loc.sdp },
+            });
+            setIsVideoCallActive(true);
+        } catch {
+            setVideoCallError("Could not answer the call.");
+            void sendVideoSignal(selectedContact.id, { v: 1, kind: "decline", callId });
+            peerConnectionRef.current?.close();
+            peerConnectionRef.current = null;
+            callIdRef.current = null;
+            callRoleRef.current = null;
+            stream.getTracks().forEach((t) => t.stop());
+            localStreamRef.current = null;
         }
     };
 
-    const endVideoCall = () => {
-        localStreamRef.current?.getTracks().forEach((t) => t.stop());
-        localStreamRef.current = null;
-        if (localVideoRef.current) localVideoRef.current.srcObject = null;
-        setIsVideoCallActive(false);
+    const startVideoCall = async () => {
+        if (!selectedContact || isVideoCallActive || incomingCall) return;
         setVideoCallError(null);
-        setIsMutedVideo(false);
-        setIsMutedAudio(false);
+
+        let stream: MediaStream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch (err) {
+            setVideoCallError(err instanceof Error ? err.message : "Could not access camera or microphone");
+            return;
+        }
+
+        localStreamRef.current = stream;
+        const callId = crypto.randomUUID();
+        callIdRef.current = callId;
+        callRoleRef.current = "caller";
+        callConnectedAtRef.current = null;
+
+        const pc = new RTCPeerConnection(DEFAULT_RTC_CONFIG);
+        peerConnectionRef.current = pc;
+        pc.ontrack = (ev) => {
+            const rs = ev.streams[0];
+            if (rs) setRemoteStream(rs);
+        };
+        pc.oniceconnectionstatechange = () => {
+            if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+                callConnectedAtRef.current = callConnectedAtRef.current ?? Date.now();
+            }
+            if (pc.iceConnectionState === "failed") {
+                setVideoCallError("Connection lost.");
+                endVideoCallRef.current({ notifyPeer: false, recordHistory: true, preserveError: true });
+            }
+        };
+        stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await waitIceGatheringComplete(pc);
+            const loc = pc.localDescription;
+            if (!loc) throw new Error("No local description");
+            await sendVideoSignal(selectedContact.id, {
+                v: 1,
+                kind: "invite-offer",
+                callId,
+                sdp: { type: loc.type, sdp: loc.sdp },
+            });
+            setIsVideoCallActive(true);
+        } catch {
+            setVideoCallError("Could not start the call. Try again.");
+            peerConnectionRef.current?.close();
+            peerConnectionRef.current = null;
+            callIdRef.current = null;
+            callRoleRef.current = null;
+            stream.getTracks().forEach((t) => t.stop());
+            localStreamRef.current = null;
+        }
     };
 
     const toggleMuteVideo = () => {
@@ -563,6 +963,16 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         (localVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
         if (el && localStreamRef.current) el.srcObject = localStreamRef.current;
     };
+
+    useEffect(() => {
+        const el = remoteVideoRef.current;
+        if (el && remoteStream) {
+            el.srcObject = remoteStream;
+        }
+        return () => {
+            if (el) el.srcObject = null;
+        };
+    }, [remoteStream, isVideoCallActive]);
 
     // ── Derived ─────────────────────────────────────────────────────────────────
     const filteredContacts = useMemo(() => {
@@ -638,7 +1048,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border border-[#AEACAC] rounded-lg mt-2 cursor-pointer ${selectedContact?.id === contact.id ? "bg-[#F2F2F2]" : "hover:bg-slate-50"}`}
                                 >
                                     <div className="relative shrink-0">
-                                        <Avatar name={contact.name} src={getGlobalProfileUrl(contact.id, contact.profile_picture) || undefined} />
+                                        <Avatar name={contact.name} src={getGlobalProfileUrl(contact.id, contact.profile_picture, contactProfileUserType) || undefined} />
                                         {contact.isOnline && (
                                             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
                                         )}
@@ -723,7 +1133,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                                     >
                                                         <Avatar
                                                             name={c.name}
-                                                            src={getGlobalProfileUrl(c.id, c.profile_picture) || undefined}
+                                                            src={getGlobalProfileUrl(c.id, c.profile_picture, contactProfileUserType) || undefined}
                                                             className="w-9 h-9"
                                                         />
                                                         <div className="flex-1 text-left min-w-0">
@@ -748,7 +1158,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                             <div className="flex items-center justify-between px-4 py-3 border-b border-[#AEACAC52] bg-[#FFFFFF] flex-shrink-0">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="relative">
-                                        <Avatar name={selectedContact.name} src={getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined} className="w-11 h-11" />
+                                        <Avatar name={selectedContact.name} src={getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture, contactProfileUserType) || undefined} className="w-11 h-11" />
                                         {selectedContact.isOnline && (
                                             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                                         )}
@@ -764,7 +1174,8 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     <button
                                         type="button"
                                         onClick={startVideoCall}
-                                        className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer"
+                                        disabled={isVideoCallActive || !!incomingCall}
+                                        className={`p-2 bg-[#F2F2F2] rounded-full ${isVideoCallActive || incomingCall ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
                                         aria-label="Video call"
                                     >
                                         <img src={videoIcon} alt="video" className="w-4 h-4" />
@@ -867,11 +1278,36 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     <p className="text-center text-sm text-slate-400 py-8">No messages yet. Say hello! 👋</p>
                                 ) : (
                                     displayMsgs.map((msg, index) => {
-                                        const prevMsg = messages[index - 1];
-                                        const showDateSeparator = !prevMsg || 
-                                            parseDateSafe(msg.rawDate).toDateString() !== 
+                                        const prevMsg = index > 0 ? displayMsgs[index - 1] : undefined;
+                                        const showDateSeparator = !prevMsg ||
+                                            parseDateSafe(msg.rawDate).toDateString() !==
                                             parseDateSafe(prevMsg.rawDate).toDateString();
-                                        
+
+                                        if (isVideoCallLogMessage(msg.text)) {
+                                            return (
+                                                <div key={msg.id} className="space-y-4">
+                                                    {showDateSeparator && (
+                                                        <div className="flex items-center gap-3 my-6 first:mt-2">
+                                                            <div className="flex-1 h-px bg-slate-200" />
+                                                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                                {getHeaderDate(msg.rawDate)}
+                                                            </span>
+                                                            <div className="flex-1 h-px bg-slate-200" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex justify-center px-2 py-0.5">
+                                                        <div
+                                                            className="inline-flex flex-col items-center gap-0.5 rounded-2xl bg-slate-100 text-slate-600 text-xs px-4 py-2 max-w-[min(420px,92%)] text-center border border-slate-200 shadow-sm"
+                                                            title="Video call"
+                                                        >
+                                                            <span className="font-medium text-slate-700 leading-snug">{msg.text}</span>
+                                                            <span className="text-[10px] text-slate-400">{msg.time}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
                                         return (
                                             <div key={msg.id} className="space-y-4">
                                                 {showDateSeparator && (
@@ -890,7 +1326,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                                     {msg.sender === "contact" && (
                                                         <Avatar
                                                             name={selectedContact?.name || ""}
-                                                            src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined : undefined}
+                                                            src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture, contactProfileUserType) || undefined : undefined}
                                                             className="w-7 h-7 shrink-0 mb-1"
                                                         />
                                                     )}
@@ -1083,6 +1519,32 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                 </div>
             </div>
 
+            {/* ── Incoming video call ─────────────────────────────────────────────── */}
+            {incomingCall && selectedContact && !isVideoCallActive && (
+                <div className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center border border-slate-200">
+                        <p className="text-lg font-semibold text-slate-900">Incoming video call</p>
+                        <p className="text-slate-600 mt-2">{selectedContact.name}</p>
+                        <div className="flex gap-3 justify-center mt-6">
+                            <button
+                                type="button"
+                                onClick={declineIncomingCall}
+                                className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            >
+                                Decline
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void acceptIncomingCall()}
+                                className="px-5 py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+                            >
+                                Accept
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Video call modal ─────────────────────────────────────────────────── */}
             {(isVideoCallActive || videoCallError) && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -1104,23 +1566,33 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     <span className="text-white font-medium">
                                         Video call with {selectedContact?.name}
                                     </span>
-                                    <button type="button" onClick={endVideoCall}
+                                    <button type="button" onClick={() => endVideoCall({ recordHistory: true })}
                                         className="text-slate-400 hover:text-white text-sm cursor-pointer" aria-label="Close">
                                         ✕
                                     </button>
                                 </div>
                                 <div className="flex-1 relative flex gap-2 p-2 min-h-0">
                                     {/* Remote placeholder */}
-                                    <div className="flex-1 rounded-xl bg-slate-800 flex items-center justify-center min-w-0">
-                                        <div className="text-center text-slate-500">
-                                            <Avatar
-                                                name={selectedContact?.name || ""}
-                                                src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined : undefined}
-                                                className="w-20 h-20 mx-auto mb-2 opacity-80"
+                                    <div className="flex-1 rounded-xl bg-slate-800 flex items-center justify-center min-w-0 relative overflow-hidden">
+                                        {remoteStream ? (
+                                            <video
+                                                ref={remoteVideoRef}
+                                                autoPlay
+                                                playsInline
+                                                className="absolute inset-0 w-full h-full object-cover"
+                                                style={{ transform: "scaleX(-1)" }}
                                             />
-                                            <p className="font-medium text-slate-400">{selectedContact?.name}</p>
-                                            <p className="text-sm">Waiting for them to join…</p>
-                                        </div>
+                                        ) : (
+                                            <div className="text-center text-slate-500 p-4 z-10">
+                                                <Avatar
+                                                    name={selectedContact?.name || ""}
+                                                    src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture, contactProfileUserType) || undefined : undefined}
+                                                    className="w-20 h-20 mx-auto mb-2 opacity-80"
+                                                />
+                                                <p className="font-medium text-slate-400">{selectedContact?.name}</p>
+                                                <p className="text-sm">Waiting for the other person…</p>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Local camera */}
                                     <div className="w-64 shrink-0 min-h-[180px] rounded-xl overflow-hidden bg-slate-800 border-2 border-slate-600 relative">
@@ -1151,7 +1623,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         )}
                                     </button>
                                     {/* End call */}
-                                    <button type="button" onClick={endVideoCall}
+                                    <button type="button" onClick={() => endVideoCall({ recordHistory: true })}
                                         className="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white cursor-pointer"
                                         aria-label="End call">
                                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

@@ -13,6 +13,9 @@ chat_bp = Blueprint("chat", __name__, url_prefix="/api/chat")
 # Roles that clients are allowed to chat with and that can see client chats
 CLIENT_VISIBLE_ROLES = ("Technical Director", "Project Manager", "BIM Lead")
 
+# In-band WebRTC signaling for video calls (see ChatPanel). Do not spam chat notifications for these.
+VIDEO_SIGNAL_PREFIX = "[[SB_VIDEO]]"
+
 
 def _get_vendor_db():
     """Return a connection to the new_swiftbim (vendor/client) database."""
@@ -330,6 +333,11 @@ def get_contacts():
         key=lambda c: _parse_last_time(c.get("last_msg_time")),
         reverse=True,
     )
+    # Hide in-band WebRTC signaling from contact preview (same prefix as ChatPanel).
+    for c in contacts:
+        lm = c.get("last_message")
+        if isinstance(lm, str) and lm.startswith(VIDEO_SIGNAL_PREFIX):
+            c["last_message"] = "[Video call]"
     return jsonify({"contacts": contacts})
 
 
@@ -542,6 +550,8 @@ def send_message():
         to_id = data.get("to_id")
         message_text = (data.get("message") or "").strip()
 
+    is_video_signal = message_text.startswith(VIDEO_SIGNAL_PREFIX)
+
     # Handle file uploads (multipart only)
     uploaded_files = []
     if is_multipart:
@@ -620,13 +630,14 @@ def send_message():
             ),
         )
         sender_name = _get_sender_name(cur, client_id, "client", company_id)
-        cur.execute(
-            """
-            INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
-            VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
-            """,
-            (employee_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", client_id, company_id)
-        )
+        if not is_video_signal:
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
+                """,
+                (employee_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", client_id, company_id)
+            )
     else:
         # Employee portal:
         # Decide whether `to_id` is another employee in this company or a client.
@@ -655,13 +666,14 @@ def send_message():
                 (to_id, user_id, message_text, sender_type, company_id, attachments_json),
             )
             sender_name = _get_sender_name(cur, user_id, "employee", company_id)
-            cur.execute(
-                """
-                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
-                VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
-                """,
-                (to_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", user_id, company_id)
-            )
+            if not is_video_signal:
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
+                    """,
+                    (to_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", user_id, company_id)
+                )
         else:
             # Employee → client.
             # This must match the queries in get_conversation/get_new_messages
@@ -695,13 +707,14 @@ def send_message():
                 ),
             )
             sender_name = _get_sender_name(cur, user_id, "employee", company_id)
-            cur.execute(
-                """
-                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
-                VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
-                """,
-                (client_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", user_id, company_id)
-            )
+            if not is_video_signal:
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
+                    """,
+                    (client_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", user_id, company_id)
+                )
 
     new_id = cur.lastrowid
     return jsonify({"success": True, "id": new_id})
