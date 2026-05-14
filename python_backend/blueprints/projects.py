@@ -10,6 +10,8 @@ import calendar
 import json
 from datetime import date, datetime
 
+from advance_client_gate import hydrate_project_list_advance_gate
+
 
 def _get_vendor_db():
     """Return a connection to the new_swiftbim (vendor) database."""
@@ -302,106 +304,29 @@ def _as_int_id(value):
     return int(s) if s.isdigit() else None
 
 
-def _is_paid_like_status(value) -> bool:
-    s = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
-    if not s:
-        return False
-    return s in {"paid", "completed", "complete", "approved", "confirmed", "done"}
-
-
 def _hydrate_project_advance_payment_gate(project_dicts: list[dict]):
     """
-    Add advance-payment gate flags for projects linked to phase-1 client contracts.
+    Add advance-payment gate flags (new_swiftbim contracts, milestones, invoices).
 
-    Adds:
+    Adds / updates:
     - requires_advance_payment: bool
     - advance_payment_verified: bool
+    - swiftbim_contract_internal_id, swiftbim_proposal_id (optional hints for UI)
     """
     if not project_dicts:
         return
+    vendor_conn = None
     try:
-        client_ids = sorted(
-            {
-                cid
-                for cid in (_as_int_id(p.get("client_id")) for p in project_dicts)
-                if cid is not None
-            }
-        )
-        if not client_ids:
-            for p in project_dicts:
-                p["requires_advance_payment"] = False
-                p["advance_payment_verified"] = False
-            return
-
         vendor_conn = _get_vendor_db()
         vcur = vendor_conn.cursor(dictionary=True)
-
-        ph = ",".join(["%s"] * len(client_ids))
-        vcur.execute(
-            f"""
-            SELECT c.client_id, c.id AS contract_id
-            FROM contracts c
-            JOIN (
-                SELECT client_id, MAX(id) AS max_id
-                FROM contracts
-                WHERE client_id IN ({ph})
-                GROUP BY client_id
-            ) mx
-              ON mx.client_id = c.client_id
-             AND mx.max_id = c.id
-            """,
-            tuple(client_ids),
-        )
-        contract_by_client = {}
-        contract_ids = []
-        for r in (vcur.fetchall() or []):
-            cid = _as_int_id(r.get("client_id"))
-            coid = _as_int_id(r.get("contract_id"))
-            if cid is not None and coid is not None:
-                contract_by_client[cid] = coid
-                contract_ids.append(coid)
-
-        advance_verified_by_contract = {}
-        if contract_ids:
-            ph2 = ",".join(["%s"] * len(contract_ids))
-            vcur.execute(
-                f"""
-                SELECT contract_id, status, title, side
-                FROM payment_milestones
-                WHERE contract_id IN ({ph2})
-                """,
-                tuple(contract_ids),
-            )
-            rows = vcur.fetchall() or []
-            for rr in rows:
-                coid = _as_int_id(rr.get("contract_id"))
-                if coid is None:
-                    continue
-                side = str(rr.get("side") or "").strip().lower()
-                title = str(rr.get("title") or "").strip().lower()
-                if side != "client":
-                    continue
-                if "advance" not in title:
-                    continue
-                if _is_paid_like_status(rr.get("status")):
-                    advance_verified_by_contract[coid] = True
-                elif coid not in advance_verified_by_contract:
-                    advance_verified_by_contract[coid] = False
-
-        for p in project_dicts:
-            cid = _as_int_id(p.get("client_id"))
-            coid = contract_by_client.get(cid) if cid is not None else None
-            requires = coid is not None
-            verified = bool(advance_verified_by_contract.get(coid, False)) if coid is not None else False
-            p["requires_advance_payment"] = requires
-            p["advance_payment_verified"] = verified
+        hydrate_project_list_advance_gate(vcur, project_dicts)
     except Exception:
         for p in project_dicts:
-            p["requires_advance_payment"] = p.get("requires_advance_payment", False)
-            p["advance_payment_verified"] = p.get("advance_payment_verified", False)
+            p.setdefault("requires_advance_payment", False)
+            p.setdefault("advance_payment_verified", True)
     finally:
         try:
-            if "vendor_conn" in locals() and vendor_conn.is_connected():
+            if vendor_conn is not None and vendor_conn.is_connected():
                 vendor_conn.close()
         except Exception:
             pass

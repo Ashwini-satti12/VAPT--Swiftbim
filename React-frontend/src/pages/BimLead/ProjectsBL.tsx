@@ -5,6 +5,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import toast from "react-hot-toast";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
+import {
+  buildAdvancePaymentMilestonesHref,
+  INTERNAL_ADVANCE_BLOCK_MESSAGE,
+  isClientAdvanceBlockingProject,
+} from "../../lib/clientAdvanceGate";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -451,6 +456,7 @@ interface Project {
   budget?: string;
   module_name?: string;
   client_id?: number | string;
+  main_project_id?: number;
   client_name?: string;
   project_manager?: string;
   project_manager_id?: string;
@@ -478,6 +484,10 @@ interface Project {
   source?: "In House" | "Outsource";
   currency?: string;
   currency_locked?: boolean;
+  requires_advance_payment?: boolean;
+  advance_payment_verified?: boolean;
+  swiftbim_contract_internal_id?: number | null;
+  swiftbim_proposal_id?: number | null;
 }
 
 interface Milestone {
@@ -537,6 +547,8 @@ export default function ProjectsBL() {
   const [createError, setCreateError] = useState("");
   const [editError, setEditError] = useState("");
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
+  const [advanceBlockedProject, setAdvanceBlockedProject] =
+    useState<Project | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(
@@ -746,6 +758,14 @@ export default function ProjectsBL() {
     priority: r.priority != null ? String(r.priority) : "Medium",
     budget: r.budget != null ? String(r.budget) : undefined,
     module_name: r.modules != null ? String(r.modules) : undefined,
+    client_id:
+      r.client_id != null && String(r.client_id).trim() !== ""
+        ? Number(r.client_id)
+        : undefined,
+    main_project_id:
+      r.main_project_id != null && String(r.main_project_id).trim() !== ""
+        ? Number(r.main_project_id)
+        : undefined,
     client_name: r.client_name != null ? String(r.client_name) : undefined,
     project_manager:
       r.project_manager_name != null
@@ -816,6 +836,18 @@ export default function ProjectsBL() {
     currency_locked:
       r.selected_currency != null &&
       String(r.selected_currency).trim().length > 0,
+    requires_advance_payment: Boolean(r.requires_advance_payment),
+    advance_payment_verified: Boolean(r.advance_payment_verified),
+    swiftbim_contract_internal_id:
+      r.swiftbim_contract_internal_id != null &&
+      String(r.swiftbim_contract_internal_id).trim() !== ""
+        ? Number(r.swiftbim_contract_internal_id)
+        : undefined,
+    swiftbim_proposal_id:
+      r.swiftbim_proposal_id != null &&
+      String(r.swiftbim_proposal_id).trim() !== ""
+        ? Number(r.swiftbim_proposal_id)
+        : undefined,
   });
 
   const fetchMilestones = (projectId: number) => {
@@ -1164,6 +1196,16 @@ export default function ProjectsBL() {
         }
       });
   }, [searchParams, list, loading, setSearchParams]);
+
+  useEffect(() => {
+    if (!showProjectView || !selectedProjectForView) return;
+    if (!isClientAdvanceBlockingProject(selectedProjectForView)) return;
+    const p = selectedProjectForView;
+    setSearchParams({}, { replace: true });
+    setShowProjectView(false);
+    setSelectedProjectForView(null);
+    setAdvanceBlockedProject(p);
+  }, [showProjectView, selectedProjectForView, setSearchParams]);
 
   if (loading) {
     return (
@@ -4470,6 +4512,7 @@ export default function ProjectsBL() {
 
                 return filtered.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
+                  const blockAdvance = isClientAdvanceBlockingProject(p);
                   const memberIds = p.member
                     ? p.member
                         .split(",")
@@ -4546,6 +4589,10 @@ export default function ProjectsBL() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOpenMenuId(null);
+                                  if (blockAdvance) {
+                                    setAdvanceBlockedProject(p);
+                                    return;
+                                  }
                                   setSearchParams({
                                     projectId: String(p.id),
                                     source:
@@ -4565,7 +4612,7 @@ export default function ProjectsBL() {
                                   View
                                 </span>
                               </button>
-                              {p.source !== "Outsource" &&
+                              {/* {p.source !== "Outsource" &&
                                 (isTechnicalDirector || isManagement) && (
                                   <button
                                     onClick={(e) => {
@@ -4585,11 +4632,16 @@ export default function ProjectsBL() {
                                       Payment Milestones
                                     </span>
                                   </button>
-                                )}
+                                )} */}
                               {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setOpenMenuId(null);
+                                    if (blockAdvance) {
+                                      setAdvanceBlockedProject(p);
+                                      return;
+                                    }
                                     resetFormFields();
                                     setSelectedProjectForEdit(p);
                                     setCreateName(p.project_name ?? "");
@@ -4811,6 +4863,55 @@ export default function ProjectsBL() {
                   );
                 });
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {advanceBlockedProject !== null && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[20px] shadow-2xl max-w-lg w-full p-8 border border-gray-100">
+            <div className="flex items-start justify-between gap-3 mb-4">
+            <button
+                type="button"
+                onClick={() => setAdvanceBlockedProject(null)}
+                className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 cursor-pointer"
+                aria-label="Close"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+              <h3 className="text-xl font-bold text-[#DD4342] font-Gantari text-center w-full pr-6">
+                Advance payment required
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-8 font-Gantari leading-relaxed">
+              {INTERNAL_ADVANCE_BLOCK_MESSAGE}
+            </p>
+            <div className="flex flex-wrap gap-3 justify-end">
+              {/* <button
+                type="button"
+                onClick={() => setAdvanceBlockedProject(null)}
+                className="px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 font-Gantari cursor-pointer"
+              >
+                Close
+              </button> */}
+              {/* <button
+                type="button"
+                onClick={() => {
+                  navigate(
+                    buildAdvancePaymentMilestonesHref(advanceBlockedProject),
+                  );
+                  setAdvanceBlockedProject(null);
+                }}
+                className="px-6 py-3 bg-[#DD4342] text-white font-bold rounded-xl hover:opacity-95 font-Gantari cursor-pointer inline-flex items-center gap-2"
+              >
+                <img
+                  src={paymentMilestone}
+                  alt=""
+                  className="w-5 h-5 [filter:brightness(0)_invert(1)]"
+                />
+                Payment Milestones
+              </button> */}
             </div>
           </div>
         </div>

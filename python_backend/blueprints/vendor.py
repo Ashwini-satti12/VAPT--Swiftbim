@@ -6770,7 +6770,13 @@ def list_vendor_projects():
     projects = [dict(r) for r in rows]
     _hydrate_vendor_projects_phase1(vcur, projects)
     _hydrate_vendor_employee_names(vcur, projects)
-    
+    try:
+        from advance_client_gate import hydrate_project_list_advance_gate
+
+        hydrate_project_list_advance_gate(vcur, projects)
+    except Exception:
+        pass
+
     # Aggregate vendor_task counts per project for task statistics
     project_ids = [p["id"] for p in projects if p.get("id") is not None]
     task_counts = {}
@@ -7155,6 +7161,12 @@ def get_vendor_project_detail(project_id):
     vcur = vendor_cursor()
     _hydrate_vendor_projects_phase1(vcur, [project])
     _hydrate_vendor_employee_names(vcur, [project])
+    try:
+        from advance_client_gate import hydrate_project_list_advance_gate
+
+        hydrate_project_list_advance_gate(vcur, [project])
+    except Exception:
+        pass
 
     # Aggregate vendor_task counts for this project
     cur.execute(

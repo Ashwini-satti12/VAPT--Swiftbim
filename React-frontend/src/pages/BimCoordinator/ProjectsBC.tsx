@@ -4,6 +4,11 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
+import {
+  buildAdvancePaymentMilestonesHref,
+  INTERNAL_ADVANCE_BLOCK_MESSAGE,
+  isClientAdvanceBlockingProject,
+} from "../../lib/clientAdvanceGate";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 
@@ -463,6 +468,7 @@ interface Project {
   budget?: string;
   budget_ceiling?: string;
   module_name?: string;
+  client_id?: number;
   client_name?: string;
   project_manager?: string;
   project_manager_id?: string;
@@ -489,6 +495,11 @@ interface Project {
   source?: "In House" | "Outsource";
   currency?: string;
   currency_locked?: boolean;
+  main_project_id?: number;
+  requires_advance_payment?: boolean;
+  advance_payment_verified?: boolean;
+  swiftbim_contract_internal_id?: number | null;
+  swiftbim_proposal_id?: number | null;
 }
 
 interface Milestone {
@@ -544,6 +555,8 @@ export default function ProjectsBC() {
   const [createError, setCreateError] = useState("");
   const [editError, setEditError] = useState("");
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
+  const [advanceBlockedProject, setAdvanceBlockedProject] =
+    useState<Project | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(
@@ -735,6 +748,14 @@ export default function ProjectsBC() {
       r.selected_currency != null &&
       String(r.selected_currency).trim().length > 0,
     module_name: r.modules,
+    client_id:
+      r.client_id != null && String(r.client_id).trim() !== ""
+        ? Number(r.client_id)
+        : undefined,
+    main_project_id:
+      r.main_project_id != null && String(r.main_project_id).trim() !== ""
+        ? Number(r.main_project_id)
+        : undefined,
     client_name: r.client_name,
     project_manager:
       r.project_manager_name != null
@@ -781,6 +802,22 @@ export default function ProjectsBC() {
     description: r.description,
     tasks: r.tasks,
     document_attachment: r.document_attachment,
+    source:
+      r.source != null && String(r.source) !== "undefined"
+        ? (String(r.source) as "In House" | "Outsource")
+        : undefined,
+    requires_advance_payment: Boolean(r.requires_advance_payment),
+    advance_payment_verified: Boolean(r.advance_payment_verified),
+    swiftbim_contract_internal_id:
+      r.swiftbim_contract_internal_id != null &&
+      String(r.swiftbim_contract_internal_id).trim() !== ""
+        ? Number(r.swiftbim_contract_internal_id)
+        : undefined,
+    swiftbim_proposal_id:
+      r.swiftbim_proposal_id != null &&
+      String(r.swiftbim_proposal_id).trim() !== ""
+        ? Number(r.swiftbim_proposal_id)
+        : undefined,
   });
 
   // Fetch task status counts for the selected project
@@ -964,6 +1001,16 @@ export default function ProjectsBC() {
         }
       });
   }, [searchParams, list, setSearchParams]);
+
+  useEffect(() => {
+    if (!showProjectView || !selectedProjectForView) return;
+    if (!isClientAdvanceBlockingProject(selectedProjectForView)) return;
+    const p = selectedProjectForView;
+    setSearchParams({}, { replace: true });
+    setShowProjectView(false);
+    setSelectedProjectForView(null);
+    setAdvanceBlockedProject(p);
+  }, [showProjectView, selectedProjectForView, setSearchParams]);
 
   if (loading) {
     return (
@@ -4101,6 +4148,7 @@ export default function ProjectsBC() {
                   ) : (
                     displayList.map((p) => {
                       const progress = Math.round(p.progress ?? 0);
+                      const blockAdvance = isClientAdvanceBlockingProject(p);
                       const radius = 28;
                       const circumference = 2 * Math.PI * radius;
                       const offset =
@@ -4184,6 +4232,10 @@ export default function ProjectsBC() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setOpenMenuProjectId(null);
+                                      if (blockAdvance) {
+                                        setAdvanceBlockedProject(p);
+                                        return;
+                                      }
                                       setSearchParams({
                                         projectId: String(p.id),
                                         source: String(p.source || "In House"),
@@ -4225,6 +4277,10 @@ export default function ProjectsBC() {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setOpenMenuProjectId(null);
+                                        if (blockAdvance) {
+                                          setAdvanceBlockedProject(p);
+                                          return;
+                                        }
                                         setSelectedProjectForEdit(p);
                                         setCreateName(p.project_name ?? "");
                                         setCreateBudget(
@@ -4504,8 +4560,57 @@ export default function ProjectsBC() {
                 })()}
                 </div>
               </div>
+        </div>
+      )}
+
+      {advanceBlockedProject !== null && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-lg w-full p-6 relative flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-3">
+            <button
+                type="button"
+                onClick={() => setAdvanceBlockedProject(null)}
+                className="shrink-0 p-2 rounded-md bg-[#F2F2F2] text-gray-800 cursor-pointer"
+                aria-label="Close"
+              >
+                <img src={closeBtnIcon} alt="" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[18px] font-Gantari font-semibold text-[#DD4342] text-center w-full pr-8">
+                Advance payment required
+              </h3>
             </div>
-          )}
+            <p className="text-[14px] font-Gantari text-[#353535] leading-relaxed">
+              {INTERNAL_ADVANCE_BLOCK_MESSAGE}
+            </p>
+            <div className="flex flex-wrap items-center gap-3 justify-end pt-2">
+              {/* <button
+                type="button"
+                onClick={() => setAdvanceBlockedProject(null)}
+                className="px-5 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-Gantari font-semibold text-[14px] cursor-pointer"
+              >
+                Close
+              </button> */}
+              {/* <button
+                type="button"
+                onClick={() => {
+                  navigate(
+                    buildAdvancePaymentMilestonesHref(advanceBlockedProject),
+                  );
+                  setAdvanceBlockedProject(null);
+                }}
+                className="px-5 py-2 rounded-md bg-[#DD4342] text-white font-Gantari font-semibold text-[14px] cursor-pointer inline-flex items-center gap-2"
+              >
+                <img
+                  src={paymentMilestone}
+                  alt=""
+                  className="w-5 h-5 [filter:brightness(0)_invert(1)]"
+                />
+                Payment Milestones
+              </button> */}
+            </div>
+          </div>
+        </div>
+      )}
 
         {deleteProject !== null && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
