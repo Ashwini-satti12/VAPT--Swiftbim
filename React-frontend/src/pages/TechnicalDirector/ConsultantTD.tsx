@@ -1847,7 +1847,7 @@ export default function ConsultantTD() {
                           </div>
                           {(emp.active === 'deactive' || emp.active === 'inactive') && (
                             <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[12px] font-semibold rounded-[5px] shrink-0 font-Gantari">
-                              Currently In-Active
+                              Currently Inactive
                             </span>
                           )}
                         </div>
