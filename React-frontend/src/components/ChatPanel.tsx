@@ -229,22 +229,27 @@ type RawChatMessage = {
 
 function mergePolledMessages(prev: MessageItem[], incoming: MessageItem[]): MessageItem[] {
     if (incoming.length === 0) return prev;
-    let next = [...prev];
+    let next: MessageItem[] | null = null;
+    const ensureNext = () => {
+        if (!next) next = [...prev];
+        return next;
+    };
     for (const m of incoming) {
-        if (next.some((x) => x.id === m.id)) continue;
+        if (prev.some((x) => x.id === m.id)) continue;
+        const list = ensureNext();
         if (m.sender === "user") {
-            const optIdx = next.findIndex(
+            const optIdx = list.findIndex(
                 (x) =>
                     x.id.startsWith("optimistic-") &&
                     x.sender === "user" &&
                     x.text === m.text &&
                     (x.attachments?.length ?? 0) === (m.attachments?.length ?? 0)
             );
-            if (optIdx !== -1) next.splice(optIdx, 1);
+            if (optIdx !== -1) list.splice(optIdx, 1);
         }
-        next.push(m);
+        list.push(m);
     }
-    return next;
+    return next ?? prev;
 }
 
 const VIDEO_SIGNAL_MAX_AGE_MS = 45_000;
@@ -522,6 +527,10 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesScrollRef = useRef<HTMLDivElement>(null);
+    const stickToBottomRef = useRef(true);
+    const prevMessageCountRef = useRef(0);
+    const scrollContactIdRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
@@ -609,9 +618,6 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         };
         setContacts(updater);
         contactsRef.current = updater(contactsRef.current);
-        setSelectedContact((prev) =>
-            prev?.id === contactId ? { ...prev, lastMessage: preview, lastMsgTime: nowIso } : prev
-        );
     }, []);
 
     // ── Fetch contacts ──────────────────────────────────────────────────────────
@@ -910,9 +916,15 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     }, [user?.id, markVideoSignalProcessed, markCallIdHandled]);
 
     useEffect(() => {
-        if (!selectedContact) return;
-        loadConversation(selectedContact.id);
-    }, [selectedContact, loadConversation]);
+        const contactId = selectedContact?.id;
+        if (!contactId) return;
+        setMessages([]);
+        lastMessageIdRef.current = 0;
+        stickToBottomRef.current = true;
+        scrollContactIdRef.current = null;
+        prevMessageCountRef.current = 0;
+        loadConversation(contactId);
+    }, [selectedContact?.id, loadConversation]);
 
     // ── Polling for new messages ────────────────────────────────────────────────
     useEffect(() => {
@@ -965,13 +977,18 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 replyTo,
                             };
                         });
-                        setMessages((prev) => mergePolledMessages(prev, mapped));
-                        const lastRow = chatRows[chatRows.length - 1];
-                        const pv = contactPreviewFromRawMessage(
-                            lastRow.message ?? "",
-                            lastRow.attachments
-                        );
-                        if (pv) bumpContactPreview(selectedContact.id, pv);
+                        setMessages((prev) => {
+                            const merged = mergePolledMessages(prev, mapped);
+                            if (merged !== prev) {
+                                const lastRow = chatRows[chatRows.length - 1];
+                                const pv = contactPreviewFromRawMessage(
+                                    lastRow.message ?? "",
+                                    lastRow.attachments
+                                );
+                                if (pv) bumpContactPreview(selectedContact.id, pv);
+                            }
+                            return merged;
+                        });
                     }
                     lastMessageIdRef.current = maxId;
                 }
@@ -1028,8 +1045,34 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         };
     }, [user?.id]);
 
-    // ── Auto-scroll ─────────────────────────────────────────────────────────────
-    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+    const handleMessagesScroll = useCallback(() => {
+        const el = messagesScrollRef.current;
+        if (!el) return;
+        stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    }, []);
+
+    // ── Auto-scroll (only when new messages and user is near bottom) ─────────────
+    useEffect(() => {
+        if (messagesLoading) return;
+        const contactId = selectedContact?.id ?? null;
+        const contactChanged = contactId != null && scrollContactIdRef.current !== contactId;
+        if (contactChanged) {
+            scrollContactIdRef.current = contactId;
+            stickToBottomRef.current = true;
+            prevMessageCountRef.current = messages.length;
+            requestAnimationFrame(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+            });
+            return;
+        }
+        const grew = messages.length > prevMessageCountRef.current;
+        prevMessageCountRef.current = messages.length;
+        if (grew && stickToBottomRef.current) {
+            requestAnimationFrame(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+            });
+        }
+    }, [messages, messagesLoading, selectedContact?.id]);
 
     // ── Context menu ────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -1657,7 +1700,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     </button>
                                 </div>
                             )}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+                            <div
+                                ref={messagesScrollRef}
+                                onScroll={handleMessagesScroll}
+                                className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
+                            >
                                 {messagesLoading ? (
                                     <div className="flex items-center justify-center py-12">
                                         <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />

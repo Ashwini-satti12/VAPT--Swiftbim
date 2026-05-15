@@ -15,6 +15,7 @@ CLIENT_VISIBLE_ROLES = ("Technical Director", "Project Manager", "BIM Lead")
 
 # In-band WebRTC signaling for video calls (see ChatPanel). Do not spam chat notifications for these.
 VIDEO_SIGNAL_PREFIX = "[[SB_VIDEO]]"
+CHAT_HISTORY_LIMIT = 200
 
 
 def _get_vendor_db():
@@ -539,7 +540,7 @@ def clear_conversation(contact_id):
 @chat_bp.route("/conversation/<int:contact_id>", methods=["GET"])
 @_chat_auth_required
 def get_conversation(contact_id):
-    """Return last 50 messages between the current user and <contact_id>."""
+    """Return recent messages between the current user and <contact_id>."""
     conn = get_db()
     cur = conn.cursor()
 
@@ -583,7 +584,7 @@ def get_conversation(contact_id):
                   )
                   AND (date > %s OR %s IS NULL)
                 ORDER BY date ASC
-                LIMIT 50
+                LIMIT %s
             """,
             (
                 client_id,
@@ -597,6 +598,7 @@ def get_conversation(contact_id):
                 employee_id,
                 cleared_at,
                 cleared_at,
+                CHAT_HISTORY_LIMIT,
             ),
         )
     else:
@@ -623,8 +625,8 @@ def get_conversation(contact_id):
                    )
                    AND (date > %s OR %s IS NULL)
                    ORDER BY date ASC
-                   LIMIT 50""",
-                (user_id, contact_id, contact_id, user_id, cleared_at, cleared_at),
+                   LIMIT %s""",
+                (user_id, contact_id, contact_id, user_id, cleared_at, cleared_at, CHAT_HISTORY_LIMIT),
             )
         else:
             # Employee portal talking to a client contact. Use the same
@@ -661,7 +663,7 @@ def get_conversation(contact_id):
                       )
                       AND (date > %s OR %s IS NULL)
                     ORDER BY date ASC
-                    LIMIT 50
+                    LIMIT %s
                 """,
                 (
                     client_id,
@@ -675,6 +677,7 @@ def get_conversation(contact_id):
                     employee_id,
                     cleared_at,
                     cleared_at,
+                    CHAT_HISTORY_LIMIT,
                 ),
             )
     rows = cur.fetchall()
