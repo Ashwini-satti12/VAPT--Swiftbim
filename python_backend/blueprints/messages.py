@@ -42,6 +42,33 @@ def _parse_last_time(value):
         return datetime.min
 
 
+def _preview_message_text(text):
+    """Normalize a message row for the contacts list preview."""
+    if not text or not str(text).strip():
+        return ""
+    s = str(text).strip()
+    if s.startswith(VIDEO_SIGNAL_PREFIX):
+        return "[Video call]"
+    if s.startswith("Video call") or s.startswith("📹"):
+        return "[Video call]"
+    if s.startswith("↪ Forwarded"):
+        return "Forwarded"
+    return s
+
+
+def _preview_from_row(msg_text, attachments_raw):
+    """Build contact preview from message text + attachments JSON."""
+    preview = _preview_message_text(msg_text)
+    if preview:
+        return preview
+    if attachments_raw and str(attachments_raw) not in ("[]", "null", ""):
+        att_s = str(attachments_raw)
+        if '"type": "image"' in att_s or '"type":"image"' in att_s:
+            return "[Image]"
+        return "[Attachment]"
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Existing message endpoints (preserved)
 # ---------------------------------------------------------------------------
@@ -102,6 +129,26 @@ def _resolve_chat_user():
     user_type = payload.get("user_type") or "employee"
     user_role = payload.get("user_role")
     return payload.get("user_id"), payload.get("company_id"), user_type, user_role
+
+
+def _assign_message_sender(d, user_id, user_type):
+    """Normalized sender for chat UI: user = logged-in viewer, contact = other party."""
+    sender_type = (d.get("sender_type") or "").lower()
+    if user_type == "client":
+        d["sender"] = "user" if sender_type == "client" else "contact"
+        return
+    if sender_type == "client":
+        d["sender"] = "contact"
+        return
+    if sender_type == "employee":
+        out = d.get("outgoing")
+        try:
+            out_id = int(str(out).strip()) if out is not None and str(out).strip() != "" else None
+        except (TypeError, ValueError):
+            out_id = None
+        d["sender"] = "user" if out_id == int(user_id) else "contact"
+        return
+    d["sender"] = "contact"
 
 
 def _get_cleared_at(cur, user_id, user_type, contact_id):
@@ -195,26 +242,32 @@ def get_contacts():
                     e.profile_picture,
                     e.status,
                     (
-                        SELECT MAX(m.date)
+                        SELECT m.date
                         FROM messages m
                         WHERE
                               (m.incoming = e.id AND m.client_id_outgoing = %s)
                            OR (m.outgoing = e.id AND m.client_id_incoming = %s)
+                        ORDER BY m.messages_id DESC
+                        LIMIT 1
                     ) AS last_msg_time,
                     (
-                        SELECT CASE 
-                            WHEN TRIM(m2.messages) != "" THEN m2.messages
-                            WHEN m2.attachments IS NOT NULL AND m2.attachments != "[]" AND m2.attachments != "null" THEN 
-                                CASE WHEN m2.attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
-                            ELSE ""
-                        END
+                        SELECT m2.messages
                         FROM messages m2
                         WHERE
                               (m2.incoming = e.id AND m2.client_id_outgoing = %s)
                            OR (m2.outgoing = e.id AND m2.client_id_incoming = %s)
-                        ORDER BY m2.date DESC
+                        ORDER BY m2.messages_id DESC
                         LIMIT 1
-                    ) AS last_message
+                    ) AS _last_msg_raw,
+                    (
+                        SELECT m2.attachments
+                        FROM messages m2
+                        WHERE
+                              (m2.incoming = e.id AND m2.client_id_outgoing = %s)
+                           OR (m2.outgoing = e.id AND m2.client_id_incoming = %s)
+                        ORDER BY m2.messages_id DESC
+                        LIMIT 1
+                    ) AS _last_att_raw
                 FROM employee e
                 WHERE e.Company_id = %s
                   AND e.active = 'active'
@@ -222,6 +275,10 @@ def get_contacts():
                 ORDER BY last_msg_time DESC, e.full_name ASC
             """,
             (
+                client_id,
+                client_id,
+                client_id,
+                client_id,
                 client_id,
                 client_id,
                 client_id,
@@ -234,26 +291,22 @@ def get_contacts():
     else:
         cur.execute(
             """SELECT e.id, e.full_name, e.user_role, e.profile_picture, e.status,
-                      MAX(m.date) AS last_msg_time,
-                      (SELECT CASE 
-                               WHEN TRIM(m2.messages) != "" THEN m2.messages
-                               WHEN m2.attachments IS NOT NULL AND m2.attachments != "[]" AND m2.attachments != "null" THEN 
-                                   CASE WHEN m2.attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
-                               ELSE ""
-                            END
-                       FROM messages m2
-                       WHERE ((m2.outgoing = %s AND m2.incoming = e.id)
-                              OR (m2.outgoing = e.id AND m2.incoming = %s))
-                       ORDER BY m2.date DESC LIMIT 1) AS last_message
+                      (SELECT m.date FROM messages m
+                       WHERE (m.outgoing = %s AND m.incoming = e.id)
+                          OR (m.outgoing = e.id AND m.incoming = %s)
+                       ORDER BY m.messages_id DESC LIMIT 1) AS last_msg_time,
+                      (SELECT m2.messages FROM messages m2
+                       WHERE (m2.outgoing = %s AND m2.incoming = e.id)
+                          OR (m2.outgoing = e.id AND m2.incoming = %s)
+                       ORDER BY m2.messages_id DESC LIMIT 1) AS _last_msg_raw,
+                      (SELECT m2.attachments FROM messages m2
+                       WHERE (m2.outgoing = %s AND m2.incoming = e.id)
+                          OR (m2.outgoing = e.id AND m2.incoming = %s)
+                       ORDER BY m2.messages_id DESC LIMIT 1) AS _last_att_raw
                FROM employee e
-               LEFT JOIN messages m ON (
-                   (m.outgoing = %s AND m.incoming = e.id)
-                   OR (m.outgoing = e.id AND m.incoming = %s)
-               )
                WHERE e.Company_id = %s AND e.id != %s AND e.active = 'active'
-               GROUP BY e.id
                ORDER BY last_msg_time DESC, e.full_name ASC""",
-            (user_id, user_id, user_id, user_id, company_id, user_id),
+            (user_id, user_id, user_id, user_id, user_id, user_id, company_id, user_id),
         )
 
     rows = cur.fetchall()
@@ -262,59 +315,101 @@ def get_contacts():
         d = dict(r)
         if d.get("last_msg_time") and hasattr(d["last_msg_time"], "isoformat"):
             d["last_msg_time"] = d["last_msg_time"].isoformat()
+        d["last_message"] = _preview_from_row(d.pop("_last_msg_raw", None), d.pop("_last_att_raw", None))
         contacts.append(d)
 
-    # For employee-side chat, also surface client chat rooms based on messages
-    # stored with client_id_outgoing/client_id_incoming, using client records
-    # from the new_swiftbim.users table where role = 'client'.
+    # Employee portal: always list client chat rooms (not only after first message).
     if g.chat_user_type != "client":
+        employee_ids = {int(c["id"]) for c in contacts if c.get("id") is not None}
+        client_name_by_id = {}
+
         try:
             vendor_conn = _get_vendor_db()
             vendor_cur = vendor_conn.cursor(dictionary=True)
             vendor_cur.execute(
                 "SELECT id, full_name FROM users WHERE role = 'client'"
             )
-            client_rows = vendor_cur.fetchall()
+            for crow in vendor_cur.fetchall():
+                cid = crow.get("id")
+                if cid is not None:
+                    client_name_by_id[int(cid)] = crow.get("full_name") or f"Client #{cid}"
         except Exception:
-            client_rows = []
+            pass
         finally:
             if "vendor_conn" in locals() and vendor_conn.is_connected():
                 vendor_conn.close()
 
-        for crow in client_rows:
-            cid = crow.get("id")
-            if cid is None:
-                continue
-            client_id = int(cid)
-
-            # Find last message between this employee and the client.
+        try:
             cur.execute(
                 """
-                    SELECT 
-                        CASE 
-                            WHEN TRIM(messages) != "" THEN messages
-                            WHEN attachments IS NOT NULL AND attachments != "[]" AND attachments != "null" THEN 
-                                CASE WHEN attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
-                            ELSE ""
-                        END AS messages, 
-                        date
+                SELECT DISTINCT CAST(client_id AS UNSIGNED) AS cid
+                FROM project
+                WHERE Company_id = %s
+                  AND client_id IS NOT NULL
+                  AND TRIM(CAST(client_id AS CHAR)) != ''
+                  AND CAST(client_id AS UNSIGNED) > 0
+                """,
+                (company_id,),
+            )
+            for row in cur.fetchall():
+                cid = row.get("cid") if isinstance(row, dict) else row[0]
+                if cid is not None:
+                    client_name_by_id.setdefault(int(cid), f"Client #{int(cid)}")
+        except Exception:
+            pass
+
+        for client_id, full_name in client_name_by_id.items():
+            if client_id in employee_ids:
+                continue
+            crow = {"id": client_id, "full_name": full_name}
+            # Find last message between this employee and the client (new + legacy rows).
+            cur.execute(
+                """
+                    SELECT messages, attachments, date
                     FROM messages
                     WHERE
-                          (incoming = %s AND client_id_outgoing = %s)
-                       OR (outgoing = %s AND client_id_incoming = %s)
-                    ORDER BY date DESC
+                      (
+                        (client_id_outgoing = %s OR client_id_incoming = %s)
+                        AND (outgoing = %s OR incoming = %s)
+                      )
+                      OR
+                      (
+                        (client_id_outgoing IS NULL OR client_id_outgoing = '')
+                        AND (client_id_incoming IS NULL OR client_id_incoming = '')
+                        AND (
+                              (outgoing = %s AND incoming = %s)
+                           OR (outgoing = %s AND incoming = %s)
+                        )
+                      )
+                    ORDER BY messages_id DESC
                     LIMIT 1
                 """,
-                (user_id, client_id, user_id, client_id),
+                (
+                    client_id,
+                    client_id,
+                    user_id,
+                    user_id,
+                    user_id,
+                    client_id,
+                    client_id,
+                    user_id,
+                ),
             )
             mrow = cur.fetchone()
-            if not mrow:
-                # Skip clients with no conversation yet
-                continue
-            last_msg = mrow.get("messages") if isinstance(mrow, dict) else mrow[0]
-            last_time = mrow.get("date") if isinstance(mrow, dict) else (mrow[1] if len(mrow) > 1 else None)
-            if last_time and hasattr(last_time, "isoformat"):
-                last_time = last_time.isoformat()
+            last_msg = None
+            last_time = None
+            if mrow:
+                if isinstance(mrow, dict):
+                    raw_text = mrow.get("messages")
+                    raw_att = mrow.get("attachments")
+                    last_time = mrow.get("date")
+                else:
+                    raw_text = mrow[0]
+                    raw_att = mrow[1] if len(mrow) > 1 else None
+                    last_time = mrow[2] if len(mrow) > 2 else None
+                last_msg = _preview_from_row(raw_text, raw_att)
+                if last_time and hasattr(last_time, "isoformat"):
+                    last_time = last_time.isoformat()
 
             contacts.append(
                 {
@@ -333,12 +428,92 @@ def get_contacts():
         key=lambda c: _parse_last_time(c.get("last_msg_time")),
         reverse=True,
     )
-    # Hide in-band WebRTC signaling from contact preview (same prefix as ChatPanel).
-    for c in contacts:
-        lm = c.get("last_message")
-        if isinstance(lm, str) and lm.startswith(VIDEO_SIGNAL_PREFIX):
-            c["last_message"] = "[Video call]"
     return jsonify({"contacts": contacts})
+
+
+def _video_signal_recipient_sql(user_type):
+    """SQL fragment: rows addressed TO the logged-in chat user (not sent by them)."""
+    if user_type == "client":
+        return (
+            "CAST(client_id_incoming AS CHAR) = %s",
+            lambda uid: (str(uid),),
+        )
+    # Employee: peer employee (incoming = me) or client thread (client_id_outgoing set, I am incoming)
+    return (
+        """(
+            CAST(incoming AS UNSIGNED) = %s
+            OR (
+                CAST(client_id_outgoing AS CHAR) != ''
+                AND CAST(client_id_outgoing AS CHAR) IS NOT NULL
+                AND CAST(incoming AS UNSIGNED) = %s
+            )
+        )""",
+        lambda uid: (uid, uid),
+    )
+
+
+@chat_bp.route("/video-signals/watermark", methods=["GET"])
+@_chat_auth_required
+def get_video_signals_watermark():
+    """Highest video-signal message id already addressed to this user (skip replay on connect)."""
+    conn = get_db()
+    cur = conn.cursor()
+    user_id = g.chat_user_id
+    where, params_fn = _video_signal_recipient_sql(g.chat_user_type)
+    prefix = VIDEO_SIGNAL_PREFIX + "%"
+    cur.execute(
+        f"""
+            SELECT COALESCE(MAX(messages_id), 0) AS last_id
+            FROM messages
+            WHERE messages LIKE %s AND {where}
+        """,
+        (prefix, *params_fn(user_id)),
+    )
+    row = cur.fetchone()
+    last_id = 0
+    if row:
+        last_id = row.get("last_id") if isinstance(row, dict) else row[0]
+    return jsonify({"last_id": int(last_id or 0)})
+
+
+@chat_bp.route("/video-signals/since/<int:last_id>", methods=["GET"])
+@_chat_auth_required
+def get_video_signals_since(last_id):
+    """Poll in-band WebRTC signaling for any contact (not only the open conversation)."""
+    conn = get_db()
+    cur = conn.cursor()
+    user_id = g.chat_user_id
+    where, params_fn = _video_signal_recipient_sql(g.chat_user_type)
+    prefix = VIDEO_SIGNAL_PREFIX + "%"
+    cur.execute(
+        f"""
+            SELECT messages_id AS id,
+                   incoming,
+                   outgoing,
+                   messages AS message,
+                   date,
+                   sender_type,
+                   client_id_outgoing,
+                   client_id_incoming
+            FROM messages
+            WHERE messages_id > %s
+              AND messages LIKE %s
+              AND {where}
+              AND date > DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+            ORDER BY messages_id ASC
+            LIMIT 50
+        """,
+        (last_id, prefix, *params_fn(user_id)),
+    )
+    rows = cur.fetchall()
+    msgs = []
+    for r in rows:
+        d = dict(r)
+        if d.get("date") and hasattr(d["date"], "isoformat"):
+            d["date"] = d["date"].isoformat()
+        _assign_message_sender(d, user_id, g.chat_user_type)
+        msgs.append(d)
+    return jsonify({"messages": msgs})
 
 
 @chat_bp.route("/conversation/<int:contact_id>/clear", methods=["POST"])
@@ -517,15 +692,7 @@ def get_conversation(contact_id):
             except Exception:
                 d["attachments"] = None
 
-        # Normalized sender field to match client portal API:
-        # - For client portal, 'client' rows are from the logged-in user.
-        # - For employee portal, 'employee' rows are from the logged-in user.
-        sender_type = (d.get("sender_type") or "").lower()
-        if g.chat_user_type == "client":
-            d["sender"] = "user" if sender_type == "client" else "contact"
-        else:
-            d["sender"] = "user" if sender_type == "employee" else "contact"
-
+        _assign_message_sender(d, user_id, g.chat_user_type)
         msgs.append(d)
     return jsonify({"messages": msgs})
 
@@ -864,11 +1031,6 @@ def get_new_messages(contact_id, last_id):
             except Exception:
                 d["attachments"] = None
 
-        sender_type = (d.get("sender_type") or "").lower()
-        if g.chat_user_type == "client":
-            d["sender"] = "user" if sender_type == "client" else "contact"
-        else:
-            d["sender"] = "user" if sender_type == "employee" else "contact"
-
+        _assign_message_sender(d, user_id, g.chat_user_type)
         msgs.append(d)
     return jsonify({"messages": msgs})
