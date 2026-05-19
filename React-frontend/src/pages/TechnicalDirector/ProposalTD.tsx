@@ -239,14 +239,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 export default function ProposalTD() {
   const navigate = useNavigate();
@@ -389,9 +389,9 @@ export default function ProposalTD() {
     listInRange.length === 0
       ? 0
       : Math.min(
-          selectedRange.start + tablePageStartIndex + tableRowsPerPage,
-          rangeEnd,
-        );
+        selectedRange.start + tablePageStartIndex + tableRowsPerPage,
+        rangeEnd,
+      );
   const tablePageRangeLabel =
     listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
@@ -530,25 +530,25 @@ export default function ProposalTD() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-[#616161] font-gantari px-4">
-              <svg
-                className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <p className="text-lg font-semibold mb-1 text-[#353535]">
-                No vendor proposals yet
-              </p>
-              <p className="text-sm">
-                Vendor proposals will appear here once submitted.
-              </p>
+            <svg
+              className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <p className="text-lg font-semibold mb-1 text-[#353535]">
+              No vendor proposals yet
+            </p>
+            <p className="text-sm">
+              Vendor proposals will appear here once submitted.
+            </p>
           </div>
         ) : (
           <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
@@ -565,52 +565,52 @@ export default function ProposalTD() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                    {displayList.map((p, index) => {
-                      const slNo = (
-                        selectedRange.start +
-                        tablePageStartIndex +
-                        index +
-                        1
-                      )
-                        .toString()
-                        .padStart(2, "0");
-                      const displayStatus = p.status;
-                      return (
-                        <tr key={p.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{slNo}</td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.project_name || "—"}</td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.vendor_name || "—"}</td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                            {formatCurrency(p.bid_amount, p.bid_currency || p.opportunity_currency)}
-                          </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.timeline || "—"}</td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                            <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-Gantari ${getStatusBadge(displayStatus)}`}>
-                              {getStatusLabel(displayStatus)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() =>
-                                  navigate(`/td/view-proposal?proposalId=${p.id}&source=vendor_submitted`, {
-                                    state: { proposalId: p.id, bid: p, source: "vendor_submitted" },
-                                  })
-                                }
-                                title="View Proposal"
-                                className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer"
-                              >
-                                <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
-                                View
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                {displayList.map((p, index) => {
+                  const slNo = (
+                    selectedRange.start +
+                    tablePageStartIndex +
+                    index +
+                    1
+                  )
+                    .toString()
+                    .padStart(2, "0");
+                  const displayStatus = p.status;
+                  return (
+                    <tr key={p.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{slNo}</td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.project_name || "—"}</td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.vendor_name || "—"}</td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                        {formatCurrency(p.bid_amount, p.bid_currency || p.opportunity_currency)}
+                      </td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.timeline || "—"}</td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                        <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-Gantari ${getStatusBadge(displayStatus)}`}>
+                          {getStatusLabel(displayStatus)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() =>
+                              navigate(`/td/view-proposal?proposalId=${p.id}&source=vendor_submitted`, {
+                                state: { proposalId: p.id, bid: p, source: "vendor_submitted" },
+                              })
+                            }
+                            title="View Proposal"
+                            className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer"
+                          >
+                            <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
+                            View
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
       {!loading && filtered.length > 0 && listInRange.length > 0 && (
@@ -628,11 +628,10 @@ export default function ProposalTD() {
                 })
               }
               disabled={safeTableCurrentPage === 1}
-              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                safeTableCurrentPage === 1
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
                   ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
                   : "text-[#353535]"
-              }`}
+                }`}
               aria-label="Previous page"
             >
               <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
@@ -656,11 +655,10 @@ export default function ProposalTD() {
                 })
               }
               disabled={safeTableCurrentPage >= tableTotalPages}
-              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                safeTableCurrentPage >= tableTotalPages
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
                   ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
                   : "text-[#353535]"
-              }`}
+                }`}
               aria-label="Next page"
             >
               <span className="inline-flex items-center">Next</span>

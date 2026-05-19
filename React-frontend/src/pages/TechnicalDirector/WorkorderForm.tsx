@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
@@ -39,6 +39,8 @@ export default function WorkorderForm() {
 
   const editWO = state?.editWO;
   const editId = editWO?.id ? Number(editWO.id) : null;
+  const [searchParams] = useSearchParams();
+  const proposalIdFromUrl = Number(searchParams.get("proposalId") || 0) || null;
 
   const stripHtmlText = (html: string): string => {
     if (!html) return "";
@@ -162,11 +164,17 @@ export default function WorkorderForm() {
     proposalId: state?.proposal?.id || null,
     vendorName: state?.proposal?.vendor_name || "",
     vendorAddress: cleanupAddress(state?.proposal?.address || ""),
-    poDate: new Date().toISOString().split("T")[0],
+    poDate: (() => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${dd}/${mm}/${yyyy}`;
+    })(),
     poNumber: "",
     projectName: state?.proposal?.project_name || "",
     projectLocation: state?.proposal?.project_location || "",
-    workDescription: "",
+    workDescription: state?.proposal?.executive_summary || "",
     scopeOfWork: state?.proposal?.scope_of_work || "",
     projectInvolves:
       state?.proposal?.project_involves ||
@@ -180,11 +188,27 @@ export default function WorkorderForm() {
     exclusions:
       state?.proposal?.exclusions || state?.proposal?.exclusions_list || "",
     currency: (
-      state?.proposal?.selected_currency ||
       state?.proposal?.bid_currency ||
+      state?.proposal?.opportunity_currency ||
+      state?.proposal?.selected_currency ||
       ""
     ).toUpperCase(),
-    amountAED: state?.proposal?.bid_amount?.toString() || "",
+    amountAED: (
+      state?.proposal?.bid_amount ??
+      (() => {
+        if (state?.proposal?.commercial_offer) {
+          let comm = state.proposal.commercial_offer;
+          if (typeof comm === "string") {
+            try { comm = JSON.parse(comm); } catch { comm = null; }
+          }
+          if (Array.isArray(comm)) {
+            const total = comm.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+            if (total > 0) return total;
+          }
+        }
+        return "";
+      })()
+    )?.toString() || "",
     duration: state?.proposal?.timeline || "",
     termsAndConditions:
       state?.proposal?.terms_and_conditions ||
@@ -281,7 +305,24 @@ export default function WorkorderForm() {
     proposalId: wo?.proposal_id ?? wo?.proposalId ?? null,
     vendorName: wo?.vendor_name || wo?.vendorName || "",
     vendorAddress: wo?.vendor_address || wo?.vendorAddress || "",
-    poDate: wo?.po_date || wo?.poDate || new Date().toISOString().split("T")[0],
+    poDate: (() => {
+      const raw = wo?.po_date || wo?.poDate || "";
+      if (raw) {
+        const dateOnly = String(raw).split("T")[0];
+        const parts = dateOnly.split("-");
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        const slashParts = dateOnly.split("/");
+        if (slashParts.length === 3) {
+          if (slashParts[0].length === 4) return `${slashParts[2]}/${slashParts[1]}/${slashParts[0]}`;
+          return dateOnly;
+        }
+      }
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${dd}/${mm}/${yyyy}`;
+    })(),
     poNumber: wo?.po_number || wo?.poNumber || "",
     projectName: wo?.project_name || wo?.projectName || "",
     projectLocation: wo?.project_location || wo?.projectLocation || "",
@@ -340,6 +381,57 @@ export default function WorkorderForm() {
 
   useEffect(() => {
     if (editId) return; // Only for new work orders
+    if (!state?.proposal && proposalIdFromUrl) {
+      api.get(`/api/vendors/td/proposals/${proposalIdFromUrl}`)
+        .then((res: any) => {
+          const proposal = res.data?.proposal;
+          if (proposal) {
+            const resolvedBidAmt = proposal.bid_amount ?? (() => {
+              if (proposal.commercial_offer) {
+                let comm = proposal.commercial_offer;
+                if (typeof comm === "string") {
+                  try { comm = JSON.parse(comm); } catch { comm = null; }
+                }
+                if (Array.isArray(comm)) {
+                  const total = comm.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+                  if (total > 0) return total;
+                }
+              }
+              return "";
+            })();
+
+
+            setForm(prev => ({
+              ...prev,
+              proposalId: proposal.id || null,
+              vendorName: proposal.vendor_name || prev.vendorName || "",
+              vendorAddress: cleanupAddress(proposal.address || "") || prev.vendorAddress || "",
+              projectName: proposal.project_name || prev.projectName || "",
+              projectLocation: proposal.project_location || prev.projectLocation || "",
+              workDescription: proposal.executive_summary || prev.workDescription || "",
+              scopeOfWork: proposal.scope_of_work || prev.scopeOfWork || "",
+              projectInvolves: proposal.project_involves || proposal.projectInvolves || prev.projectInvolves || "",
+              deliverables: proposal.deliverables || proposal.deliverables_intro || proposal.deliverables_list || prev.deliverables || "",
+              exclusions: proposal.exclusions || proposal.exclusions_list || prev.exclusions || "",
+              currency: (proposal.bid_currency || proposal.opportunity_currency || proposal.selected_currency || prev.currency || "AED").toUpperCase(),
+              amountAED: resolvedBidAmt?.toString() || prev.amountAED || "",
+              duration: proposal.timeline || prev.duration || "",
+              termsAndConditions: proposal.terms_and_conditions || proposal.termsAndConditions || prev.termsAndConditions || "",
+              paymentTerms: proposal.payment_terms ? formatPaymentTermsToHtml(proposal.payment_terms) : prev.paymentTerms || "",
+              additionalTerms: proposal.additional_terms || proposal.additionalTerms || prev.additionalTerms || "",
+            }));
+            setVendorDisplayName(prev => proposal.vendor_name || prev || "");
+            if (proposal.payment_terms) {
+              setPaymentRows(parsePaymentTermsRows(proposal.payment_terms));
+            }
+          }
+        })
+        .catch(err => console.error("Failed to fetch proposal", err));
+    }
+  }, [proposalIdFromUrl, editId, state?.proposal]);
+
+  useEffect(() => {
+    if (editId) return; // Only for new work orders
 
     api.get<{ success: boolean; template: any }>("/api/workorders/latest-template")
       .then(res => {
@@ -359,15 +451,15 @@ export default function WorkorderForm() {
           }));
 
           if (t.payment_terms) {
-            const rows = parsePaymentTermsRows(t.payment_terms);
-            if (rows.length > 0) {
-              setPaymentRows(rows);
+            const parsedRows = parsePaymentTermsRows(t.payment_terms);
+            if (parsedRows.length > 0) {
+              setPaymentRows(prevRows => prevRows.length > 0 ? prevRows : parsedRows);
             }
           }
         }
       })
       .catch(err => console.error("Failed to fetch template", err));
-  }, [editId]);
+  }, [editId, proposalIdFromUrl]);
 
   const fieldClass =
     "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] font-Gantari transition-all outline-none focus:bg-white focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
@@ -518,6 +610,7 @@ export default function WorkorderForm() {
                     onChange={(e) =>
                       setForm({ ...form, vendorName: e.target.value })
                     }
+                    placeholder="Enter vendor name"
                     className={fieldClass}
                   />
                 </div>
@@ -529,17 +622,36 @@ export default function WorkorderForm() {
                     onChange={(e) =>
                       setForm({ ...form, poNumber: e.target.value })
                     }
+                    placeholder="Enter PO number"
                     className={fieldClass}
                   />
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>PO Date</label>
                   <input
-                    type="text"
-                    value={form.poDate}
-                    onChange={(e) =>
-                      setForm({ ...form, poDate: e.target.value })
-                    }
+                    type="date"
+                    value={(() => {
+                      if (!form.poDate) return "";
+                      const parts = form.poDate.split("/");
+                      if (parts.length === 3) {
+                        if (parts[2].length === 4) {
+                          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
+                        return `${parts[0]}-${parts[1]}-${parts[2]}`;
+                      }
+                      return form.poDate;
+                    })()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) {
+                        setForm({ ...form, poDate: "" });
+                        return;
+                      }
+                      const parts = val.split("-");
+                      const dmy = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : val;
+                      setForm({ ...form, poDate: dmy });
+                    }}
+                    placeholder="Enter PO date (DD/MM/YYYY)"
                     className={fieldClass}
                   />
                 </div>
@@ -551,6 +663,7 @@ export default function WorkorderForm() {
                     onChange={(e) =>
                       setForm({ ...form, projectName: e.target.value })
                     }
+                    placeholder="Enter project name"
                     className={fieldClass}
                   />
                 </div>
@@ -562,6 +675,7 @@ export default function WorkorderForm() {
                     onChange={(e) =>
                       setForm({ ...form, projectLocation: e.target.value })
                     }
+                    placeholder="Enter project location"
                     className={fieldClass}
                   />
                 </div>
@@ -993,6 +1107,7 @@ export default function WorkorderForm() {
                                   companySignName: e.target.value,
                                 }))
                               }
+                              placeholder="Representative name"
                               className="border-b border-gray-300 flex-1 text-gray-800 font-bold bg-transparent outline-none px-2"
                             />
                           </div>
@@ -1009,6 +1124,7 @@ export default function WorkorderForm() {
                                   companySignDesignation: e.target.value,
                                 }))
                               }
+                              placeholder="Representative designation"
                               className="border-b border-gray-300 flex-1 text-gray-800 font-bold bg-transparent outline-none px-2"
                             />
                           </div>

@@ -177,13 +177,13 @@ export default function ViewProposalTD() {
         source === "vendor_submitted"
           ? isVendorView
             ? [
-                `/api/vendors/proposals/vendor/${proposalId}`,
-                `/api/vendors/td/proposals/${proposalId}`,
-              ]
+              `/api/vendors/proposals/vendor/${proposalId}`,
+              `/api/vendors/td/proposals/${proposalId}`,
+            ]
             : [
-                `/api/vendors/td/proposals/${proposalId}`,
-                `/api/vendors/proposals/vendor/${proposalId}`,
-              ]
+              `/api/vendors/td/proposals/${proposalId}`,
+              `/api/vendors/proposals/vendor/${proposalId}`,
+            ]
           : [`/api/vendors/proposals/td/${proposalId}`];
 
       for (const path of candidatePaths) {
@@ -326,11 +326,13 @@ export default function ViewProposalTD() {
 
   const getCurrency = () => {
     return (
-      (proposal?.selected_currency ||
-        proposal?.bid_currency ||
+      (proposal?.bid_currency ||
         bidState?.bid_currency ||
-        bidState?.currency ||
         bid?.bid_currency ||
+        (proposal as any)?.opportunity_currency ||
+        bid?.opportunity_currency ||
+        proposal?.selected_currency ||
+        bidState?.currency ||
         "AED")
     ).toUpperCase();
   };
@@ -370,9 +372,9 @@ export default function ViewProposalTD() {
 
   const proposalStatusNorm = proposal
     ? String(proposal.status || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s-]+/g, "_")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_")
     : "";
   const isProposalTerminal =
     proposalStatusNorm === "accepted" || proposalStatusNorm === "rejected";
@@ -499,14 +501,21 @@ export default function ViewProposalTD() {
             <button
               type="button"
               onClick={() =>
-                navigate("/td/workorder-form", { state: { proposal } })
+                navigate(`/td/workorder-form?proposalId=${proposal.id}`, {
+                  state: {
+                    proposal: {
+                      ...proposal,
+                      bid_amount: getBidAmount(),
+                      bid_currency: getCurrency()
+                    }
+                  }
+                })
               }
               disabled={hasWorkOrder}
-              className={`px-4 py-2 rounded-md text-[14px] font-semibold transition-all ${
-                hasWorkOrder
-                  ? "bg-[#F2F2F2] text-[#8B8B8B] cursor-not-allowed border border-[#AEACAC52]"
-                  : "bg-[#DD4342] text-white cursor-pointer"
-              }`}
+              className={`px-4 py-2 rounded-md text-[14px] font-semibold transition-all ${hasWorkOrder
+                ? "bg-[#F2F2F2] text-[#8B8B8B] cursor-not-allowed border border-[#AEACAC52]"
+                : "bg-[#DD4342] text-white cursor-pointer"
+                }`}
             >
               {hasWorkOrder ? "Work Order Created" : "Create Work Order"}
             </button>
@@ -659,60 +668,60 @@ export default function ViewProposalTD() {
                 {(proposal.address ||
                   proposal.website_url ||
                   proposal.email_address) && (
-                  <div className="space-y-4 pt-2 w-full">
-                    {proposal.address && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                        <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
-                          <img src={addressIcon} alt="" className="w-5 h-5" />
-                          <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
-                            <span>Address</span>
-                            <span className="hidden sm:inline">:</span>
+                    <div className="space-y-4 pt-2 w-full">
+                      {proposal.address && (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
+                            <img src={addressIcon} alt="" className="w-5 h-5" />
+                            <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
+                              <span>Address</span>
+                              <span className="hidden sm:inline">:</span>
+                            </div>
                           </div>
+                          <span className="text-[#616161] font-medium text-[14px] flex-1">
+                            {proposal.address}
+                          </span>
                         </div>
-                        <span className="text-[#616161] font-medium text-[14px] flex-1">
-                          {proposal.address}
-                        </span>
-                      </div>
-                    )}
-                    {proposal.website_url && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                        <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
-                          <img src={websiteIcon} alt="" className="w-5 h-5" />
-                          <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
-                            <span>Website</span>
-                            <span className="hidden sm:inline">:</span>
+                      )}
+                      {proposal.website_url && (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
+                            <img src={websiteIcon} alt="" className="w-5 h-5" />
+                            <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
+                              <span>Website</span>
+                              <span className="hidden sm:inline">:</span>
+                            </div>
                           </div>
+                          <a
+                            href={
+                              proposal.website_url.startsWith("http")
+                                ? proposal.website_url
+                                : `https://${proposal.website_url}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[14px] text-[#1967D2] font-gantari font-medium hover:underline flex-1 truncate"
+                          >
+                            {proposal.website_url}
+                          </a>
                         </div>
-                        <a
-                          href={
-                            proposal.website_url.startsWith("http")
-                              ? proposal.website_url
-                              : `https://${proposal.website_url}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[14px] text-[#1967D2] font-gantari font-medium hover:underline flex-1 truncate"
-                        >
-                          {proposal.website_url}
-                        </a>
-                      </div>
-                    )}
-                    {proposal.email_address && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                        <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
-                          <img src={emailIcon} alt="" className="w-5 h-5" />
-                          <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
-                            <span>Email</span>
-                            <span className="hidden sm:inline">:</span>
+                      )}
+                      {proposal.email_address && (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
+                            <img src={emailIcon} alt="" className="w-5 h-5" />
+                            <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
+                              <span>Email</span>
+                              <span className="hidden sm:inline">:</span>
+                            </div>
                           </div>
+                          <span className="text-[#616161] font-medium text-[14px] flex-1">
+                            {proposal.email_address}
+                          </span>
                         </div>
-                        <span className="text-[#616161] font-medium text-[14px] flex-1">
-                          {proposal.email_address}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
               </div>
             )}
 
@@ -777,22 +786,22 @@ export default function ViewProposalTD() {
             {(proposal.deliverables ||
               proposal.deliverables_intro ||
               proposal.deliverables_list) && (
-              <div className="space-y-4">
-                <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
-                  4. Deliverables
-                </h2>
-                <div
-                  className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-[14px] [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      proposal.deliverables ||
-                      proposal.deliverables_intro ||
-                      proposal.deliverables_list ||
-                      "",
-                  }}
-                />
-              </div>
-            )}
+                <div className="space-y-4">
+                  <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
+                    4. Deliverables
+                  </h2>
+                  <div
+                    className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-[14px] [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        proposal.deliverables ||
+                        proposal.deliverables_intro ||
+                        proposal.deliverables_list ||
+                        "",
+                    }}
+                  />
+                </div>
+              )}
 
             {/* 5. Exclusions */}
             {(proposal.exclusions || proposal.exclusions_list) &&
@@ -866,7 +875,7 @@ export default function ViewProposalTD() {
                             </td>
                             <td className="px-4 py-3 text-center font-gantari text-[14px] text-[#353535]">
                               {p.amount != null &&
-                              String(p.amount).trim() !== ""
+                                String(p.amount).trim() !== ""
                                 ? String(p.amount)
                                 : "—"}
                             </td>

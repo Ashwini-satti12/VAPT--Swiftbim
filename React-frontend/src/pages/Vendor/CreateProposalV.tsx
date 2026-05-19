@@ -10,6 +10,29 @@ import addressIcon from "../../assets/TechnicalDirector/Vector.svg";
 import websiteIcon from "../../assets/TechnicalDirector/world-wide-web 1.svg";
 import emailIcon from "../../assets/TechnicalDirector/mail icon.svg";
 
+const BIM_SOFTWARES = [
+  "Autodesk Revit",
+  "AutoCAD",
+  "Navisworks",
+  "Tekla Structures",
+  "ArchiCAD",
+  "Rhino 3D",
+  "SketchUp",
+  "Dynamo",
+  "Civil 3D",
+  "SolidWorks",
+  "Bentley MicroStation",
+  "Solibri",
+  "Synchro 4D",
+  "3ds Max",
+  "Lumion",
+  "Enscape",
+  "BIM 360",
+  "Twinmotion",
+  "PointCab",
+  "Cyclone"
+];
+
 export default function CreateProposalV() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +56,7 @@ export default function CreateProposalV() {
   const [locationEmail, setLocationEmail] = useState("");
   const [scopeDescription, setScopeDescription] = useState("");
   const [techRows, setTechRows] = useState([{ module: "" }]);
+  const [activeSugIndex, setActiveSugIndex] = useState<number | null>(null);
   const [deliverablesIntro, setDeliverablesIntro] = useState("");
   const [exclusionsContent, setExclusionsContent] = useState("");
   const [projectSector, setProjectSector] = useState("");
@@ -219,6 +243,17 @@ export default function CreateProposalV() {
       .then(({ data }) => applyLoadedProposal(data.proposal))
       .catch(() => {});
   }, [editProposal, proposalIdEdit, bid?.vendor_email, applyLoadedProposal]);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".tech-input-container")) {
+        setActiveSugIndex(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   // Handlers for Technology Table
   const handleAddTechRow = () => setTechRows([...techRows, { module: "" }]);
@@ -490,7 +525,7 @@ export default function CreateProposalV() {
                 <label className="font-bold text-[#353535]">Technology to be Used:</label>
                 <button onClick={handleAddTechRow} className="w-full sm:w-auto text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Software</button>
               </div>
-              <div className="rounded-xl border border-[#AEACAC52] overflow-x-auto">
+              <div className="rounded-xl border border-[#AEACAC52] overflow-visible bg-white">
                 <table className="w-full text-left border-collapse">
                   <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                     <tr className="border-b border-gray-100">
@@ -501,16 +536,58 @@ export default function CreateProposalV() {
                   </thead>
                   <tbody>
                     {techRows.map((row, index) => (
-                      <tr key={index} className={`border-b border-gray-50 ${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                      <tr key={index} className={`border-b border-gray-50 ${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} overflow-visible`}>
                         <td className="px-6 py-3 text-center text-sm text-[#353535]">{index + 1}</td>
-                        <td className="px-6 py-4">
-                          <input
-                            type="text"
-                            value={row.module}
-                            onChange={(e) => handleTechRowChange(index, e.target.value)}
-                            placeholder="e.g. Revit 2024, Navisworks..."
-                            className="w-full bg-transparent border-none outline-none text-[#353535] font-medium"
-                          />
+                        <td className="px-6 py-4 relative overflow-visible">
+                          <div className="relative w-full tech-input-container flex items-center pr-6 border-b border-transparent focus-within:border-[#DD4342]">
+                            <input
+                              type="text"
+                              value={row.module}
+                              onChange={(e) => {
+                                handleTechRowChange(index, e.target.value);
+                                setActiveSugIndex(index);
+                              }}
+                              onFocus={() => setActiveSugIndex(index)}
+                              placeholder="e.g. Revit 2024, Navisworks..."
+                              className="w-full bg-transparent border-none outline-none text-[#353535] font-semibold text-base py-1"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveSugIndex(activeSugIndex === index ? null : index);
+                              }}
+                              className="absolute right-0 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                              title="Select technology"
+                            >
+                              <svg className={`w-4 h-4 transform transition-transform duration-200 ${activeSugIndex === index ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            {activeSugIndex === index && (
+                              <ul className="absolute left-0 top-full mt-2 w-64 max-h-56 overflow-y-auto bg-white border border-[#AEACAC52] rounded-lg shadow-xl z-50 py-1 font-gantari text-sm">
+                                {BIM_SOFTWARES.filter(s => 
+                                  s.toLowerCase().includes((row.module || "").toLowerCase())
+                                ).map((s) => (
+                                  <li
+                                    key={s}
+                                    onClick={() => {
+                                      handleTechRowChange(index, s);
+                                      setActiveSugIndex(null);
+                                    }}
+                                    className="px-4 py-2 hover:bg-[#F2F2F2] cursor-pointer text-[#353535] transition-all font-semibold"
+                                  >
+                                    {s}
+                                  </li>
+                                ))}
+                                {BIM_SOFTWARES.filter(s => 
+                                  s.toLowerCase().includes((row.module || "").toLowerCase())
+                                ).length === 0 && (
+                                  <li className="px-4 py-2 text-gray-400 italic">No matches found</li>
+                                )}
+                              </ul>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-3 text-center">
                           <button onClick={() => handleRemoveTechRow(index)} className="text-[#AEACAC] hover:text-[#DD4342] text-xl cursor-pointer">✕</button>
