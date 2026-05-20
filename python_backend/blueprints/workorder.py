@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     payment_terms TEXT NULL,
     additional_terms TEXT NULL,
     exclusions TEXT NULL,
-    status VARCHAR(50) DEFAULT 'Created',
+    status VARCHAR(50) DEFAULT 'Approved',
     company_sign_name VARCHAR(255) NULL,
     company_sign_designation VARCHAR(255) NULL,
     company_sign_date DATE NULL,

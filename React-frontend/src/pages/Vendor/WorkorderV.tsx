@@ -187,7 +187,7 @@ export default function WorkorderV() {
           currency: asStr(r.currency) || "AED",
           amount_aed: asNum(r.amount_aed),
           timeline: stripHtml(r.duration) || "TBD",
-          status: asStr(r.status) || "Created",
+          status: asStr(r.status) || "Approved",
           vendor_address: asStr(r.vendor_address) || undefined,
           po_date: asStr(r.po_date) || undefined,
           po_number: asStr(r.po_number) || undefined,
