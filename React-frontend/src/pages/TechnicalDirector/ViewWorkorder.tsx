@@ -207,7 +207,19 @@ export default function ViewWorkorder() {
               PO Date
             </p>
             <p className="text-[#616161] text-sm sm:text-[16px] text-center tracking-wide">
-              {selectedWO.po_date || "—"}
+              {(() => {
+                const raw = selectedWO.po_date;
+                if (!raw) return "—";
+                const dateOnly = String(raw).split("T")[0];
+                const parts = dateOnly.split("-");
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                const slashParts = dateOnly.split("/");
+                if (slashParts.length === 3) {
+                  if (slashParts[0].length === 4) return `${slashParts[2]}/${slashParts[1]}/${slashParts[0]}`;
+                  return dateOnly;
+                }
+                return dateOnly;
+              })()}
             </p>
           </div>
           <div className="px-4 sm:px-6 last:border-r-0">

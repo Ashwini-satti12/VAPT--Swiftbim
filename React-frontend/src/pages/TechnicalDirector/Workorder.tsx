@@ -182,7 +182,12 @@ export default function Workorder() {
           timeline: stripHtml(r.duration) || "TBD",
           status: asStr(r.status) || "Created",
           vendor_address: asStr(r.vendor_address) || undefined,
-          po_date: asStr(r.po_date) || undefined,
+          po_date: (() => {
+            const raw = asStr(r.po_date);
+            if (!raw) return undefined;
+            const parts = raw.split("T")[0].split("-");
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : raw;
+          })(),
           po_number: asStr(r.po_number) || undefined,
           project_location: asStr(r.project_location) || undefined,
           work_description: asStr(r.work_description) || undefined,

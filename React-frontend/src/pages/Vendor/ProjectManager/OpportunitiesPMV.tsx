@@ -329,8 +329,13 @@ export default function OpportunitiesPMV() {
                                             </span>
                                         ) : isActive ? (
                                             <button
+                                                disabled={days <= 0}
                                                 onClick={() => { setSelectedOpportunity(opp); setBidError(null); }}
-                                                className="text-[12px] font-bold text-white bg-[#DE3D3A] px-3 py-1.5 rounded-lg font-gantari hover:bg-[#c93d3d] transition-colors cursor-pointer"
+                                                className={`text-[12px] font-bold text-white px-3 py-1.5 rounded-lg font-gantari transition-colors ${
+                                                    days <= 0
+                                                        ? "bg-gray-400 cursor-not-allowed opacity-60"
+                                                        : "bg-[#DE3D3A] hover:bg-[#c93d3d] cursor-pointer"
+                                                }`}
                                             >
                                                 Submit Bid
                                             </button>
@@ -381,8 +386,13 @@ export default function OpportunitiesPMV() {
                             <button onClick={() => setDetailOpportunity(null)} className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors cursor-pointer">Close</button>
                             {detailOpportunity.status === 'active' && !(detailOpportunity.already_bid || bidSuccess === detailOpportunity.id) && (
                                 <button
+                                    disabled={daysUntil(detailOpportunity.bid_deadline) <= 0}
                                     onClick={() => { setSelectedOpportunity(detailOpportunity); setDetailOpportunity(null); setBidError(null); }}
-                                    className="flex-1 py-2.5 bg-[#DE3D3A] text-white rounded-lg font-semibold font-gantari text-sm hover:bg-[#c93d3d] transition-colors cursor-pointer"
+                                    className={`flex-1 py-2.5 text-white rounded-lg font-semibold font-gantari text-sm transition-colors ${
+                                        daysUntil(detailOpportunity.bid_deadline) <= 0
+                                            ? "bg-gray-400 cursor-not-allowed opacity-60"
+                                            : "bg-[#DE3D3A] hover:bg-[#c93d3d] cursor-pointer"
+                                    }`}
                                 >
                                     Submit Bid
                                 </button>

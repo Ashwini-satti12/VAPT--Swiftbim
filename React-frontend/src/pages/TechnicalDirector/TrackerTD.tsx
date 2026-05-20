@@ -112,9 +112,18 @@ export default function TrackerTD() {
         if (!value) return null;
         const trimmed = value.trim();
         if (!trimmed) return null;
-        const parts = trimmed.split(' ');
-        const timePart = parts[parts.length - 1];
-        return timePart;
+        const match = trimmed.match(/(\d{1,2}:\d{2}:\d{2})/);
+        return match ? match[1] : null;
+    };
+
+    const formatTime12h = (time24?: string | null): string => {
+        const t = pickTime(time24);
+        if (!t) return '-';
+        const [hStr, mStr] = t.split(':');
+        const h = parseInt(hStr, 10);
+        const ampm = h < 12 ? 'AM' : 'PM';
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12.toString().padStart(2, '0')}:${mStr} ${ampm}`;
     };
 
     // Format total hours:
@@ -314,9 +323,9 @@ export default function TrackerTD() {
             const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
             const formattedDate = dateKey ? `${d}/${m}/${y}` : '';
 
-            const rawTimeIn = pickTime(loc.time_in) || '';
-            const rawTimeOut = pickTime(loc.time_out) || '';
-            const totalHours = formatTotalHours(loc.total_hours, rawTimeIn, rawTimeOut);
+            const rawTimeIn = formatTime12h(loc.time_in);
+            const rawTimeOut = formatTime12h(loc.time_out);
+            const totalHours = formatTotalHours(loc.total_hours, loc.time_in, loc.time_out);
 
             const name = (loc.full_name || '').trim();
             const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
@@ -572,9 +581,9 @@ export default function TrackerTD() {
                                         const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
                                         const formattedDate = dateKey ? `${d}/${m}/${y}` : '-';
 
-                                        const timeIn = pickTime(loc.time_in) || '-';
-                                        const timeOut = pickTime(loc.time_out) || '-';
-                                        const totalHours = formatTotalHours(loc.total_hours, timeIn, timeOut);
+                                        const timeIn = formatTime12h(loc.time_in);
+                                        const timeOut = formatTime12h(loc.time_out);
+                                        const totalHours = formatTotalHours(loc.total_hours, loc.time_in, loc.time_out);
 
                                         return (
                                             <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>

@@ -50,7 +50,6 @@ interface Task {
   uploaderid?: number;
   Approval?: string;
   modules_name?: string;
-  category?: string;
   Actual_start_time?: string;
   perferstart_time?: string;
   perferend_time?: string;
@@ -564,16 +563,8 @@ export default function MytaskViewBM() {
                 </span>
               </div>
 
-              {/* Row 2: Category | Assigned By */}
-              <div className="flex items-start gap-2">
-                <span className="text-[#020202]  shrink-0 w-32">
-                  Category
-                </span>
-                <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
-                  {String(task.category || task.type || "—")}
-                </span>
-              </div>
+  
+             
               <div className="flex items-start gap-2">
                 <span className="text-[#020202] shrink-0 w-32">
                   Assigned By

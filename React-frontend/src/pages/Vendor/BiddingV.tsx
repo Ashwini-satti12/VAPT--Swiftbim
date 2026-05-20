@@ -723,6 +723,7 @@ export default function BiddingV() {
 
   if (viewMode === "opportunity-detail" && detailOpp) {
     const linkedBidForOpp = bids.find((b) => b.opportunity_id === detailOpp.id);
+    const detailDays = daysUntil(detailOpp.bid_deadline);
     return (
       <div className="h-full flex flex-col font-gantari animate-in fade-in duration-300 px-6">
         <div className="flex items-center justify-between mb-8 shrink-0">
@@ -994,15 +995,21 @@ export default function BiddingV() {
                 ) : detailOpp.status === "active" ? (
                   <div className="space-y-4">
                     <p className="text-[14px] text-[#8B8B8B] font-gantari">
-                      Submit your technical proposal and commercial bid to
-                      participate in this opportunity.
+                      {detailDays <= 0
+                        ? "Bidding for this opportunity has ended."
+                        : "Submit your technical proposal and commercial bid to participate in this opportunity."}
                     </p>
                     <button
                       type="button"
+                      disabled={detailDays <= 0}
                       onClick={() =>
                         openSubmitBidModal(detailOpp, "opportunity-detail")
                       }
-                      className="w-full py-3 bg-[#DD4342] text-white rounded-md font-medium transition-all font-gantari text-[14px]"
+                      className={`w-full py-3 text-white rounded-md font-medium transition-all font-gantari text-[14px] ${
+                        detailDays <= 0
+                          ? "bg-gray-400 cursor-not-allowed opacity-60"
+                          : "bg-[#DD4342] hover:bg-[#c93d3d]"
+                      }`}
                     >
                       Submit Your Bid
                     </button>
@@ -1556,8 +1563,13 @@ export default function BiddingV() {
                           ) : isActive ? (
                             <button
                               type="button"
+                              disabled={days <= 0}
                               onClick={() => openSubmitBidModal(opp, "list")}
-                              className="text-[14px] font-medium text-white bg-[#DD4342] px-5 py-2 rounded-md transition-colors shadow-sm"
+                              className={`text-[14px] font-medium text-white px-5 py-2 rounded-md transition-colors shadow-sm ${
+                                days <= 0
+                                  ? "bg-gray-400 cursor-not-allowed opacity-60"
+                                  : "bg-[#DD4342] hover:bg-[#c93d3d]"
+                              }`}
                             >
                               Submit Bid
                             </button>
