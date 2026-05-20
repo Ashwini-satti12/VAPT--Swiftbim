@@ -196,10 +196,10 @@ export function BiddingSubmitModal({
   const bidDeadlineMeta =
     selectedOpp.bid_deadline && String(selectedOpp.bid_deadline).trim()
       ? new Date(selectedOpp.bid_deadline).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
       : emDash;
   const locationMeta =
     (selectedOpp.project_location && String(selectedOpp.project_location).trim()) ||
@@ -248,13 +248,13 @@ export function BiddingSubmitModal({
         <p
           className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate"
           title={
-            selectedOpp.budget_ceiling || selectedOpp.outsource_budget 
-              ? String(selectedOpp.budget_ceiling || selectedOpp.outsource_budget) 
+            selectedOpp.budget_ceiling || selectedOpp.outsource_budget
+              ? String(selectedOpp.budget_ceiling || selectedOpp.outsource_budget)
               : undefined
           }
         >
           {formatBudget(
-            Number(selectedOpp.budget_ceiling) || Number(selectedOpp.outsource_budget) || 0, 
+            Number(selectedOpp.budget_ceiling) || Number(selectedOpp.outsource_budget) || 0,
             selectedOpp.currency
           )}
         </p>
@@ -280,7 +280,7 @@ export function BiddingSubmitModal({
 
   const proposalDetailFields = (
     <div className="flex flex-col gap-10 mb-8">
-     <div className="space-y-4">
+      <div className="space-y-4">
         <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
           Scope of Work
         </h2>
@@ -472,11 +472,10 @@ export function BiddingSubmitModal({
                 setBidAmountError(null);
               }
             }}
-            className={`${bidFormInputShell} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-              bidAmountError
+            className={`${bidFormInputShell} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${bidAmountError
                 ? "border-[#DE3D3A] bg-[#FFF8F8] focus:border-[#DE3D3A]"
                 : ""
-            }`}
+              }`}
             placeholder="0.00"
             min={0}
             step="0.01"
@@ -624,7 +623,7 @@ export function BiddingSubmitModal({
             </div>
           </div>
           <h2 className="flex-1 text-center text-[24px] font-medium text-[#000000] font-gantari">
-          Project Details & Bid
+            Project Details & Bid
           </h2>
           <div className="w-10" />
         </div>
