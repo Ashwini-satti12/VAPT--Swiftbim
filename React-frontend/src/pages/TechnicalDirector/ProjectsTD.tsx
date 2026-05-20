@@ -22,8 +22,10 @@ import ProjectAllMembersModal from "../../components/ProjectAllMembersModal";
 import ProjectCardTeamAvatars from "../../components/ProjectCardTeamAvatars";
 import {
   collectPmProjectTeamRoster,
+  collectProjectMembersOnly,
   type PmTeamRosterEntry,
 } from "../../utils/projectTeamRoster";
+import ProjectMembersInvolvedAvatars from "../../components/ProjectMembersInvolvedAvatars";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -2010,201 +2012,23 @@ export default function ProjectsTD() {
                           <p className="text-md font-Gantari font-semibold text-[#000000]">
                             Members Involved
                           </p>
-                          <div className="flex items-center -space-x-3">
-                            {(() => {
-                              // Get members from project (IDs can be numeric or string from API)
-                              const rawIds =
-                                selectedProjectForView.members ||
-                                selectedProjectForView.member
-                                  ? String(
-                                      selectedProjectForView.members ||
-                                        selectedProjectForView.member,
-                                    )
-                                      .split(",")
-                                      .map((m) => m.trim())
-                                      .filter(Boolean)
-                                  : [];
-                              const memberIds = rawIds.map((m) => {
-                                const n = Number(m);
-                                return Number.isNaN(n) ? m : n;
-                              });
-
-                              // Resolve employee data: match by both number and string ID so we don't miss anyone
-                              const projectMembers = memberIds
-                                .map((id) => resolveProjectMember(id))
-                                .filter(Boolean) as Employee[];
-
-                              // Show up to 3 members, then +X for remaining
-                              const visibleMembers = projectMembers.slice(0, 3);
-                              const remainingCount = Math.max(
-                                0,
-                                projectMembers.length - 3,
+                          <ProjectMembersInvolvedAvatars
+                            members={collectProjectMembersOnly(
+                              selectedProjectForView,
+                              rosterEmployees,
+                            )}
+                            resolveMember={(id) => resolveProjectMember(id)}
+                            onMemberClick={(emp) =>
+                              openMemberProfile(normalizeMemberForProfile(emp as Employee))
+                            }
+                            onOpenAll={() => {
+                              if (!selectedProjectForView) return;
+                              setAllMembersList(
+                                teamRosterForProject(selectedProjectForView),
                               );
-                              const hasMore = remainingCount > 0;
-                              const hasIdsButNoResolved =
-                                visibleMembers.length === 0 &&
-                                projectMembers.length === 0 &&
-                                memberIds.length > 0;
-
-                              // Helper to get profile image URL
-                              const getProfileImageUrl = (emp: Employee) => {
-                                return getGlobalProfileUrl(
-                                  emp.id,
-                                  emp.profile_picture,
-                                );
-                              };
-
-                              const openAllMembersModal = () => {
-                                if (!selectedProjectForView) return;
-                                setAllMembersList(
-                                  teamRosterForProject(selectedProjectForView),
-                                );
-                                setShowAllMembersModal(true);
-                              };
-
-                              return memberIds.length === 1 ? (
-                                <div className="flex items-center gap-3">
-                                  {visibleMembers.map((emp) => (
-                                    <div
-                                      key={emp.id}
-                                      className="flex items-center gap-3"
-                                    >
-                                      <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                        onClick={() => openMemberProfile(emp)}
-                                        onKeyDown={(e) => {
-                                          if (
-                                            e.key === "Enter" ||
-                                            e.key === " "
-                                          ) {
-                                            e.preventDefault();
-                                            openMemberProfile(emp);
-                                          }
-                                        }}
-                                      >
-                                        {getProfileImageUrl(emp) ? (
-                                          <img
-                                            src={getProfileImageUrl(emp)}
-                                            alt={emp.full_name || "Member"}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (
-                                                e.target as HTMLImageElement
-                                              ).src = ProfileIcon;
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {(emp.full_name || `E${emp.id}`)
-                                              .charAt(0)
-                                              .toUpperCase()}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                        {emp.full_name || `Employee ${emp.id}`}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="flex items-center -space-x-3">
-                                  {visibleMembers.length > 0
-                                    ? visibleMembers.map((emp) => (
-                                        <div
-                                          key={emp.id}
-                                          className="relative group shrink-0"
-                                        >
-                                          <div
-                                            role="button"
-                                            tabIndex={0}
-                                            className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                            onClick={() =>
-                                              openMemberProfile(emp)
-                                            }
-                                            onKeyDown={(e) => {
-                                              if (
-                                                e.key === "Enter" ||
-                                                e.key === " "
-                                              ) {
-                                                e.preventDefault();
-                                                openMemberProfile(emp);
-                                              }
-                                            }}
-                                          >
-                                            {getProfileImageUrl(emp) ? (
-                                              <img
-                                                src={getProfileImageUrl(emp)}
-                                                alt={emp.full_name || "Member"}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                  (
-                                                    e.target as HTMLImageElement
-                                                  ).src = ProfileIcon;
-                                                }}
-                                              />
-                                            ) : (
-                                              <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                                {(emp.full_name || `E${emp.id}`)
-                                                  .charAt(0)
-                                                  .toUpperCase()}
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                            {emp.full_name ||
-                                              `Employee ${emp.id}`}
-                                          </div>
-                                        </div>
-                                      ))
-                                    : hasIdsButNoResolved
-                                      ? [1, 2, 3].map((j) => (
-                                          <div
-                                            key={j}
-                                            className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                          >
-                                            <img
-                                              src={ProfileIcon}
-                                              alt="avatar"
-                                              className="w-full h-full object-cover"
-                                            />
-                                          </div>
-                                        ))
-                                      : null}
-                                  {(hasMore || hasIdsButNoResolved) && (
-                                    <div className="relative group shrink-0">
-                                      <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          openAllMembersModal();
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (
-                                            e.key === "Enter" ||
-                                            e.key === " "
-                                          ) {
-                                            e.preventDefault();
-                                            openAllMembersModal();
-                                          }
-                                        }}
-                                      >
-                                        +{remainingCount || memberIds.length}
-                                      </div>
-                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                        Click to see all members
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </div>
+                              setShowAllMembersModal(true);
+                            }}
+                          />
                         </div>
                       </div>
                     </div>

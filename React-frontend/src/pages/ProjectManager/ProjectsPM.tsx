@@ -27,8 +27,10 @@ import {
 import ProjectEditAttachments from '../../components/ProjectEditAttachments';
 import ProjectAllMembersModal from '../../components/ProjectAllMembersModal';
 import ProjectCardTeamAvatars from '../../components/ProjectCardTeamAvatars';
+import ProjectMembersInvolvedAvatars from '../../components/ProjectMembersInvolvedAvatars';
 import {
   collectPmProjectTeamRoster,
+  collectProjectMembersOnly,
   type PmTeamRosterEntry,
 } from '../../utils/projectTeamRoster';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
@@ -1606,110 +1608,23 @@ export default function ProjectsPM() {
                       {/* Members Involved */}
                       <div className="flex flex-col gap-3">
                         <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
-                        {(() => {
-                          const memberIdsForView = selectedProjectForView.member
-                            ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-                            : [];
-
-                          if (memberIdsForView.length === 0) {
-                            return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                        <ProjectMembersInvolvedAvatars
+                          members={collectProjectMembersOnly(
+                            selectedProjectForView,
+                            rosterEmployees,
+                          )}
+                          resolveMember={(id) => resolveProjectMember(id)}
+                          onMemberClick={(emp) =>
+                            openMemberProfile(emp as Employee)
                           }
-
-                          return memberIdsForView.length === 1 ? (
-                            <div className="flex items-center gap-3">
-                              {(() => {
-                                const id = memberIdsForView[0];
-                                const emp = resolveProjectMember(id);
-                                const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                return (
-                                  <>
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                      onClick={() => openMemberProfile(emp)}
-                                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
-                                    >
-                                      {url ? (
-                                        <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                      )}
-                                    </div>
-                                    <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                      {emp?.full_name || "Unknown"}
-                                    </span>
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap items-center -space-x-4">
-                              {memberIdsForView.slice(0, 3).map((id, j) => {
-                                const emp = resolveProjectMember(id);
-                                const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                return (
-                                  <div key={j} className="relative group shrink-0">
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                      onClick={() => openMemberProfile(emp)}
-                                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
-                                    >
-                                      {url ? (
-                                        <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                      )}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {emp?.full_name || "Unknown"}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {memberIdsForView.length > 3 && (
-                                <div className="relative group shrink-0">
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      const emps = memberIdsForView
-                                        .map((id) => resolveProjectMember(id))
-                                        .filter(Boolean) as Employee[];
-                                      if (selectedProjectForView)
-                                        setAllMembersList(
-                                          teamRosterForProject(selectedProjectForView),
-                                        );
-                                      else setAllMembersList([]);
-                                      setShowAllMembersModal(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        if (selectedProjectForView)
-                                          setAllMembersList(
-                                            teamRosterForProject(selectedProjectForView),
-                                          );
-                                        else setAllMembersList([]);
-                                        setShowAllMembersModal(true);
-                                      }
-                                    }}
-                                  >
-                                    +{memberIdsForView.length - 3}
-                                  </div>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                    Click to see all members
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                          onOpenAll={() => {
+                            if (!selectedProjectForView) return;
+                            setAllMembersList(
+                              teamRosterForProject(selectedProjectForView),
+                            );
+                            setShowAllMembersModal(true);
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

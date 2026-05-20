@@ -57,18 +57,17 @@ function namesFromIds(
 ): PmEmployeeLike[] {
   const names = splitCsv(namesCsv);
   if (names.length > 0) {
-    return names.map((name, i) => {
-      const idPart = splitCsv(idsCsv)[i];
-      const fromId = idPart ? resolveById(idPart, employees) : undefined;
-      if (fromId) return fromId;
-      const byName = employees.find((e) => e.full_name === name);
-      return (
-        byName || {
-          id: idPart && /^\d+$/.test(idPart) ? Number(idPart) : -(i + 1),
-          full_name: name,
-        }
-      );
-    });
+    return names
+      .map((name, i) => {
+        const idPart = splitCsv(idsCsv)[i];
+        const fromId = idPart ? resolveById(idPart, employees) : undefined;
+        if (fromId) return fromId;
+        const byName = employees.find((e) => e.full_name === name);
+        if (byName) return byName;
+        if (idPart) return resolveById(idPart, employees);
+        return undefined;
+      })
+      .filter((e): e is PmEmployeeLike => Boolean(e));
   }
   return splitCsv(idsCsv)
     .map((id) => resolveById(id, employees))
@@ -140,4 +139,35 @@ export function collectPmProjectTeamRoster(
   }
 
   return out.filter((e) => e.full_name);
+}
+
+/** Members field only — skips IDs that do not resolve to a known employee. */
+export function collectProjectMembersOnly(
+  project: PmProjectTeamLike,
+  employees: PmEmployeeLike[],
+): PmTeamRosterEntry[] {
+  const out: PmTeamRosterEntry[] = [];
+  const seen = new Set<string>();
+
+  for (const mid of memberIdsFromProject(project)) {
+    const emp = employees.find(
+      (e) => Number(e.id) === Number(mid) || String(e.id) === String(mid),
+    );
+    if (!emp) continue;
+    const name = (emp.full_name || "").trim();
+    if (!name) continue;
+    const id = Number(emp.id);
+    const key = rosterKey(id || name, name);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      id: Number.isFinite(id) && id > 0 ? id : 0,
+      full_name: name,
+      user_role: (emp.user_role && String(emp.user_role).trim()) || "Member",
+      email: emp.email,
+      profile_picture: emp.profile_picture,
+    });
+  }
+
+  return out;
 }
