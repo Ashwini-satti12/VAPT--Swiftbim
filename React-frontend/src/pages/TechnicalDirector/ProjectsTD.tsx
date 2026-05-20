@@ -18,6 +18,12 @@ import {
   resolveProjectDocumentHref,
   type ProjectDocumentItem,
 } from "../../utils/projectDetails";
+import ProjectAllMembersModal from "../../components/ProjectAllMembersModal";
+import ProjectCardTeamAvatars from "../../components/ProjectCardTeamAvatars";
+import {
+  collectPmProjectTeamRoster,
+  type PmTeamRosterEntry,
+} from "../../utils/projectTeamRoster";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -647,7 +653,7 @@ export default function ProjectsTD() {
 
   // All members modal state
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [allMembersList, setAllMembersList] = useState<PmTeamRosterEntry[]>([]);
 
   // Task statistics for project view
   const [taskStats, setTaskStats] = useState({
@@ -666,13 +672,13 @@ export default function ProjectsTD() {
     }>
   >([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
+  const rosterEmployees = [...allEmployees, ...vendorResourceProfiles];
   const resolveProjectMember = (id: string | number) =>
-    allEmployees.find(
-      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
-    ) ||
-    vendorResourceProfiles.find(
+    rosterEmployees.find(
       (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
     );
+  const teamRosterForProject = (proj: Project) =>
+    collectPmProjectTeamRoster(proj, rosterEmployees);
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -2049,7 +2055,10 @@ export default function ProjectsTD() {
                               };
 
                               const openAllMembersModal = () => {
-                                setAllMembersList(projectMembers);
+                                if (!selectedProjectForView) return;
+                                setAllMembersList(
+                                  teamRosterForProject(selectedProjectForView),
+                                );
                                 setShowAllMembersModal(true);
                               };
 
@@ -3110,76 +3119,21 @@ export default function ProjectsTD() {
 
                         <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
                           <div className="flex -space-x-4">
-                            {(() => {
-                              const projectEmployees = memberIds
-                                .map((id) => resolveProjectMember(id))
-                                .filter(Boolean) as Employee[];
-
-                              const visibleMembers = projectEmployees.slice(
-                                0,
-                                3,
-                              );
-                              const remainingCount = Math.max(
-                                0,
-                                projectEmployees.length - 3,
-                              );
-
-                              return (
-                                <>
-                                  {visibleMembers.map((emp) => {
-                                    const profileUrl = emp.profile_picture
-                                      ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                        )
-                                      : null;
-
-                                    return (
-                                      <div
-                                        key={emp.id}
-                                        className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                        title={emp.full_name}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openMemberProfile(emp);
-                                        }}
-                                      >
-                                        {profileUrl ? (
-                                          <img
-                                            src={profileUrl}
-                                            alt={emp.full_name}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (
-                                                e.target as HTMLImageElement
-                                              ).src = ProfileIcon;
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                            {(emp.full_name || "U")
-                                              .charAt(0)
-                                              .toUpperCase()}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                  {remainingCount > 0 && (
-                                    <div
-                                      className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setAllMembersList(projectEmployees);
-                                        setShowAllMembersModal(true);
-                                      }}
-                                    >
-                                      +{remainingCount}
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            })()}
+                            <ProjectCardTeamAvatars
+                              roster={teamRosterForProject(p)}
+                              onOpenAll={() => {
+                                setAllMembersList(teamRosterForProject(p));
+                                setShowAllMembersModal(true);
+                              }}
+                              onMemberClick={(emp) => {
+                                if (!emp.id) return;
+                                const full = resolveProjectMember(emp.id);
+                                if (full)
+                                  openMemberProfile(
+                                    normalizeMemberForProfile(full),
+                                  );
+                              }}
+                            />
                           </div>
 
                           <div className="flex items-center gap-3">
@@ -4669,98 +4623,17 @@ export default function ProjectsTD() {
         </div>
       )}
 
-      {/* All Members Modal */}
-      {showAllMembersModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-md shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
-              <div className="absolute left-4 group inline-flex shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowAllMembersModal(false)}
-                  className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                >
-                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                </button>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                      Close
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                All Members ({allMembersList.length})
-              </h3>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-6 custom-scrollbar">
-              {allMembersList.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {allMembersList.map((emp) => {
-                    const profileUrl = emp.profile_picture
-                      ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                      : null;
-
-                    return (
-                      <div
-                        key={emp.id}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
-                        onClick={() => {
-                          openMemberProfile(emp);
-                          setShowAllMembersModal(false);
-                        }}
-                      >
-                        {profileUrl ? (
-                          <img
-                            src={profileUrl}
-                            alt={emp.full_name || "Member"}
-                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = ProfileIcon;
-                            }}
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
-                            <span className="text-slate-600 font-bold text-lg">
-                              {(emp.full_name || `E${emp.id}`)
-                                .charAt(0)
-                                .toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                            {emp.full_name || `Employee ${emp.id}`}
-                          </p>
-                          {emp.user_role && (
-                            <p className="text-[14px] font-Gantari font-bold text-[#999999]">
-                              {emp.user_role}
-                            </p>
-                          )}
-                          {emp.email && (
-                            <p className="text-[13px] font-Gantari text-[#666666] mt-1">
-                              {emp.email}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <p className="text-[16px] font-Gantari">No members found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectAllMembersModal
+        open={showAllMembersModal}
+        members={allMembersList}
+        onClose={() => setShowAllMembersModal(false)}
+        onMemberClick={(emp) => {
+          if (!emp.id) return;
+          const full = resolveProjectMember(emp.id);
+          if (full) openMemberProfile(normalizeMemberForProfile(full));
+          setShowAllMembersModal(false);
+        }}
+      />
 
       {/* Member Profile Modal */}
       {showMemberProfileModal && selectedMember && (

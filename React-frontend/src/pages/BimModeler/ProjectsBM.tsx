@@ -9,8 +9,16 @@ import {
   getProjectDocumentItems,
   parseAttachmentsField,
   resolveProjectDocumentHref,
+  splitProjectEditDocuments,
   type ProjectDocumentItem,
 } from "../../utils/projectDetails";
+import ProjectAllMembersModal from "../../components/ProjectAllMembersModal";
+import ProjectCardTeamAvatars from "../../components/ProjectCardTeamAvatars";
+import {
+  collectPmProjectTeamRoster,
+  type PmTeamRosterEntry,
+} from "../../utils/projectTeamRoster";
+import ProjectEditAttachments from "../../components/ProjectEditAttachments";
 import {
   buildAdvancePaymentMilestonesHref,
   INTERNAL_ADVANCE_BLOCK_MESSAGE,
@@ -255,7 +263,17 @@ export default function ProjectsBL() {
   const [createDescription, setCreateDescription] = useState("");
   const [createFiles, setCreateFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [clientViewOnlyDocs, setClientViewOnlyDocs] = useState<ProjectDocumentItem[]>([]);
   const [removedFiles, setRemovedFiles] = useState<string[]>([]);
+
+  const applyEditDocumentsFromProject = (p: {
+    document_attachment?: string | null;
+    attachments?: ProjectDocumentItem[] | null;
+  }) => {
+    const split = splitProjectEditDocuments(p);
+    setClientViewOnlyDocs(split.clientViewOnly);
+    setExistingFiles(split.teamEditable.map((d) => d.fileUrl));
+  };
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -299,7 +317,7 @@ export default function ProjectsBL() {
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [allMembersList, setAllMembersList] = useState<PmTeamRosterEntry[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
 
@@ -312,9 +330,13 @@ export default function ProjectsBL() {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const rosterEmployees = [...allEmployees, ...vendorResourceProfiles];
   const resolveProjectMember = (id: string | number) =>
-    allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ||
-    vendorResourceProfiles.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id));
+    rosterEmployees.find(
+      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
+    );
+  const teamRosterForProject = (proj: Project) =>
+    collectPmProjectTeamRoster(proj, rosterEmployees);
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -440,6 +462,7 @@ export default function ProjectsBL() {
     setCreateDescription("");
     setCreateFiles([]);
     setExistingFiles([]);
+    setClientViewOnlyDocs([]);
     setRemovedFiles([]);
     setCreateError("");
   };
@@ -1224,19 +1247,19 @@ export default function ProjectsBL() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  const emps = memberIdsForView
-                                    .map((id) => resolveProjectMember(id))
-                                    .filter(Boolean) as Employee[];
-                                  setAllMembersList(emps);
+                                  if (!selectedProjectForView) return;
+                                  setAllMembersList(
+                                    teamRosterForProject(selectedProjectForView),
+                                  );
                                   setShowAllMembersModal(true);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    const emps = memberIdsForView
-                                      .map((id) => resolveProjectMember(id))
-                                      .filter(Boolean) as Employee[];
-                                    setAllMembersList(emps);
+                                    if (!selectedProjectForView) return;
+                                    setAllMembersList(
+                                      teamRosterForProject(selectedProjectForView),
+                                    );
                                     setShowAllMembersModal(true);
                                   }
                                 }}
@@ -1368,172 +1391,6 @@ export default function ProjectsBL() {
               </div>
             </div>
 
-            {/* Member Profile Modal */}
-            {showMemberProfileModal && selectedMember && (
-              <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
-                <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
-                  <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowMemberProfileModal(false);
-                        setSelectedMember(null);
-                      }}
-                      className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                      title="Back"
-                    >
-                      <img src={backIcon} alt="Back" className="w-5 h-5" />
-                    </button>
-                    <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                      Member Profile
-                    </h3>
-                  </div>
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
-                    <div className="flex flex-col items-center">
-                      {selectedMember.profile_picture ? (
-                        <img
-                          src={getGlobalProfileUrl(
-                            selectedMember.id,
-                            selectedMember.profile_picture,
-                          )}
-                          alt={selectedMember.full_name || "Member"}
-                          className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = ProfileIcon;
-                          }}
-                        />
-                      ) : (
-                        <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
-                          <span className="text-slate-600 font-bold text-3xl">
-                            {(
-                              selectedMember.full_name ||
-                              `E${selectedMember.id}`
-                            )
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <div className="w-full space-y-4">
-                        <div>
-                          <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                            Full Name
-                          </p>
-                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                            {selectedMember.full_name || "Not Available"}
-                          </p>
-                        </div>
-                        {selectedMember.employee_id && (
-                          <div>
-                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                              Employee ID
-                            </p>
-                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                              {selectedMember.employee_id}
-                            </p>
-                          </div>
-                        )}
-                        {selectedMember.email && (
-                          <div>
-                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                              Email
-                            </p>
-                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                              {selectedMember.email}
-                            </p>
-                          </div>
-                        )}
-                        {selectedMember.phone && (
-                          <div>
-                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                              Phone Number
-                            </p>
-                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                              {selectedMember.phone}
-                            </p>
-                          </div>
-                        )}
-                        {selectedMember.user_role && (
-                          <div>
-                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                              Role
-                            </p>
-                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                              {selectedMember.user_role}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* All Members Modal */}
-            {showAllMembersModal && (
-              <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMembersModal(false)}
-                    className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                    title="Back"
-                  >
-                    <img src={backIcon} alt="Back" className="w-5 h-5" />
-                  </button>
-                  <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
-                    All Members ({allMembersList.length})
-                  </h3>
-
-                  <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
-                    {allMembersList.map((m) => (
-                      <div
-                        key={m.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
-                        onClick={() => {
-                          openMemberProfile(m);
-                          setShowAllMembersModal(false);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            openMemberProfile(m);
-                            setShowAllMembersModal(false);
-                          }
-                        }}
-                      >
-                        <img
-                          src={
-                            m.profile_picture
-                              ? getGlobalProfileUrl(m.id, m.profile_picture)
-                              : ProfileIcon
-                          }
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = ProfileIcon;
-                          }}
-                          className="w-14 h-14 rounded-full object-cover border border-slate-100"
-                          alt={m.full_name}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">
-                            {m.full_name}
-                          </p>
-                          <p className="text-[13px] font-Gantari font-bold text-[#999999] truncate">
-                            {m.user_role}
-                          </p>
-                          <p className="text-[13px] font-Gantari font-medium text-[#666666] truncate">
-                            {m.email}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       ) : showMilestones && currentProject ? (
@@ -3079,87 +2936,20 @@ export default function ProjectsBL() {
                     Attach File <span className="text-[#DD4342]">*</span>
                   </label>
                   
-                  {/* File Gallery */}
-                  {(existingFiles.length > 0 || createFiles.length > 0) && (
-                    <div className="flex flex-wrap gap-3 mb-4">
-                      {/* Existing Files */}
-                      {existingFiles.map((fileName, idx) => {
-                        const isOutsource = selectedProjectForEdit?.source === "Outsource";
-                        const url = isOutsource
-                          ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                          : `${api.defaults.baseURL}uploads/${fileName}`;
-
-                        return (
-                          <div key={`exist-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                            <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-bold text-[#353535] truncate">
-                                {fileName}
-                              </p>
-                              <p className="text-[11px] text-slate-500">Existing File</p>
-                            </div>
-                            <div className="flex gap-1.5">
-                              <button 
-                                type="button"
-                                onClick={() => window.open(url, '_blank')}
-                                className="p-1 hover:bg-slate-50 rounded transition-colors"
-                              >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const file = existingFiles[idx];
-                                  setExistingFiles((prev) => prev.filter((_, i) => i !== idx));
-                                  setRemovedFiles((prev) => [...prev, file]);
-                                }}
-                                className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* New Files */}
-                      {createFiles.map((file, idx) => (
-                        <div key={`new-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-sm min-w-[200px] border-dashed">
-                          <FiPaperclip className="w-4 h-4 text-blue-500" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold text-[#353535] truncate">
-                                {file.name}
-                            </p>
-                            <p className="text-[11px] text-blue-400">New Upload</p>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <button 
-                                type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                                className="p-1 hover:bg-slate-50 rounded transition-colors"
-                            >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <ProjectEditAttachments
+                          clientViewOnly={clientViewOnlyDocs}
+                          teamFileRefs={existingFiles}
+                          newFiles={createFiles}
+                          apiBaseUrl={apiBaseForFiles}
+                          projectSource={selectedProjectForEdit?.source}
+                          onRemoveTeamFile={(fileRef) => {
+                            setRemovedFiles((prev) => [...prev, fileRef]);
+                            setExistingFiles((prev) => prev.filter((f) => f !== fileRef));
+                          }}
+                          onRemoveNewFile={(idx) =>
+                            setCreateFiles((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                        />
 
                   <div className="relative group">
                     <input
@@ -3439,13 +3229,7 @@ export default function ProjectsBL() {
                                         : [],
                                     );
 
-                                    const docs = p.document_attachment
-                                      ? p.document_attachment
-                                        .split(",")
-                                        .map((s) => s.trim())
-                                        .filter(Boolean)
-                                      : [];
-                                    setExistingFiles(docs);
+                                    applyEditDocumentsFromProject(p);
                                     setRemovedFiles([]);
                                     setCreateFiles([]);
                                     setShowEditModal(true);
@@ -3486,62 +3270,19 @@ export default function ProjectsBL() {
                       </div>
 
                       <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto">
-                        <div className="flex -space-x-4">
-                          {(() => {
-                            const projectEmployees = memberIds
-                              .map(id => resolveProjectMember(id))
-                              .filter(Boolean) as Employee[];
-
-                            const visibleMembers = projectEmployees.slice(0, 3);
-                            const remainingCount = Math.max(0, projectEmployees.length - 3);
-
-                            return (
-                              <>
-                                {visibleMembers.map((emp) => {
-                                  const profileUrl = emp.profile_picture
-                                    ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                                    : null;
-
-                                  return (
-                                    <div
-                                      key={emp.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openMemberProfile(emp);
-                                      }}
-                                    >
-                                      {profileUrl ? (
-                                        <img
-                                          src={profileUrl}
-                                          alt={emp.full_name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).src = ProfileIcon;
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                          {(emp.full_name || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                                {remainingCount > 0 && (
-                                  <div
-                                    className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setAllMembersList(projectEmployees);
-                                      setShowAllMembersModal(true);
-                                    }}
-                                  >
-                                    +{remainingCount}
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                        <div className="flex -space-x-4" onClick={(e) => e.stopPropagation()}>
+                          <ProjectCardTeamAvatars
+                            roster={teamRosterForProject(p)}
+                            onOpenAll={() => {
+                              setAllMembersList(teamRosterForProject(p));
+                              setShowAllMembersModal(true);
+                            }}
+                            onMemberClick={(emp) => {
+                              if (!emp.id) return;
+                              const full = resolveProjectMember(emp.id);
+                              if (full) openMemberProfile(normalizeMemberForProfile(full));
+                            }}
+                          />
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -3562,6 +3303,116 @@ export default function ProjectsBL() {
                   );
                 });
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ProjectAllMembersModal
+        open={showAllMembersModal}
+        members={allMembersList}
+        onClose={() => setShowAllMembersModal(false)}
+        onMemberClick={(emp) => {
+          if (!emp.id) return;
+          const full = resolveProjectMember(emp.id);
+          if (full) openMemberProfile(normalizeMemberForProfile(full));
+          setShowAllMembersModal(false);
+        }}
+      />
+
+      {showMemberProfileModal && selectedMember && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMemberProfileModal(false);
+                  setSelectedMember(null);
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                title="Back"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                Member Profile
+              </h3>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+              <div className="flex flex-col items-center">
+                {selectedMember.profile_picture ? (
+                  <img
+                    src={getGlobalProfileUrl(
+                      selectedMember.id,
+                      selectedMember.profile_picture,
+                    )}
+                    alt={selectedMember.full_name || "Member"}
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = ProfileIcon;
+                    }}
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
+                    <span className="text-slate-600 font-bold text-3xl">
+                      {(selectedMember.full_name || `E${selectedMember.id}`)
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div className="w-full space-y-4">
+                  <div>
+                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                      Full Name
+                    </p>
+                    <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                      {selectedMember.full_name || "Not Available"}
+                    </p>
+                  </div>
+                  {selectedMember.employee_id && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Employee ID
+                      </p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.employee_id}
+                      </p>
+                    </div>
+                  )}
+                  {selectedMember.email && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Email
+                      </p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.email}
+                      </p>
+                    </div>
+                  )}
+                  {selectedMember.phone && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Phone Number
+                      </p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.phone}
+                      </p>
+                    </div>
+                  )}
+                  {selectedMember.user_role && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Role
+                      </p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.user_role}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

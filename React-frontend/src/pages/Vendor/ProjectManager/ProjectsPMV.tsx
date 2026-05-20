@@ -16,6 +16,12 @@ import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import swifterzLogo from "../../../assets/ProductNavbarIcons/swifterzlogo.png";
 import downloadIcon from "../../../assets/TechnicalDirector/download icon.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+import ProjectAllMembersModal from "../../../components/ProjectAllMembersModal";
+import ProjectCardTeamAvatars from "../../../components/ProjectCardTeamAvatars";
+import {
+  collectPmProjectTeamRoster,
+  type PmTeamRosterEntry,
+} from "../../../utils/projectTeamRoster";
 
 interface Project {
   id: number;
@@ -327,7 +333,7 @@ export default function ProjectsPMV() {
   // Success message
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [allMembersList, setAllMembersList] = useState<PmTeamRosterEntry[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
 
@@ -626,6 +632,32 @@ export default function ProjectsPMV() {
     });
     setShowMemberProfileModal(true);
   };
+
+  const rosterEmployees = useMemo(() => {
+    const byId = new Map<number, Employee>();
+    for (const e of [
+      ...projectManagers,
+      ...bimLeads,
+      ...bimCoordinators,
+      ...allEmployees,
+      ...vendorResourceProfiles,
+    ]) {
+      if (e?.id != null) byId.set(Number(e.id), e);
+    }
+    return [...byId.values()];
+  }, [
+    projectManagers,
+    bimLeads,
+    bimCoordinators,
+    allEmployees,
+    vendorResourceProfiles,
+  ]);
+  const resolveProjectMember = (id: string | number) =>
+    rosterEmployees.find(
+      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
+    );
+  const teamRosterForProject = (proj: Project) =>
+    collectPmProjectTeamRoster(proj, rosterEmployees);
 
   const formatDate = (d: string | undefined) => {
     if (!d) return "—";
@@ -2129,13 +2161,15 @@ export default function ProjectsPMV() {
                               tabIndex={0}
                               className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
                               onClick={() => {
-                                setAllMembersList(projectMembers);
+                                if (!selectedProject) return;
+                                setAllMembersList(teamRosterForProject(selectedProject));
                                 setShowAllMembersModal(true);
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
-                                  setAllMembersList(projectMembers);
+                                  if (!selectedProject) return;
+                                  setAllMembersList(teamRosterForProject(selectedProject));
                                   setShowAllMembersModal(true);
                                 }
                               }}
@@ -2663,126 +2697,23 @@ export default function ProjectsPMV() {
                         </div>
 
                         <div className="border-t border-[#E8E8E8] pt-4 mt-auto flex items-center justify-between">
-                          <div className="flex items-center min-w-0">                            {(() => {
-                              const projectEmployees = memberIds
-                                .map((id) => resolveVendorMember(id))
-                                .filter(Boolean) as Employee[];
-
-                              if (projectEmployees.length === 0) return null;
-
-                              const visibleMembers = projectEmployees.slice(
-                                0,
-                                3,
-                              );
-                              const remainingCount = Math.max(
-                                0,
-                                projectEmployees.length - 3,
-                              );
-
-                              return (
-                                <div className="flex -space-x-4 min-w-0 pr-2">
-                                  {visibleMembers.map((emp) => {
-                                    const profileUrl = emp.profile_picture
-                                      ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                          "vendor",
-                                        )
-                                      : null;
-
-                                    return (
-                                      <div
-                                        key={emp.id}
-                                        className="relative group shrink-0"
-                                      >
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openMemberProfile(emp);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (
-                                              e.key === "Enter" ||
-                                              e.key === " "
-                                            ) {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              openMemberProfile(emp);
-                                            }
-                                          }}
-                                        >
-                                          {profileUrl ? (
-                                            <img
-                                              src={profileUrl}
-                                              alt={emp.full_name}
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[12px] font-medium text-slate-600">
-                                              {(emp.full_name || "U")
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                                            <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                              {emp.full_name || "Unknown"}
-                                            </span>
-                                          </div>
-                                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                  {remainingCount > 0 && (
-                                    <div className="relative group shrink-0">
-                                      <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setAllMembersList(projectEmployees);
-                                          setShowAllMembersModal(true);
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (
-                                            e.key === "Enter" ||
-                                            e.key === " "
-                                          ) {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setAllMembersList(projectEmployees);
-                                            setShowAllMembersModal(true);
-                                          }
-                                        }}
-                                      >
-                                        +{remainingCount}
-                                      </div>
-                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                                          <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                            {remainingCount} more
-                                          </span>
-                                        </div>
-                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                          <div
+                            className="flex items-center -space-x-4 min-w-0 pr-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ProjectCardTeamAvatars
+                              roster={teamRosterForProject(p)}
+                              profileUserType="vendor"
+                              onOpenAll={() => {
+                                setAllMembersList(teamRosterForProject(p));
+                                setShowAllMembersModal(true);
+                              }}
+                              onMemberClick={(emp) => {
+                                if (!emp.id) return;
+                                const full = resolveProjectMember(emp.id);
+                                if (full) openMemberProfile(full);
+                              }}
+                            />
                           </div>
 
                           <div
@@ -2868,82 +2799,18 @@ export default function ProjectsPMV() {
         </div>
       )}
 
-      {showAllMembersModal && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">
-                All Members ({allMembersList.length})
-              </h3>
-              <div className="group relative">
-                <button
-                  type="button"
-                  onClick={() => setShowAllMembersModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                  aria-label="Close"
-                >
-                  <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
-                </button>
-                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-3"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                      Close
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              {allMembersList.length > 0 ? (
-                <div className="space-y-4">
-                  {allMembersList.map((member, index) => (
-                    <div
-                      key={member.id ?? index}
-                      role="button"
-                      tabIndex={0}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        openMemberProfile(member);
-                        setShowAllMembersModal(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          openMemberProfile(member);
-                          setShowAllMembersModal(false);
-                        }
-                      }}
-                    >
-                      <div className="w-12 h-12 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 shrink-0">
-                        <img
-                          src={ProfileIcon}
-                          alt={member.full_name || "Member"}
-                          className="w-full h-full object-cover p-1"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">
-                          {member.full_name || "Unknown"}
-                        </p>
-                        {member.email && (
-                          <p className="text-[14px] text-[#8B8B8B] font-Gantari">
-                            {member.email}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <p className="text-[16px] font-Gantari">No members found</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectAllMembersModal
+        open={showAllMembersModal}
+        members={allMembersList}
+        profileUserType="vendor"
+        onClose={() => setShowAllMembersModal(false)}
+        onMemberClick={(emp) => {
+          if (!emp.id) return;
+          const full = resolveProjectMember(emp.id);
+          if (full) openMemberProfile(full);
+          setShowAllMembersModal(false);
+        }}
+      />
 
       {showMemberProfileModal && selectedMember && (
         <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
