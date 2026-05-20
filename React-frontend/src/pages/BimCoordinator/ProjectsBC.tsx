@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
@@ -10,8 +11,18 @@ import {
   getProjectDocumentItems,
   parseAttachmentsField,
   resolveProjectDocumentHref,
+  splitProjectEditDocuments,
   type ProjectDocumentItem,
 } from "../../utils/projectDetails";
+import ProjectAllMembersModal from "../../components/ProjectAllMembersModal";
+import ProjectCardTeamAvatars from "../../components/ProjectCardTeamAvatars";
+import ProjectMembersInvolvedAvatars from "../../components/ProjectMembersInvolvedAvatars";
+import {
+  collectPmProjectTeamRoster,
+  collectProjectMembersOnly,
+  type PmTeamRosterEntry,
+} from "../../utils/projectTeamRoster";
+import ProjectEditAttachments from "../../components/ProjectEditAttachments";
 import {
   buildAdvancePaymentMilestonesHref,
   INTERNAL_ADVANCE_BLOCK_MESSAGE,
@@ -110,6 +121,29 @@ const csvToDisplayNamesFromIds = (
     .filter(Boolean)
     .map((id) => idToName(id, employeesList) || id)
     .join(", ");
+};
+
+const effectiveStringList = (
+  values: string[],
+  snapNames?: string,
+  snapIds?: string,
+  employees?: Employee[],
+): string[] => {
+  if (values.length > 0) return values;
+  const raw =
+    (snapNames && snapNames.trim()) ||
+    (snapIds && employees ? csvToDisplayNamesFromIds(snapIds, employees) : "") ||
+    "";
+  return raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+};
+
+const effectiveDate = (value: string, snap?: string): string => {
+  const v = value.trim();
+  if (v) return v;
+  if (!snap) return "";
+  return String(snap).split("T")[0].split(" ")[0];
 };
 
 const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
@@ -558,7 +592,17 @@ export default function ProjectsBC() {
   const [createDescription, setCreateDescription] = useState("");
   const [createFiles, setCreateFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [clientViewOnlyDocs, setClientViewOnlyDocs] = useState<ProjectDocumentItem[]>([]);
   const [removedFiles, setRemovedFiles] = useState<string[]>([]);
+
+  const applyEditDocumentsFromProject = (p: {
+    document_attachment?: string | null;
+    attachments?: ProjectDocumentItem[] | null;
+  }) => {
+    const split = splitProjectEditDocuments(p);
+    setClientViewOnlyDocs(split.clientViewOnly);
+    setExistingFiles(split.teamEditable.map((d) => d.fileUrl));
+  };
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
@@ -581,7 +625,7 @@ export default function ProjectsBC() {
     "",
   );
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [allMembersList, setAllMembersList] = useState<PmTeamRosterEntry[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
   const [pmTaskStats, setPmTaskStats] = useState({
@@ -621,6 +665,7 @@ export default function ProjectsBC() {
   const [selectedProjectForEdit, setSelectedProjectForEdit] =
     useState<Project | null>(null);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editPrefillLoading, setEditPrefillLoading] = useState(false);
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
@@ -633,6 +678,40 @@ export default function ProjectsBC() {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const rosterEmployees = allEmployees;
+  const resolveProjectMember = (id: string | number) =>
+    rosterEmployees.find(
+      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
+    );
+  const teamRosterForProject = (proj: Project) =>
+    collectPmProjectTeamRoster(proj, rosterEmployees);
+  const normalizeMemberForProfile = (member: Employee): Employee => {
+    const raw = member as unknown as Record<string, unknown>;
+    return {
+      ...member,
+      employee_id:
+        member.employee_id ||
+        (typeof raw.empid === "string" ? raw.empid : undefined) ||
+        "",
+      phone:
+        member.phone ||
+        (typeof raw.phone_number === "string" ? raw.phone_number : undefined) ||
+        "",
+      user_role:
+        member.user_role ||
+        (typeof raw.role === "string"
+          ? raw.role
+          : typeof raw.designation === "string"
+            ? raw.designation
+            : undefined) ||
+        "",
+    };
+  };
+  const openMemberProfile = (member?: Employee) => {
+    if (!member) return;
+    setSelectedMember(normalizeMemberForProfile(member));
+    setShowMemberProfileModal(true);
+  };
   const [departments, setDepartments] = useState<string[]>([]);
   const priorityOptions = ["High", "Low", "Normal"];
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -836,6 +915,132 @@ export default function ProjectsBC() {
         ? Number(r.swiftbim_proposal_id)
         : undefined,
   });
+
+  const populateEditFieldsFromProject = (p: Project) => {
+    setCreateName(p.project_name ?? "");
+    setCreateBudget(p.budget ? `${p.budget}` : "");
+    setEditModuleTags(
+      p.module_name
+        ? p.module_name.split(",").map((m) => m.trim()).filter(Boolean)
+        : [],
+    );
+    const foundClient = clientsList.find(
+      (c) => String(c.id) === String(p.client_id),
+    );
+    setCreateClientName(
+      foundClient ? foundClient.full_name : (p.client_name ?? ""),
+    );
+    const pmList = (p.project_manager_name || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (pmList.length === 0 && p.project_manager_id) {
+      p.project_manager_id
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((id) => {
+          const name = idToName(id, allEmployees);
+          if (name) pmList.push(name);
+        });
+    }
+    setCreateProjectManager(pmList);
+    setCreateStartDate(
+      p.start_date ? String(p.start_date).split("T")[0].split(" ")[0] : "",
+    );
+    setCreateEndDate(
+      p.end_date ? String(p.end_date).split("T")[0].split(" ")[0] : "",
+    );
+    setCreateTotalHours(p.total_hours ?? "");
+    setCreatePerDay(p.per_day ?? "");
+    setCreateDepartment(p.department ?? "");
+    const blList = (p.lead_name || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (blList.length === 0 && p.lead_id) {
+      p.lead_id
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((id) => {
+          const name = idToName(id, allEmployees);
+          if (name) blList.push(name);
+        });
+    }
+    setCreateBIMLead(blList);
+    const bcList = (p.bim_coordinator_name || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (bcList.length === 0 && p.bim_coordinator_id) {
+      p.bim_coordinator_id
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((id) => {
+          const name = idToName(id, allEmployees);
+          if (name) bcList.push(name);
+        });
+    }
+    if (bcList.length === 0 && p.bim_co_ordinator) {
+      p.bim_co_ordinator
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((id) => {
+          const name = idToName(id, allEmployees);
+          if (name) bcList.push(name);
+        });
+    }
+    setCreateBIMCoOrdinator(bcList);
+    setSelectedMemberIds(
+      p.member
+        ? p.member
+            .split(",")
+            .map((m) => parseInt(m.trim(), 10))
+            .filter((n) => !isNaN(n))
+        : [],
+    );
+    setCreateResources(p.resources ?? "");
+    setCreateRequiredResources(p.required_resources ?? "");
+    setCreatePriority(p.priority ?? "");
+    setEditPriority(p.priority ?? "");
+    setCreateLocation(p.location ?? "");
+    setCreateDescription(p.description ?? "");
+    setEditTaskTags(
+      p.tasks
+        ? p.tasks.split(",").map((t) => t.trim()).filter(Boolean)
+        : [],
+    );
+    applyEditDocumentsFromProject(p);
+    setRemovedFiles([]);
+    setCreateFiles([]);
+  };
+
+  useEffect(() => {
+    if (!showEditModal || !selectedProjectForEdit?.id) return;
+    let cancelled = false;
+    populateEditFieldsFromProject(selectedProjectForEdit);
+    setEditPrefillLoading(true);
+    api
+      .get<Record<string, unknown>>(
+        `/api/projects/${selectedProjectForEdit.id}`,
+      )
+      .then(({ data }) => {
+        if (cancelled) return;
+        const mapped = mapApiProjectToProject(data);
+        setSelectedProjectForEdit(mapped);
+        populateEditFieldsFromProject(mapped);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setEditPrefillLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showEditModal, selectedProjectForEdit?.id]);
 
   // Fetch task status counts for the selected project
   useEffect(() => {
@@ -1751,181 +1956,23 @@ export default function ProjectsBC() {
                       <p className="text-md font-Gantari font-semibold text-[#000000]">
                         Members Involved
                       </p>
-                      {(() => {
-                        const memberIdsForView = selectedProjectForView.member
-                          ? selectedProjectForView.member
-                              .split(",")
-                              .map((s) => parseInt(s.trim(), 10))
-                              .filter((n) => !isNaN(n))
-                          : [];
-
-                        if (memberIdsForView.length === 0) {
-                          return (
-                            <p className="text-sm font-Gantari font-bold text-[#999999]">
-                              N/A
-                            </p>
-                          );
+                      <ProjectMembersInvolvedAvatars
+                        members={collectProjectMembersOnly(
+                          selectedProjectForView,
+                          rosterEmployees,
+                        )}
+                        resolveMember={(id) => resolveProjectMember(id)}
+                        onMemberClick={(emp) =>
+                          openMemberProfile(normalizeMemberForProfile(emp as Employee))
                         }
-
-                        return memberIdsForView.length === 1 ? (
-                          <div className="flex items-center gap-3">
-                            {(() => {
-                              const id = memberIdsForView[0];
-                              const emp = allEmployees.find(
-                                (e) =>
-                                  Number(e.id) === Number(id) ||
-                                  String(e.id) === String(id),
-                              );
-                              const url = emp?.profile_picture
-                                ? getGlobalProfileUrl(
-                                    emp.id,
-                                    emp.profile_picture,
-                                  )
-                                : null;
-                              return (
-                                <>
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    onClick={() => {
-                                      if (emp) {
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" && emp) {
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }
-                                    }}
-                                  >
-                                    {url ? (
-                                      <img
-                                        src={url}
-                                        alt={emp?.full_name}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <img
-                                        src={ProfileIcon}
-                                        alt={emp?.full_name}
-                                        className="w-full h-full object-cover p-1"
-                                      />
-                                    )}
-                                  </div>
-                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                    {emp?.full_name || "Unknown"}
-                                  </span>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap items-center -space-x-4">
-                            {memberIdsForView.slice(0, 3).map((id, j) => {
-                              const emp = allEmployees.find(
-                                (e) =>
-                                  Number(e.id) === Number(id) ||
-                                  String(e.id) === String(id),
-                              );
-                              const url = emp?.profile_picture
-                                ? getGlobalProfileUrl(
-                                    emp.id,
-                                    emp.profile_picture,
-                                  )
-                                : null;
-                              return (
-                                <div
-                                  key={j}
-                                  className="relative group shrink-0"
-                                >
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    onClick={() => {
-                                      if (emp) {
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" && emp) {
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }
-                                    }}
-                                  >
-                                    {url ? (
-                                      <img
-                                        src={url}
-                                        alt={emp?.full_name}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <img
-                                        src={ProfileIcon}
-                                        alt={emp?.full_name}
-                                        className="w-full h-full object-cover p-1"
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                    {emp?.full_name || "Unknown"}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            {memberIdsForView.length > 3 && (
-                              <div className="relative group shrink-0">
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const emps = memberIdsForView
-                                      .map((id) =>
-                                        allEmployees.find(
-                                          (e) =>
-                                            Number(e.id) === Number(id) ||
-                                            String(e.id) === String(id),
-                                        ),
-                                      )
-                                      .filter(Boolean) as Employee[];
-                                    setAllMembersList(emps);
-                                    setShowAllMembersModal(true);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      const emps = memberIdsForView
-                                        .map((id) =>
-                                          allEmployees.find(
-                                            (e) =>
-                                              Number(e.id) === Number(id) ||
-                                              String(e.id) === String(id),
-                                          ),
-                                        )
-                                        .filter(Boolean) as Employee[];
-                                      setAllMembersList(emps);
-                                      setShowAllMembersModal(true);
-                                    }
-                                  }}
-                                >
-                                  +{memberIdsForView.length - 3}
-                                </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  Click to see all members
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                        onOpenAll={() => {
+                          if (!selectedProjectForView) return;
+                          setAllMembersList(
+                            teamRosterForProject(selectedProjectForView),
+                          );
+                          setShowAllMembersModal(true);
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -2581,6 +2628,7 @@ export default function ProjectsBC() {
                         setCreateDescription("");
                         setCreateFiles([]);
                         setExistingFiles([]);
+                        setClientViewOnlyDocs([]);
                         setRemovedFiles([]);
                         setSuccessMsg("Project created successfully!");
                         setTimeout(() => setSuccessMsg(null), 3000);
@@ -3290,76 +3338,138 @@ export default function ProjectsBC() {
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 min-h-0">
               <form
+                noValidate
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!selectedProjectForEdit) return;
                   setEditError("");
 
+                  const snap = selectedProjectForEdit;
+                  const effName =
+                    createName.trim() || (snap.project_name ?? "").trim();
+                  const effBudget =
+                    createBudget.trim() ||
+                    (snap.budget ? String(snap.budget) : "");
+                  const effModules =
+                    editModuleTags.length > 0
+                      ? editModuleTags
+                      : (snap.module_name
+                          ?.split(",")
+                          .map((m) => m.trim())
+                          .filter(Boolean) ?? []);
+                  const effPm = effectiveStringList(
+                    createProjectManager,
+                    snap.project_manager_name,
+                    snap.project_manager_id,
+                    allEmployees,
+                  );
+                  const effBl = effectiveStringList(
+                    createBIMLead,
+                    snap.lead_name,
+                    snap.lead_id ?? snap.bim_lead,
+                    allEmployees,
+                  );
+                  const effBc = effectiveStringList(
+                    createBIMCoOrdinator,
+                    snap.bim_coordinator_name,
+                    snap.bim_coordinator_id ?? snap.bim_co_ordinator,
+                    allEmployees,
+                  );
+                  const effStart = effectiveDate(
+                    createStartDate,
+                    snap.start_date,
+                  );
+                  const effEnd = effectiveDate(createEndDate, snap.end_date);
+                  const effPerDay = createPerDay.trim() || snap.per_day || "";
+                  const effTotalHours =
+                    createTotalHours.trim() || snap.total_hours || "";
+                  const effDepartment =
+                    createDepartment.trim() || snap.department || "";
+                  const effMemberIds =
+                    selectedMemberIds.length > 0
+                      ? selectedMemberIds
+                      : snap.member
+                          ?.split(",")
+                          .map((m) => parseInt(m.trim(), 10))
+                          .filter((n) => !isNaN(n)) ?? [];
+                  const effResources =
+                    createResources.trim() || snap.resources || "";
+                  const effRequiredResources =
+                    createRequiredResources.trim() ||
+                    snap.required_resources ||
+                    "";
+                  const effPriority =
+                    editPriority.trim() || snap.priority || "";
+                  const effLocation =
+                    createLocation.trim() || snap.location || "";
+                  const effDescription =
+                    createDescription.trim() || snap.description || "";
+
                   if (
-                    !createName.trim() ||
-                    !createBudget.trim() ||
-                    editModuleTags.length === 0 ||
-                    createProjectManager.length === 0 ||
-                    !createStartDate.trim() ||
-                    !createEndDate.trim() ||
-                    !createPerDay.trim() ||
-                    !createTotalHours.trim() ||
-                    !createDepartment.trim() ||
-                    createBIMLead.length === 0 ||
-                    createBIMCoOrdinator.length === 0 ||
-                    selectedMemberIds.length === 0 ||
-                    !createResources.trim() ||
-                    !createRequiredResources.trim() ||
-                    !editPriority.trim() ||
-                    !createLocation.trim() ||
-                    !createDescription.trim() ||
-                    editTaskTags.length === 0
+                    !effName ||
+                    !effBudget ||
+                    effModules.length === 0 ||
+                    effPm.length === 0 ||
+                    !effStart ||
+                    !effEnd ||
+                    !effPerDay ||
+                    !effTotalHours ||
+                    !effDepartment ||
+                    effBl.length === 0 ||
+                    effBc.length === 0 ||
+                    effMemberIds.length === 0 ||
+                    !effResources ||
+                    !effRequiredResources ||
+                    !effPriority ||
+                    !effLocation ||
+                    !effDescription
                   ) {
-                    setEditError("Please fill in all required fields.");
+                    const msg = "Please fill in all required fields.";
+                    setEditError(msg);
+                    toast.error(msg);
                     return;
                   }
 
                   setIsEditSubmitting(true);
-                  const membersPayload =
-                    selectedMemberIds.length > 0
-                      ? selectedMemberIds.join(",")
-                      : editMember || undefined;
+                  const membersPayload = effMemberIds.join(",");
 
                   const formData = new FormData();
-                  formData.append("project_name", createName.trim());
-                  if (createBudget) formData.append("budget", createBudget);
-                  if (editModuleTags.length > 0)
-                    formData.append("modules", editModuleTags.join(", "));
-                  if (createClientName)
-                    formData.append("client_id", createClientName);
-                  const pmIds = namesToIds(createProjectManager, allEmployees);
+                  formData.append("project_name", effName);
+                  if (effBudget) formData.append("budget", effBudget);
+                  if (effModules.length > 0)
+                    formData.append("modules", effModules.join(", "));
+                  const clientRow = clientsList.find(
+                    (c) =>
+                      String(c.id) === String(createClientName) ||
+                      c.full_name === createClientName ||
+                      String(c.id) === String(snap.client_id),
+                  );
+                  if (clientRow)
+                    formData.append("client_id", String(clientRow.id));
+                  else if (snap.client_id != null)
+                    formData.append("client_id", String(snap.client_id));
+                  const pmIds = namesToIds(effPm, allEmployees);
                   if (pmIds) formData.append("project_manager_id", pmIds);
-                  const leadIds = namesToIds(createBIMLead, allEmployees);
+                  const leadIds = namesToIds(effBl, allEmployees);
                   if (leadIds) formData.append("lead_id", leadIds);
-                  const bcIds = namesToIds(createBIMCoOrdinator, allEmployees);
+                  const bcIds = namesToIds(effBc, allEmployees);
                   if (bcIds) formData.append("bim_coordinator_id", bcIds);
                   if (membersPayload)
                     formData.append("members", membersPayload);
-                  if (createDepartment)
-                    formData.append("department", createDepartment);
-                  if (createEndDate) formData.append("due_date", createEndDate);
-                  if (createStartDate)
-                    formData.append("start_date", createStartDate);
-                  if (createTotalHours)
-                    formData.append("totalhours", createTotalHours);
-                  if (createPerDay) formData.append("perday", createPerDay);
-                  if (editPriority) formData.append("priority", editPriority);
-                  if (createLocation)
-                    formData.append("location", createLocation);
-                  if (createDescription)
-                    formData.append("description", createDescription);
-                  if (createResources)
-                    formData.append("resources", createResources);
-                  if (createRequiredResources)
-                    formData.append(
-                      "required_resources",
-                      createRequiredResources,
-                    );
+                  if (effDepartment)
+                    formData.append("department", effDepartment);
+                  if (effEnd) formData.append("due_date", effEnd);
+                  if (effStart) formData.append("start_date", effStart);
+                  if (effTotalHours)
+                    formData.append("totalhours", effTotalHours);
+                  if (effPerDay) formData.append("perday", effPerDay);
+                  if (effPriority) formData.append("priority", effPriority);
+                  if (effLocation) formData.append("location", effLocation);
+                  if (effDescription)
+                    formData.append("description", effDescription);
+                  if (effResources) formData.append("resources", effResources);
+                  if (effRequiredResources)
+                    formData.append("required_resources", effRequiredResources);
                   if (editTaskTags.length > 0)
                     formData.append("tasks", editTaskTags.join(", "));
                   if (createFiles.length > 0) {
@@ -3380,32 +3490,45 @@ export default function ProjectsBC() {
                       },
                     )
                     .then(({ data }) => {
-                      if (data.success) {
-                        setShowEditModal(false);
-                        setSuccessMsg("Project updated successfully!");
-                        setTimeout(() => setSuccessMsg(null), 3000);
-                        api
-                          .get<{ projects?: Record<string, unknown>[] }>(
-                            "/api/projects",
-                          )
-                          .then((res) => {
-                            const allProjects = res.data.projects ?? [];
-                            const userId = user?.id;
-                            const filtered = userId
-                              ? allProjects.filter((p: any) => {
-                                  if (!p.bim_coordinator_id) return false;
-                                  return String(p.bim_coordinator_id)
-                                    .split(",")
-                                    .map((s: string) => s.trim())
-                                    .includes(String(userId));
-                                })
-                              : allProjects;
-                            setList(filtered.map(mapApiProjectToProject));
-                          })
-                          .catch(() => {});
+                      if (data?.success === false) {
+                        const msg =
+                          (data as { message?: string }).message ||
+                          "Failed to update project";
+                        setEditError(msg);
+                        toast.error(msg);
+                        return;
                       }
+                      setShowEditModal(false);
+                      toast.success("Project updated successfully!");
+                      setSuccessMsg("Project updated successfully!");
+                      setTimeout(() => setSuccessMsg(null), 3000);
+                      api
+                        .get<{ projects?: Record<string, unknown>[] }>(
+                          "/api/projects",
+                        )
+                        .then((res) => {
+                          const allProjects = res.data.projects ?? [];
+                          const userId = user?.id;
+                          const filtered = userId
+                            ? allProjects.filter((p: any) => {
+                                if (!p.bim_coordinator_id) return false;
+                                return String(p.bim_coordinator_id)
+                                  .split(",")
+                                  .map((s: string) => s.trim())
+                                  .includes(String(userId));
+                              })
+                            : allProjects;
+                          setList(filtered.map(mapApiProjectToProject));
+                        })
+                        .catch(() => {});
                     })
-                    .catch(() => {})
+                    .catch((err) => {
+                      const msg =
+                        err?.response?.data?.message ||
+                        "Failed to update project";
+                      setEditError(msg);
+                      toast.error(msg);
+                    })
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="mx-auto space-y-6 md:space-y-8 mt-8"
@@ -3916,8 +4039,8 @@ export default function ProjectsBC() {
                     </label>
                     <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
                       <div className="flex-1 px-4 py-2 text-[14px] text-[#979797] font-Gantari truncate">
-                        {createFiles.length + existingFiles.length > 0
-                          ? `${createFiles.length + existingFiles.length} file(s) total`
+                        {createFiles.length + existingFiles.length + clientViewOnlyDocs.length > 0
+                          ? `${createFiles.length + existingFiles.length + clientViewOnlyDocs.length} file(s) total`
                           : "Choose Files"}
                       </div>
                       <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
@@ -3933,111 +4056,20 @@ export default function ProjectsBC() {
                         />
                       </label>
                     </div>
-                    {(existingFiles.length > 0 || createFiles.length > 0) && (
-                      <div className="grid grid-cols-1 gap-2">
-                        {/* Existing Files */}
-                        {existingFiles.map((fileName, idx) => (
-                          <div
-                            key={`exist-${idx}`}
-                            className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[14px] font-semibold text-[#353535] truncate">
-                                {fileName}
-                              </p>
-                              <p className="text-[12px] font-medium text-[#8B8B8B]">
-                                Existing File
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <a
-                                href={`${api.defaults.baseURL}/uploads/${fileName}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                                title="View file"
-                              >
-                                <img
-                                  src={viewIcon}
-                                  alt="View"
-                                  className="w-5 h-5"
-                                />
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const file = existingFiles[idx];
-                                  setExistingFiles((prev) =>
-                                    prev.filter((_, i) => i !== idx),
-                                  );
-                                  setRemovedFiles((prev) => [...prev, file]);
-                                }}
-                                className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                                title="Remove file"
-                              >
-                                <img
-                                  src={deleteIcon}
-                                  alt="Delete"
-                                  className="w-5 h-5"
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Newly Selected Files */}
-                        {createFiles.map((file, idx) => (
-                          <div
-                            key={`new-${idx}`}
-                            className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[14px] font-semibold text-[#353535] truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-[12px] font-medium text-[#8B8B8B]">
-                                {(file.size / 1024).toFixed(1)} KB
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  window.open(
-                                    URL.createObjectURL(file),
-                                    "_blank",
-                                  )
-                                }
-                                className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                                title="View file"
-                              >
-                                <img
-                                  src={viewIcon}
-                                  alt="View"
-                                  className="w-5 h-5"
-                                />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setCreateFiles((prev) =>
-                                    prev.filter((_, i) => i !== idx),
-                                  )
-                                }
-                                className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                                title="Remove file"
-                              >
-                                <img
-                                  src={deleteIcon}
-                                  alt="Delete"
-                                  className="w-5 h-5"
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <ProjectEditAttachments
+                      clientViewOnly={clientViewOnlyDocs}
+                      teamFileRefs={existingFiles}
+                      newFiles={createFiles}
+                      apiBaseUrl={apiBaseForFiles}
+                      projectSource={selectedProjectForEdit?.source}
+                      onRemoveTeamFile={(fileRef) => {
+                        setRemovedFiles((prev) => [...prev, fileRef]);
+                        setExistingFiles((prev) => prev.filter((f) => f !== fileRef));
+                      }}
+                      onRemoveNewFile={(idx) =>
+                        setCreateFiles((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                    />
                   </div>
                 </div>
 
@@ -4059,10 +4091,14 @@ export default function ProjectsBC() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isEditSubmitting}
+                    disabled={isEditSubmitting || editPrefillLoading}
                     className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
                   >
-                    {isEditSubmitting ? "Updating..." : "Update Project"}
+                    {editPrefillLoading
+                      ? "Loading..."
+                      : isEditSubmitting
+                        ? "Updating..."
+                        : "Update Project"}
                   </button>
                 </div>
               </form>
@@ -4098,6 +4134,7 @@ export default function ProjectsBC() {
                           setCreateDescription("");
                           setCreateFiles([]);
                           setExistingFiles([]);
+                        setClientViewOnlyDocs([]);
                           setRemovedFiles([]);
                           setCreateResources("");
                           setCreateRequiredResources("");
@@ -4285,123 +4322,7 @@ export default function ProjectsBC() {
                                           return;
                                         }
                                         setSelectedProjectForEdit(p);
-                                        setCreateName(p.project_name ?? "");
-                                        setCreateBudget(
-                                          p.budget ? `${p.budget}` : "",
-                                        );
-                                        setEditModuleTags(
-                                          p.module_name
-                                            ? p.module_name
-                                                .split(",")
-                                                .map((m) => m.trim())
-                                                .filter(Boolean)
-                                            : [],
-                                        );
-                                        setCreateClientName(p.client_name ?? "");
-                                        const pmDisplay =
-                                          p.project_manager_name ||
-                                          csvToDisplayNamesFromIds(
-                                            p.project_manager_id,
-                                            allEmployees,
-                                          ) ||
-                                          p.project_manager ||
-                                          "";
-                                        setCreateProjectManager(
-                                          pmDisplay
-                                            ? pmDisplay
-                                                .split(",")
-                                                .map((s) => s.trim())
-                                                .filter(Boolean)
-                                            : [],
-                                        );
-                                        setCreateStartDate(
-                                          p.start_date
-                                            ? String(p.start_date)
-                                                .split("T")[0]
-                                                .split(" ")[0]
-                                            : "",
-                                        );
-                                        setCreateEndDate(
-                                          p.end_date
-                                            ? String(p.end_date)
-                                                .split("T")[0]
-                                                .split(" ")[0]
-                                            : "",
-                                        );
-                                        setCreateTotalHours(p.total_hours ?? "");
-                                        setCreatePerDay(p.per_day ?? "");
-                                        setCreateDepartment(p.department ?? "");
-                                        const blDisplay =
-                                          p.lead_name ||
-                                          csvToDisplayNamesFromIds(
-                                            p.lead_id,
-                                            allEmployees,
-                                          ) ||
-                                          csvToDisplayNamesFromIds(
-                                            p.bim_lead,
-                                            allEmployees,
-                                          ) ||
-                                          "";
-                                        setCreateBIMLead(
-                                          blDisplay
-                                            ? blDisplay
-                                                .split(",")
-                                                .map((s) => s.trim())
-                                                .filter(Boolean)
-                                            : [],
-                                        );
-                                        const bcDisplay =
-                                          p.bim_coordinator_name ||
-                                          csvToDisplayNamesFromIds(
-                                            p.bim_coordinator_id,
-                                            allEmployees,
-                                          ) ||
-                                          csvToDisplayNamesFromIds(
-                                            p.bim_co_ordinator,
-                                            allEmployees,
-                                          ) ||
-                                          "";
-                                        setCreateBIMCoOrdinator(
-                                          bcDisplay
-                                            ? bcDisplay
-                                                .split(",")
-                                                .map((s) => s.trim())
-                                                .filter(Boolean)
-                                            : [],
-                                        );
-                                        setSelectedMemberIds(
-                                          p.member
-                                            ? p.member
-                                                .split(",")
-                                                .map((m) =>
-                                                  parseInt(m.trim(), 10),
-                                                )
-                                                .filter((n) => !isNaN(n))
-                                            : [],
-                                        );
-                                        setCreateResources(p.resources ?? "");
-                                        setCreateRequiredResources(
-                                          p.required_resources ?? "",
-                                        );
-                                        setCreatePriority(p.priority ?? "");
-                                        setEditPriority(p.priority ?? "");
-                                        setCreateLocation(p.location ?? "");
-                                        setCreateDescription(p.description ?? "");
-                                        const tasksArr = p.tasks
-                                          ? p.tasks
-                                              .split(",")
-                                              .map((t) => t.trim())
-                                              .filter(Boolean)
-                                          : [];
-                                        setEditTaskTags(tasksArr);
-                                        setExistingFiles(
-                                          p.document_attachment
-                                            ? p.document_attachment
-                                                .split(",")
-                                                .map((f) => f.trim())
-                                                .filter(Boolean)
-                                            : [],
-                                        );
+                                        populateEditFieldsFromProject(p);
                                         setShowEditModal(true);
                                       }}
                                       className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer hover:bg-slate-50/50"
@@ -4451,98 +4372,19 @@ export default function ProjectsBC() {
                               className="flex items-center -space-x-4"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {(() => {
-                                const rawIds = p.member
-                                  ? p.member
-                                      .split(",")
-                                      .map((m) => m.trim())
-                                      .filter(Boolean)
-                                  : [];
-                                const memberIds_card = rawIds.map((m) => {
-                                  const n = Number(m);
-                                  return Number.isNaN(n) ? m : n;
-                                });
-                                const projectEmployees = memberIds_card
-                                  .map((id) =>
-                                    allEmployees.find(
-                                      (e) =>
-                                        Number(e.id) === Number(id) ||
-                                        String(e.id) === String(id),
-                                    ),
-                                  )
-                                  .filter(Boolean) as Employee[];
-
-                                const visibleMembers = projectEmployees.slice(
-                                  0,
-                                  3,
-                                );
-                                const remainingCount = Math.max(
-                                  0,
-                                  projectEmployees.length - 3,
-                                );
-
-                                return (
-                                  <>
-                                    {visibleMembers.map((emp) => {
-                                      const profileUrl = emp.profile_picture
-                                        ? getGlobalProfileUrl(
-                                            emp.id,
-                                            emp.profile_picture,
-                                          )
-                                        : null;
-
-                                      return (
-                                        <div
-                                          key={emp.id}
-                                          role="button"
-                                          tabIndex={0}
-                                          className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                          title={emp.full_name}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedMember(emp);
-                                            setShowMemberProfileModal(true);
-                                          }}
-                                        >
-                                          {profileUrl ? (
-                                            <img
-                                              src={profileUrl}
-                                              alt={emp.full_name}
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                              {(emp.full_name || "U")
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                    {remainingCount > 0 && (
-                                      <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="relative z-10 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          setAllMembersList(projectEmployees);
-                                          setShowAllMembersModal(true);
-                                        }}
-                                      >
-                                        +{remainingCount}
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                              <ProjectCardTeamAvatars
+                                roster={teamRosterForProject(p)}
+                                onOpenAll={() => {
+                                  setAllMembersList(teamRosterForProject(p));
+                                  setShowAllMembersModal(true);
+                                }}
+                                onMemberClick={(emp) => {
+                                  if (!emp.id) return;
+                                  const full = resolveProjectMember(emp.id);
+                                  if (full)
+                                    openMemberProfile(normalizeMemberForProfile(full));
+                                }}
+                              />
                             </div>
                             {p.priority && (
                               <div
@@ -4832,76 +4674,17 @@ export default function ProjectsBC() {
           </div>
         )}
 
-        {/* All Members Modal */}
-        {showAllMembersModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh]">
-              <div className="relative flex items-center justify-center p-6 border-b border-gray-100">
-                <div className="absolute left-6 group">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMembersModal(false)}
-                    className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                  >
-                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                  </button>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                        Close
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <h3 className="text-[22px] font-Gantari font-semibold text-[#1A1A1A]">
-                  Team Members
-                </h3>
-              </div>
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {allMembersList.map((emp) => {
-                    const profileUrl = emp.profile_picture
-                      ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                      : null;
-                    return (
-                      <div
-                        key={emp.id}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer group"
-                        onClick={() => {
-                          setSelectedMember(emp);
-                          setShowMemberProfileModal(true);
-                        }}
-                      >
-                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
-                          {profileUrl ? (
-                            <img
-                              src={profileUrl}
-                              alt={emp.full_name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-500 font-bold">
-                              {(emp.full_name || "U").charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-Gantari font-bold text-[#1A1A1A] group-hover:text-[#DD4342] transition-colors leading-tight">
-                            {emp.full_name}
-                          </p>
-                          <p className="text-[13px] font-Gantari font-medium text-slate-500">
-                            {emp.user_role}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ProjectAllMembersModal
+          open={showAllMembersModal}
+          members={allMembersList}
+          onClose={() => setShowAllMembersModal(false)}
+          onMemberClick={(emp) => {
+            if (!emp.id) return;
+            const full = resolveProjectMember(emp.id);
+            if (full) openMemberProfile(normalizeMemberForProfile(full));
+            setShowAllMembersModal(false);
+          }}
+        />
 
         {/* Member Profile Detail Modal */}
         {showMemberProfileModal && selectedMember && (

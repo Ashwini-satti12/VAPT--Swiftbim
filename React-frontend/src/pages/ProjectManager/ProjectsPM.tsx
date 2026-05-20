@@ -21,8 +21,18 @@ import {
   getProjectDocumentItems,
   parseAttachmentsField,
   resolveProjectDocumentHref,
+  splitProjectEditDocuments,
   type ProjectDocumentItem,
 } from '../../utils/projectDetails';
+import ProjectEditAttachments from '../../components/ProjectEditAttachments';
+import ProjectAllMembersModal from '../../components/ProjectAllMembersModal';
+import ProjectCardTeamAvatars from '../../components/ProjectCardTeamAvatars';
+import ProjectMembersInvolvedAvatars from '../../components/ProjectMembersInvolvedAvatars';
+import {
+  collectPmProjectTeamRoster,
+  collectProjectMembersOnly,
+  type PmTeamRosterEntry,
+} from '../../utils/projectTeamRoster';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
@@ -511,7 +521,17 @@ export default function ProjectsPM() {
   const [createDescription, setCreateDescription] = useState('');
   const [createFiles, setCreateFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [clientViewOnlyDocs, setClientViewOnlyDocs] = useState<ProjectDocumentItem[]>([]);
   const [removedFiles, setRemovedFiles] = useState<string[]>([]);
+
+  const applyEditDocumentsFromProject = (p: {
+    document_attachment?: string | null;
+    attachments?: ProjectDocumentItem[] | null;
+  }) => {
+    const split = splitProjectEditDocuments(p);
+    setClientViewOnlyDocs(split.clientViewOnly);
+    setExistingFiles(split.teamEditable.map((d) => d.fileUrl));
+  };
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -526,7 +546,7 @@ export default function ProjectsPM() {
   const projectDetailDocuments = getProjectDocumentItems(selectedProjectForView ?? undefined);
   const apiBaseForFiles = String(api.defaults.baseURL || "").replace(/\/api\/?$/i, "");
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [allMembersList, setAllMembersList] = useState<PmTeamRosterEntry[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
   const [pmTaskStats, setPmTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
@@ -559,9 +579,13 @@ export default function ProjectsPM() {
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const rosterEmployees = [...allEmployees, ...vendorResourceProfiles];
   const resolveProjectMember = (id: string | number) =>
-    allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ||
-    vendorResourceProfiles.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id));
+    rosterEmployees.find(
+      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
+    );
+  const teamRosterForProject = (proj: Project) =>
+    collectPmProjectTeamRoster(proj, rosterEmployees);
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -719,6 +743,7 @@ export default function ProjectsPM() {
     setCurrencyDropdownOpen(false);
     setCreateFiles([]);
     setExistingFiles([]);
+    setClientViewOnlyDocs([]);
     setRemovedFiles([]);
     setCreateError('');
   };
@@ -1583,105 +1608,23 @@ export default function ProjectsPM() {
                       {/* Members Involved */}
                       <div className="flex flex-col gap-3">
                         <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
-                        {(() => {
-                          const memberIdsForView = selectedProjectForView.member
-                            ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-                            : [];
-
-                          if (memberIdsForView.length === 0) {
-                            return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                        <ProjectMembersInvolvedAvatars
+                          members={collectProjectMembersOnly(
+                            selectedProjectForView,
+                            rosterEmployees,
+                          )}
+                          resolveMember={(id) => resolveProjectMember(id)}
+                          onMemberClick={(emp) =>
+                            openMemberProfile(emp as Employee)
                           }
-
-                          return memberIdsForView.length === 1 ? (
-                            <div className="flex items-center gap-3">
-                              {(() => {
-                                const id = memberIdsForView[0];
-                                const emp = resolveProjectMember(id);
-                                const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                return (
-                                  <>
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                      onClick={() => openMemberProfile(emp)}
-                                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
-                                    >
-                                      {url ? (
-                                        <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                      )}
-                                    </div>
-                                    <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                      {emp?.full_name || "Unknown"}
-                                    </span>
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap items-center -space-x-4">
-                              {memberIdsForView.slice(0, 3).map((id, j) => {
-                                const emp = resolveProjectMember(id);
-                                const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                return (
-                                  <div key={j} className="relative group shrink-0">
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                      onClick={() => openMemberProfile(emp)}
-                                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
-                                    >
-                                      {url ? (
-                                        <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                      )}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {emp?.full_name || "Unknown"}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {memberIdsForView.length > 3 && (
-                                <div className="relative group shrink-0">
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      const emps = memberIdsForView
-                                        .map((id) => resolveProjectMember(id))
-                                        .filter(Boolean) as Employee[];
-                                      setAllMembersList(emps);
-                                      setShowAllMembersModal(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        const emps = memberIdsForView
-                                          .map((id) => resolveProjectMember(id))
-                                          .filter(Boolean) as Employee[];
-                                        setAllMembersList(emps);
-                                        setShowAllMembersModal(true);
-                                      }
-                                    }}
-                                  >
-                                    +{memberIdsForView.length - 3}
-                                  </div>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                    Click to see all members
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                          onOpenAll={() => {
+                            if (!selectedProjectForView) return;
+                            setAllMembersList(
+                              teamRosterForProject(selectedProjectForView),
+                            );
+                            setShowAllMembersModal(true);
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -3200,76 +3143,20 @@ export default function ProjectsPM() {
                         </label>
 
                         {/* File Gallery */}
-                        {(existingFiles.length > 0 || createFiles.length > 0) && (
-                          <div className="flex flex-wrap gap-3 mb-4">
-                            {/* Existing Files */}
-                            {existingFiles.map((fileName, idx) => {
-                              const isOutsource = selectedProjectForEdit?.source === "Outsource";
-                              const url = isOutsource
-                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                : `${api.defaults.baseURL}uploads/${fileName}`;
-                              return (
-                                <div key={`existing-${idx}`} className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                                  <FiPaperclip className="w-4 h-4 text-blue-500" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-bold text-[#353535] truncate">{fileName}</p>
-                                    <p className="text-[11px] text-blue-600 font-medium tracking-wide uppercase">Existing</p>
-                                  </div>
-                                  <div className="flex gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => window.open(url, '_blank')}
-                                      className="p-1 hover:bg-white rounded transition-colors"
-                                    >
-                                      <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setRemovedFiles(prev => [...prev, fileName]);
-                                        setExistingFiles(prev => prev.filter(f => f !== fileName));
-                                      }}
-                                      className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-
-                            {/* Newly Selected Files */}
-                            {createFiles.map((file, idx) => (
-                              <div key={`new-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                                <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[13px] font-bold text-[#353535] truncate">{file.name}</p>
-                                  <p className="text-[11px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                                </div>
-                                <div className="flex gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                                    className="p-1 hover:bg-slate-50 rounded transition-colors"
-                                  >
-                                    <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
-                                    className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <ProjectEditAttachments
+                          clientViewOnly={clientViewOnlyDocs}
+                          teamFileRefs={existingFiles}
+                          newFiles={createFiles}
+                          apiBaseUrl={apiBaseForFiles}
+                          projectSource={selectedProjectForEdit?.source}
+                          onRemoveTeamFile={(fileRef) => {
+                            setRemovedFiles((prev) => [...prev, fileRef]);
+                            setExistingFiles((prev) => prev.filter((f) => f !== fileRef));
+                          }}
+                          onRemoveNewFile={(idx) =>
+                            setCreateFiles((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                        />
 
                         <div className="relative group">
                           <input
@@ -3528,8 +3415,7 @@ export default function ProjectsPM() {
                                           setCreateDescription(p.description ?? '');
                                           setEditTaskTags(p.tasks ? p.tasks.split(',').map(t => t.trim()).filter(Boolean) : []);
                                           setEditModuleTags(p.module_name ? p.module_name.split(',').map(m => m.trim()).filter(Boolean) : []);
-                                          const docs = p.document_attachment ? p.document_attachment.split(',').map(s => s.trim()).filter(Boolean) : [];
-                                          setExistingFiles(docs);
+                                          applyEditDocumentsFromProject(p);
                                           setRemovedFiles([]);
                                           setCreateFiles([]);
                                           setShowEditModal(true);
@@ -3563,46 +3449,18 @@ export default function ProjectsPM() {
                               className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto"
                             >
                               <div className="hover:cursor-pointer flex items-center -space-x-4" onClick={(e) => e.stopPropagation()}>
-                                {(() => {
-                                  const rawIds = p.member ? p.member.split(',').map(m => m.trim()).filter(Boolean) : [];
-                                  const memberIds_card = rawIds.map((m) => { const n = Number(m); return Number.isNaN(n) ? m : n; });
-                                  const projectEmployees = memberIds_card.map((id) => resolveProjectMember(id)).filter(Boolean) as Employee[];
-                                  const visibleMembers = projectEmployees.slice(0, 3);
-                                  const remainingCount = Math.max(0, projectEmployees.length - 3);
-                                  return (
-                                    <>
-                                      {visibleMembers.map((emp) => {
-                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                        return (
-                                          <div
-                                            key={emp.id}
-                                            role="button"
-                                            tabIndex={0}
-                                            className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                            title={emp.full_name}
-                                            onClick={(e) => { e.stopPropagation(); openMemberProfile(emp); }}
-                                          >
-                                            {profileUrl ? (
-                                              <img src={profileUrl} alt={emp.full_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                            ) : (
-                                              <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">{(emp.full_name || 'U').charAt(0).toUpperCase()}</div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                      {remainingCount > 0 && (
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="relative z-10 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAllMembersList(projectEmployees); setShowAllMembersModal(true); }}
-                                        >
-                                          +{remainingCount}
-                                        </div>
-                                      )}
-                                    </>
-                                  )
-                                })()}
+                                <ProjectCardTeamAvatars
+                                  roster={teamRosterForProject(p)}
+                                  onOpenAll={() => {
+                                    setAllMembersList(teamRosterForProject(p));
+                                    setShowAllMembersModal(true);
+                                  }}
+                                  onMemberClick={(emp) => {
+                                    if (!emp.id) return;
+                                    const full = resolveProjectMember(emp.id);
+                                    if (full) openMemberProfile(full);
+                                  }}
+                                />
                               </div>
                               <div className="flex items-center gap-3">
                                 {p.priority && (
@@ -3929,90 +3787,17 @@ export default function ProjectsPM() {
                 </div>
               )}
 
-              {/* All Members Modal - shown when clicking +N on project card or in project detail (same as ProjectsTD) */}
-              {showAllMembersModal && (
-                <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                  <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
-                    <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
-                      <div className="absolute left-4 group">
-                        <button
-                          type="button"
-                          onClick={() => setShowAllMembersModal(false)}
-                          className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                        >
-                          <img src={backIcon} alt="Back" className="w-5 h-5" />
-                        </button>
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                              Go Back
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                        All Members ({allMembersList.length})
-                      </h3>
-                    </div>
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-6 custom-scrollbar">
-                      {allMembersList.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {allMembersList.map((m) => {
-                            const profileUrl = m.profile_picture ? getGlobalProfileUrl(m.id, m.profile_picture) : null;
-                            return (
-                              <div
-                                key={m.id}
-                                className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
-                                onClick={() => {
-                                  openMemberProfile(m);
-                                  setShowAllMembersModal(false);
-                                }}
-                              >
-                                {profileUrl ? (
-                                  <img
-                                    src={profileUrl}
-                                    alt={m.full_name || 'Member'}
-                                    className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = ProfileIcon;
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
-                                    <span className="text-slate-600 font-bold text-lg">
-                                      {(m.full_name || `E${m.id}`).charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">
-                                    {m.full_name || `Employee ${m.id}`}
-                                  </p>
-                                  {m.user_role && (
-                                    <p className="text-[14px] font-Gantari font-bold text-[#999999] truncate">
-                                      {m.user_role}
-                                    </p>
-                                  )}
-                                  {m.email && (
-                                    <p className="text-[13px] font-Gantari text-[#666666] mt-1 truncate">
-                                      {m.email}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-12 text-gray-500">
-                          <p className="text-[16px] font-Gantari">No members found</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+              <ProjectAllMembersModal
+                open={showAllMembersModal}
+                members={allMembersList}
+                onClose={() => setShowAllMembersModal(false)}
+                onMemberClick={(emp) => {
+                  if (!emp.id) return;
+                  const full = resolveProjectMember(emp.id);
+                  if (full) openMemberProfile(full);
+                  setShowAllMembersModal(false);
+                }}
+              />
 
             </div>
         </div>

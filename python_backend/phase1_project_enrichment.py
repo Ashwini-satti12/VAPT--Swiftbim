@@ -215,12 +215,16 @@ def _fetch_enquiry_attachment_items(vendor_cur, enquiry_id: int) -> list[dict]:
                 "fileUrl": u,
                 "originalFilename": _display_filename_from_path(raw_upload),
                 "uploadedAt": "",
+                "source": "client",
+                "removable": False,
             }
         )
 
     if has_attachments:
         for entry in _normalize_enquiry_attachments(row.get("attachments")):
             entry["id"] = len(items) + 1
+            entry["source"] = "client"
+            entry["removable"] = False
             _add_item(entry)
 
     return items
@@ -390,8 +394,10 @@ def _pm_document_item(path: str, next_id: int) -> dict:
         url = ref
     elif ref.startswith("static/") or ref.startswith("uploads/"):
         url = "/" + ref.lstrip("/")
+        if url.startswith("/uploads/"):
+            url = "/static/uploads/" + url[len("/uploads/") :]
     else:
-        url = f"/uploads/{ref.lstrip('/')}"
+        url = f"/static/uploads/{ref.lstrip('/')}"
     base = os.path.basename(ref)
     name = base
     if re.match(r"^[0-9a-f]{16,}_", base, re.I):
@@ -429,20 +435,26 @@ def merge_project_documents(project: dict, enq_row: dict, vendor_cur) -> None:
 
     has_enquiry_files = len(enquiry_items) > 0
     for entry in enquiry_items:
-        _add_item(entry)
+        tagged = dict(entry)
+        tagged["source"] = "client"
+        tagged["removable"] = False
+        _add_item(tagged)
 
+    team_urls: list[str] = []
     for pth in pm_paths:
         if has_enquiry_files and _is_pm_document_stub(pth):
             continue
         item = _pm_document_item(pth, len(items) + 1)
         if item:
+            item["source"] = "team"
+            item["removable"] = True
+            team_urls.append(str(item.get("fileUrl") or ""))
             _add_item(item)
 
     project["attachments"] = items
-    if items:
-        project["document_attachment"] = ",".join(
-            str(i.get("fileUrl") or "") for i in items if i.get("fileUrl")
-        )
+    # document_attachment column stores in-house uploads only (not client enquiry files)
+    if team_urls:
+        project["document_attachment"] = ",".join(u for u in team_urls if u)
     elif pm_raw:
         project["document_attachment"] = pm_raw
 

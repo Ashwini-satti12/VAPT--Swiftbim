@@ -1114,7 +1114,7 @@ def create_project():
                 filename = secure_filename(file.filename)
                 # Prefix with project name or timestamp for uniqueness if needed, but keeping it simple for now
                 file.save(os.path.join(upload_folder, filename))
-                file_paths.append(filename)
+                file_paths.append(f"/static/uploads/{filename}")
 
     document_attachment = ",".join(file_paths) if file_paths else ""
 
@@ -1277,10 +1277,10 @@ def update_project(project_id):
             if file and file.filename:
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(upload_folder, filename))
-                file_paths.append(filename)
+                file_paths.append(f"/static/uploads/{filename}")
 
     # Combine existing (not removed) and newly uploaded files
-    all_files = list(set(existing_files + file_paths))
+    all_files = list(dict.fromkeys(existing_files + file_paths))
     data["document_attachment"] = ",".join(all_files)
 
     # Resolve names to IDs so we always store IDs
