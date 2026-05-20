@@ -39,6 +39,7 @@ from blueprints.workorder import bp as workorder_bp
 
 def create_app(config_class=Config): 
     app = Flask(__name__)
+    app.url_map.strict_slashes = False
     app.config.from_object(config_class)
     CORS(app, origins=["*"], supports_credentials=True)
 

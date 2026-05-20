@@ -165,16 +165,27 @@ function formatBudget(amount: number, currencyCode: string = "AED") {
   if (!amount) return "—";
 
   if (currencyCode === "INR") {
-    if (amount >= 10000000) return `${(amount / 10000000).toFixed(1)} Cr INR`;
-    if (amount >= 100000) return `${(amount / 100000).toFixed(1)} L INR`;
-    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K INR`;
+    if (amount >= 10000000) {
+      const val = amount / 10000000;
+      return `${val % 1 === 0 ? val : val.toFixed(1)} Cr INR`;
+    }
+    if (amount >= 100000) {
+      const val = amount / 100000;
+      return `${val % 1 === 0 ? val : val.toFixed(1)} L INR`;
+    }
     return `${amount.toLocaleString("en-IN")} INR`;
   }
 
   const code = currencyCode;
 
-  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M ${code}`;
-  if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K ${code}`;
+  if (amount >= 1000000) {
+    const val = amount / 1000000;
+    return `${val % 1 === 0 ? val : val.toFixed(1)}M ${code}`;
+  }
+  if (amount >= 10000) {
+    const val = amount / 1000;
+    return `${val % 1 === 0 ? val : val.toFixed(1)}K ${code}`;
+  }
 
   return `${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${code}`;
 }
@@ -443,8 +454,8 @@ export default function BiddingV() {
     setSubmitBidReturnView(returnTo);
     setBidError(null);
     setBidAmountError(null);
-    setBidForm({ 
-      ...EMPTY_BID_FORM, 
+    setBidForm({
+      ...EMPTY_BID_FORM,
       currency: opp.currency || "AED",
       bid_amount: ""
     });
@@ -548,10 +559,10 @@ export default function BiddingV() {
   const filteredBids = (() => {
     let out = bids;
     if (searchQuery) {
-        out = out.filter(b => 
-            (b.project_name || "").toLowerCase().includes(searchQuery) ||
-            (b.status || "").toLowerCase().includes(searchQuery)
-        );
+      out = out.filter(b =>
+        (b.project_name || "").toLowerCase().includes(searchQuery) ||
+        (b.status || "").toLowerCase().includes(searchQuery)
+      );
     }
     if (bidStatusFilter !== "all") {
       out = out.filter(
@@ -566,12 +577,12 @@ export default function BiddingV() {
     effectiveShowEntries === "all"
       ? { start: 0, end: filteredBids.length }
       : (() => {
-          const [start, end] = effectiveShowEntries.split("-").map(Number);
-          return {
-            start: Math.max(0, (start || 1) - 1),
-            end: Math.max(0, end || filteredBids.length),
-          };
-        })();
+        const [start, end] = effectiveShowEntries.split("-").map(Number);
+        return {
+          start: Math.max(0, (start || 1) - 1),
+          end: Math.max(0, end || filteredBids.length),
+        };
+      })();
   const rangeEnd = Math.min(selectedShowRange.end, filteredBids.length);
   const listInRange = filteredBids.slice(selectedShowRange.start, rangeEnd);
   const tableRowsPerPage = 5;
@@ -593,9 +604,9 @@ export default function BiddingV() {
     listInRange.length === 0
       ? 0
       : Math.min(
-          selectedShowRange.start + tablePageStartIndex + tableRowsPerPage,
-          rangeEnd,
-        );
+        selectedShowRange.start + tablePageStartIndex + tableRowsPerPage,
+        rangeEnd,
+      );
   const tablePageRangeLabel =
     listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
@@ -767,10 +778,10 @@ export default function BiddingV() {
               <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari">
                 {detailOpp.bid_deadline
                   ? new Date(detailOpp.bid_deadline).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
                   : "—"}
               </p>
             </div>
@@ -789,8 +800,8 @@ export default function BiddingV() {
               <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate">
                 {formatBudget(
                   parseBudgetNumeric(detailOpp.budget_ceiling) ??
-                    parseBudgetNumeric(detailOpp.outsource_budget) ??
-                    0,
+                  parseBudgetNumeric(detailOpp.outsource_budget) ??
+                  0,
                   detailOpp.currency
                 )}
               </p>
@@ -812,8 +823,8 @@ export default function BiddingV() {
                     <span className="text-[18px] font-bold text-[#DE3D3A] font-gantari">
                       {formatBudget(
                         parseBudgetNumeric(detailOpp.budget_ceiling) ??
-                          parseBudgetNumeric(detailOpp.outsource_budget) ??
-                          0,
+                        parseBudgetNumeric(detailOpp.outsource_budget) ??
+                        0,
                         detailOpp.currency,
                       )}
                     </span>
@@ -825,9 +836,9 @@ export default function BiddingV() {
                     <span className="text-[14px] font-medium text-[#353535] font-gantari">
                       {detailOpp.bid_deadline
                         ? new Date(detailOpp.bid_deadline).toLocaleDateString(
-                            "en-GB",
-                            { day: "2-digit", month: "long", year: "numeric" },
-                          )
+                          "en-GB",
+                          { day: "2-digit", month: "long", year: "numeric" },
+                        )
                         : "—"}
                     </span>
                   </div>
@@ -1005,11 +1016,10 @@ export default function BiddingV() {
                       onClick={() =>
                         openSubmitBidModal(detailOpp, "opportunity-detail")
                       }
-                      className={`w-full py-3 text-white rounded-md font-medium transition-all font-gantari text-[14px] ${
-                        detailDays <= 0
+                      className={`w-full py-3 text-white rounded-md font-medium transition-all font-gantari text-[14px] ${detailDays <= 0
                           ? "bg-gray-400 cursor-not-allowed opacity-60"
                           : "bg-[#DD4342] hover:bg-[#c93d3d]"
-                      }`}
+                        }`}
                     >
                       Submit Your Bid
                     </button>
@@ -1083,10 +1093,10 @@ export default function BiddingV() {
               <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari">
                 {detailBid.bid_deadline
                   ? new Date(detailBid.bid_deadline).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
                   : "—"}
               </p>
             </div>
@@ -1302,11 +1312,10 @@ export default function BiddingV() {
                             setOppTab(tab.key);
                             setStatusDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-[14px] transition-all font-gantari ${
-                            isChosen
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-[14px] transition-all font-gantari ${isChosen
                               ? "text-[#353535] bg-[#F2F2F2] font-medium"
                               : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2] font-medium"
-                          }`}
+                            }`}
                         >
                           <span>{tab.label}</span>
                           {isChosen && (
@@ -1528,8 +1537,8 @@ export default function BiddingV() {
                           <p className="text-[18px] font-bold text-[#353535]">
                             {formatBudget(
                               parseBudgetNumeric(opp.budget_ceiling) ??
-                                parseBudgetNumeric(opp.outsource_budget) ??
-                                0,
+                              parseBudgetNumeric(opp.outsource_budget) ??
+                              0,
                               opp.currency,
                             )}
                           </p>
@@ -1565,11 +1574,10 @@ export default function BiddingV() {
                               type="button"
                               disabled={days <= 0}
                               onClick={() => openSubmitBidModal(opp, "list")}
-                              className={`text-[14px] font-medium text-white px-5 py-2 rounded-md transition-colors shadow-sm ${
-                                days <= 0
+                              className={`text-[14px] font-medium text-white px-5 py-2 rounded-md transition-colors shadow-sm ${days <= 0
                                   ? "bg-gray-400 cursor-not-allowed opacity-60"
                                   : "bg-[#DD4342] hover:bg-[#c93d3d]"
-                              }`}
+                                }`}
                             >
                               Submit Bid
                             </button>
@@ -1738,11 +1746,10 @@ export default function BiddingV() {
                     })
                   }
                   disabled={safeTableCurrentPage === 1}
-                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                    safeTableCurrentPage === 1
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
                       ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
                       : "text-[#353535]"
-                  }`}
+                    }`}
                   aria-label="Previous page"
                 >
                   <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
@@ -1766,11 +1773,10 @@ export default function BiddingV() {
                     })
                   }
                   disabled={safeTableCurrentPage >= tableTotalPages}
-                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                    safeTableCurrentPage >= tableTotalPages
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
                       ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
                       : "text-[#353535]"
-                  }`}
+                    }`}
                   aria-label="Next page"
                 >
                   <span className="inline-flex items-center">Next</span>

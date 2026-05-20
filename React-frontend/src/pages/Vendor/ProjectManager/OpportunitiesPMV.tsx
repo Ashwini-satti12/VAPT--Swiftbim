@@ -52,9 +52,15 @@ function getInitials(name: string) {
 function formatBudget(amount: number, currency: string = 'INR') {
     if (!amount) return '—';
     if (currency === 'INR') {
-        if (amount >= 10000000) return `${(amount / 10000000).toFixed(1)} Cr INR`;
-        if (amount >= 100000) return `${(amount / 100000).toFixed(1)} L INR`;
-        if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K INR`;
+        if (amount >= 10000000) {
+            const val = amount / 10000000;
+            return `${val % 1 === 0 ? val : val.toFixed(1)} Cr INR`;
+        }
+        if (amount >= 100000) {
+            const val = amount / 100000;
+            return `${val % 1 === 0 ? val : val.toFixed(1)} L INR`;
+        }
+        return `${amount.toLocaleString('en-IN')} INR`;
     }
     return `${amount.toLocaleString()} ${currency}`;
 }

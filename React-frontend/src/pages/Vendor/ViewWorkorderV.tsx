@@ -369,9 +369,8 @@ export default function ViewWorkorderV() {
             </>
           ) : (
             <>
-              <span className={`px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
-                selectedWO.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" : "bg-[#FCE8E6] text-[#D93025]"
-              }`}>
+              <span className={`px-4 py-1.5 rounded-lg text-[14px] font-semibold ${selectedWO.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" : "bg-[#FCE8E6] text-[#D93025]"
+                }`}>
                 {selectedWO.status}
               </span>
               {selectedWO.status === "Accepted" && (
@@ -537,7 +536,7 @@ export default function ViewWorkorderV() {
             </div>
           )}
 
-          
+
 
           {/* Signatures Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
