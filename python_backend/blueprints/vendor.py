@@ -7,6 +7,7 @@ from decimal import Decimal
 from flask import Blueprint, request, jsonify, g, current_app
 from auth_middleware import login_required
 from db import get_db
+from phase1_project_enrichment import enrich_project_from_phase1, fetch_phase1_chain
 import hashlib
 import random
 import smtplib
@@ -6973,7 +6974,17 @@ def list_vendor_projects():
 
         for p in projects:
             pname = (p.get("project_name") or "").strip()
-            enq_row, prop_row, con_row = _fetch_chain_for_vendor_project(p)
+            enq_row, prop_row, con_row = fetch_phase1_chain(vcur, p)
+            enrich_project_from_phase1(
+                p,
+                vcur,
+                proposal_res_cols=proposal_res_cols,
+                start_cols=start_cols,
+                duration_cols=duration_cols,
+                parse_iso_date=_parse_iso_date,
+                add_months=_add_months,
+                duration_to_months=_duration_to_months,
+            )
 
             prop_resources = _first(prop_row, [c for c in proposal_res_cols if c in prop_row])
             if prop_resources and not p.get("resources") and not p.get("no_resource"):
@@ -7019,32 +7030,6 @@ def list_vendor_projects():
                 if derived:
                     p["resources"] = str(derived)
                     p["required_resources"] = str(derived)
-
-            loc_parts = []
-            for k in enq_loc_parts:
-                v = enq_row.get(k)
-                v = str(v).strip() if v not in (None, "", "NULL") else ""
-                if v:
-                    loc_parts.append(v)
-            combined_loc = ", ".join(loc_parts).strip(", ").strip()
-            if not combined_loc:
-                combined_loc = _first(enq_row, [c for c in enq_loc_fallback if c in enq_row])
-            if combined_loc and (not p.get("location") or str(p.get("location")).strip().lower() in {"empty", "n/a", "na"}):
-                p["location"] = combined_loc
-
-            start_dt = _parse_iso_date(p.get("start_date"))
-            if not start_dt:
-                start_dt = (
-                    _parse_iso_date(_first(enq_row, ["projectstart_date"]))
-                    or _parse_iso_date(_first(enq_row, [c for c in start_cols if c in enq_row]))
-                    or _parse_iso_date(_first(prop_row, [c for c in start_cols if c in prop_row]))
-                    or _parse_iso_date(_first(con_row, [c for c in start_cols if c in con_row]))
-                )
-            end_dt = _parse_iso_date(p.get("end_date"))
-            duration_text = _first(enq_row, [c for c in duration_cols if c in enq_row]) or _first(prop_row, [c for c in duration_cols if c in prop_row]) or _first(con_row, [c for c in duration_cols if c in con_row]) or str(p.get("due_date") or "").strip()
-            months = _duration_to_months(duration_text)
-            if months is not None and start_dt and not end_dt:
-                p["end_date"] = _add_months(start_dt, months).isoformat()
     except Exception:
         pass
 

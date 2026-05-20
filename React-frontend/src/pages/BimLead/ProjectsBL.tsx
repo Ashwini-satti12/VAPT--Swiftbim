@@ -6,6 +6,14 @@ import toast from "react-hot-toast";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
 import {
+  formatProjectEndDate,
+  formatProjectLocationDisplay,
+  getProjectDocumentItems,
+  parseAttachmentsField,
+  resolveProjectDocumentHref,
+  type ProjectDocumentItem,
+} from "../../utils/projectDetails";
+import {
   buildAdvancePaymentMilestonesHref,
   INTERNAL_ADVANCE_BLOCK_MESSAGE,
   isClientAdvanceBlockingProject,
@@ -480,6 +488,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   budget_ceiling?: string;
   source?: "In House" | "Outsource";
   currency?: string;
@@ -556,6 +565,13 @@ export default function ProjectsBL() {
   );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
+  const projectDetailDocuments = getProjectDocumentItems(
+    selectedProjectForView ?? undefined,
+  );
+  const apiBaseForFiles = String(api.defaults.baseURL || "").replace(
+    /\/api\/?$/i,
+    "",
+  );
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
   const [milestoneName, setMilestoneName] = useState("");
   const [milestoneAmount, setMilestoneAmount] = useState("");
@@ -820,6 +836,7 @@ export default function ProjectsBL() {
           : undefined,
     document_attachment:
       r.document_attachment != null ? String(r.document_attachment) : undefined,
+    attachments: parseAttachmentsField(r.attachments),
     budget_ceiling:
       r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
     source:
@@ -2143,7 +2160,7 @@ export default function ProjectsBL() {
                         :
                       </span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                        {selectedProjectForView.location || "N/A"}
+                        {formatProjectLocationDisplay(selectedProjectForView.location)}
                       </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2154,11 +2171,7 @@ export default function ProjectsBL() {
                         :
                       </span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                        {selectedProjectForView.end_date
-                          ? new Date(
-                              selectedProjectForView.end_date,
-                            ).toLocaleDateString("en-GB")
-                          : "N/A"}
+                        {formatProjectEndDate(selectedProjectForView.end_date)}
                       </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2193,18 +2206,14 @@ export default function ProjectsBL() {
                         :
                       </span>
                       <div className="flex flex-wrap gap-2">
-                        {selectedProjectForView.document_attachment ? (
-                          selectedProjectForView.document_attachment
-                            .split(",")
-                            .map((file) => file.trim())
-                            .filter(Boolean)
-                            .map((fileName, idx) => {
-                              const isOutsource =
-                                selectedProjectForView.source === "Outsource";
-                              const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
-                              const url = isOutsource
-                                ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
-                                : `${fileBaseUrl}/uploads/${fileName}`;
+                        {projectDetailDocuments.length > 0 ? (
+                          projectDetailDocuments.map((doc, idx) => {
+                              const fileName = doc.fileUrl;
+                              const url = resolveProjectDocumentHref(
+                                fileName,
+                                apiBaseForFiles,
+                                selectedProjectForView.source,
+                              );
 
                               return (
                                 <div
@@ -2212,7 +2221,7 @@ export default function ProjectsBL() {
                                   className="flex items-center gap-2 w-full md:max-w-xs mt-1"
                                 >
                                   <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                    {fileName.split("_").pop() || "Document"}
+                                    {doc.originalFilename || "Document"}
                                   </span>
                                   <div className="flex gap-1">
                                     <div className="relative group">

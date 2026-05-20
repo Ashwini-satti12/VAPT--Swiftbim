@@ -11,6 +11,7 @@ import json
 from datetime import date, datetime
 
 from advance_client_gate import hydrate_project_list_advance_gate
+from phase1_project_enrichment import enrich_project_from_phase1, fetch_phase1_chain
 
 
 def _get_vendor_db():
@@ -684,31 +685,31 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
                 source_val == "outsource" or department_val == "Submission Deadline"
             )
 
-            # Do not pull phase-1 proposal/contract data for regular in-house projects.
-            # This prevents accidental leakage of dates/resources from other projects of the same client.
-            if not is_outsource_project:
-                continue
+            enq_row, prop_row, con_row = fetch_phase1_chain(vendor_cur, p)
 
-            enq_row, prop_row, con_row = fetch_phase1_chain_for_project(p)
-
-            # Currency source-of-truth only when proposal linkage is reliable.
-            # This avoids incorrectly locking currency for unrelated projects.
-            sel_cur = _first_nonempty(prop_row, ["selected_currency"])
-            linked_prop_id = _as_int_id(con_row.get("proposal_id")) if con_row else None
-            current_prop_id = _as_int_id(prop_row.get("id")) if prop_row else None
-            has_reliable_proposal_link = (
-                linked_prop_id is not None and
-                (current_prop_id is None or current_prop_id == linked_prop_id)
+            enrich_project_from_phase1(
+                p,
+                vendor_cur,
+                proposal_res_cols=proposal_res_cols,
+                start_cols=start_cols,
+                duration_cols=duration_cols,
+                parse_iso_date=_parse_iso_date,
+                add_months=_add_months,
+                duration_to_months=_duration_to_months,
             )
-            if sel_cur and has_reliable_proposal_link:
-                p["selected_currency"] = sel_cur
 
-            # Resources + Required Resources: from proposals.resources when available
-            prop_resources = _first_nonempty(prop_row, [c for c in proposal_res_cols if c in prop_row])
-            if prop_resources and not p.get("resources") and not p.get("no_resource"):
-                p["resources"] = prop_resources
-                p["required_resources"] = prop_resources
-            elif not p.get("resources") and not p.get("no_resource"):
+            if is_outsource_project:
+                sel_cur = _first_nonempty(prop_row, ["selected_currency"])
+                linked_prop_id = _as_int_id(con_row.get("proposal_id")) if con_row else None
+                current_prop_id = _as_int_id(prop_row.get("id")) if prop_row else None
+                has_reliable_proposal_link = (
+                    linked_prop_id is not None
+                    and (current_prop_id is None or current_prop_id == linked_prop_id)
+                )
+                if sel_cur and has_reliable_proposal_link:
+                    p["selected_currency"] = sel_cur
+
+            if not p.get("resources") and not p.get("no_resource"):
                 # Fallback: if proposals.resources is empty in DB, derive total resources from proposals.commercial_offer
                 # (sum of each milestone's `resources`), else fall back to enquiry list counts.
                 derived = 0
@@ -747,47 +748,6 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
                 if derived:
                     p["resources"] = str(derived)
                     p["required_resources"] = str(derived)
-
-            # Location: build from enquiry as "address, city, state, country"
-            loc_parts = []
-            for k in enq_loc_parts:
-                v = (enq_row.get(k) or "").strip() if isinstance(enq_row.get(k), str) else enq_row.get(k)
-                v = str(v).strip() if v not in (None, "", "NULL") else ""
-                if v:
-                    loc_parts.append(v)
-            combined_loc = ", ".join(loc_parts).strip(", ").strip()
-            if not combined_loc:
-                combined_loc = _first_nonempty(enq_row, [c for c in enq_loc_fallback if c in enq_row])
-            if combined_loc and (not p.get("location") or str(p.get("location")).strip().lower() in {"empty", "n/a", "na"}):
-                p["location"] = combined_loc
-
-            # End date calculation
-            start_dt = _parse_iso_date(p.get("start_date") or p.get("startDate"))
-            if not start_dt:
-                # bim_enquiry uses projectstart_date (not start_date)
-                start_dt = (
-                    _parse_iso_date(_first_nonempty(enq_row, ["projectstart_date"]))
-                    or _parse_iso_date(_first_nonempty(enq_row, [c for c in start_cols if c in enq_row]))
-                    or _parse_iso_date(_first_nonempty(prop_row, [c for c in start_cols if c in prop_row]))
-                    or _parse_iso_date(_first_nonempty(con_row, [c for c in start_cols if c in con_row]))
-                )
-                if start_dt and not p.get("start_date"):
-                    p["start_date"] = start_dt.isoformat()
-
-            # We only trust end_date if it's a real date; due_date may be a duration string ("6 months")
-            end_dt_existing = _parse_iso_date(p.get("end_date"))
-            duration_text = (
-                _first_nonempty(enq_row, [c for c in duration_cols if c in enq_row])
-                or _first_nonempty(prop_row, [c for c in duration_cols if c in prop_row])
-                or _first_nonempty(con_row, [c for c in duration_cols if c in con_row])
-                or (str(p.get("due_date") or "").strip())
-            )
-            months = _duration_to_months(duration_text)
-
-            # If frontend is getting "Invalid Date", it's usually because end_date is empty/garbled.
-            # Only compute if we have a start date + duration.
-            if months is not None and start_dt and not end_dt_existing:
-                p["end_date"] = _add_months(start_dt, months).isoformat()
     except Exception:
         return
     finally:

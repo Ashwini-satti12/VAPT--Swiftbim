@@ -5,6 +5,14 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
 import {
+  formatProjectEndDate,
+  formatProjectLocationDisplay,
+  getProjectDocumentItems,
+  parseAttachmentsField,
+  resolveProjectDocumentHref,
+  type ProjectDocumentItem,
+} from "../../utils/projectDetails";
+import {
   buildAdvancePaymentMilestonesHref,
   INTERNAL_ADVANCE_BLOCK_MESSAGE,
   isClientAdvanceBlockingProject,
@@ -492,6 +500,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   source?: "In House" | "Outsource";
   currency?: string;
   currency_locked?: boolean;
@@ -564,6 +573,13 @@ export default function ProjectsBC() {
   );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
+  const projectDetailDocuments = getProjectDocumentItems(
+    selectedProjectForView ?? undefined,
+  );
+  const apiBaseForFiles = String(api.defaults.baseURL || "").replace(
+    /\/api\/?$/i,
+    "",
+  );
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -802,6 +818,7 @@ export default function ProjectsBC() {
     description: r.description,
     tasks: r.tasks,
     document_attachment: r.document_attachment,
+    attachments: parseAttachmentsField(r.attachments),
     source:
       r.source != null && String(r.source) !== "undefined"
         ? (String(r.source) as "In House" | "Outsource")
@@ -2023,7 +2040,7 @@ export default function ProjectsBC() {
                           :
                         </span>
                         <span className="text-md font-Gantari font-medium text-[#666666]">
-                          {selectedProjectForView.location || "N/A"}
+                          {formatProjectLocationDisplay(selectedProjectForView.location)}
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2034,15 +2051,7 @@ export default function ProjectsBC() {
                           :
                         </span>
                         <span className="text-md font-Gantari font-medium text-[#666666]">
-                          {selectedProjectForView.end_date
-                            ? new Date(
-                                selectedProjectForView.end_date,
-                              ).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              })
-                            : "N/A"}
+                          {formatProjectEndDate(selectedProjectForView.end_date)}
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2077,20 +2086,14 @@ export default function ProjectsBC() {
                           :
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          {selectedProjectForView.document_attachment ? (
-                            selectedProjectForView.document_attachment
-                              .split(",")
-                              .map((file) => file.trim())
-                              .filter(Boolean)
-                              .map((fileName, idx) => {
-                                const isOutsource =
-                                  selectedProjectForView.source === "Outsource";
-                                const fileBaseUrl = (
-                                  api.defaults.baseURL || ""
-                                ).replace(/\/api\/?$/, "");
-                                const url = isOutsource
-                                  ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
-                                  : `${fileBaseUrl}/uploads/${fileName}`;
+                          {projectDetailDocuments.length > 0 ? (
+                            projectDetailDocuments.map((doc, idx) => {
+                                const fileName = doc.fileUrl;
+                                const url = resolveProjectDocumentHref(
+                                  fileName,
+                                  apiBaseForFiles,
+                                  selectedProjectForView.source,
+                                );
 
                                 return (
                                   <div
@@ -2098,7 +2101,7 @@ export default function ProjectsBC() {
                                     className="flex items-center gap-3 px-4 py-2.5 w-full md:max-w-md mt-1"
                                   >
                                     <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                      {fileName.split("_").pop() || "Document"}
+                                      {doc.originalFilename || "Document"}
                                     </span>
                                     <div className="flex gap-2.5">
                                       <div className="relative group/tooltip inline-flex shrink-0">
