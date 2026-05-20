@@ -16,6 +16,13 @@ class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.getenv("SECRET_KEY", "your-secret-key-change-in-production"))
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 86400 * 30))  # 30 days
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads"))
+    # Phase-1 (client portal) uploads — used when files were stored by Swifterz_landingpage backend
+    from upload_resolver import phase1_upload_folder_default
+
+    PHASE1_UPLOAD_FOLDER = os.getenv(
+        "PHASE1_UPLOAD_FOLDER",
+        os.getenv("SWIFTBIM_PHASE1_UPLOAD_FOLDER", phase1_upload_folder_default()),
+    )
     TIMEZONE = os.getenv("TIMEZONE", "Asia/Kolkata")
 
     # SMTP / email settings (used for invite emails)

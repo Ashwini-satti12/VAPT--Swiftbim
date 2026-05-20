@@ -93,56 +93,22 @@ def create_app(config_class=Config):
 
     def _send_upload_with_fallback(filename: str, preferred_dirs: list[str]):
         """
-        Serve uploaded file by trying multiple directories and legacy filename variants.
-        Keeps backward compatibility for rows that stored only basename (or older naming).
+        Serve uploaded file from phase-2 and/or phase-1 upload roots.
         """
-        upload_root = app.config["UPLOAD_FOLDER"]
+        from upload_resolver import find_upload_file
+
         requested = (filename or "").strip()
         if not requested:
+            upload_root = app.config["UPLOAD_FOLDER"]
             return send_from_directory(upload_root, requested)
 
-        basename = os.path.basename(requested)
-        unquoted = basename
-        try:
-            # Flask usually provides decoded path already, but keep this for safety.
-            from urllib.parse import unquote
+        found = find_upload_file(app.config, requested, preferred_dirs)
+        if found:
+            directory, name = found
+            return send_from_directory(directory, name)
 
-            unquoted = unquote(basename)
-        except Exception:
-            pass
-
-        candidates = []
-        for name in (basename, unquoted):
-            if not name:
-                continue
-            candidates.append(name)
-            sf = secure_filename(name)
-            if sf and sf not in candidates:
-                candidates.append(sf)
-            if name.startswith(("TL_", "GST_")):
-                no_prefix = name.split("_", 1)[1] if "_" in name else name
-                if no_prefix and no_prefix not in candidates:
-                    candidates.append(no_prefix)
-                sf_no_prefix = secure_filename(no_prefix)
-                if sf_no_prefix and sf_no_prefix not in candidates:
-                    candidates.append(sf_no_prefix)
-
-        # Deduplicate while preserving order.
-        seen = set()
-        unique_candidates = []
-        for c in candidates:
-            if c and c not in seen:
-                seen.add(c)
-                unique_candidates.append(c)
-
-        for sub_dir in preferred_dirs:
-            target_dir = os.path.join(upload_root, sub_dir) if sub_dir else upload_root
-            for c in unique_candidates:
-                if os.path.isfile(os.path.join(target_dir, c)):
-                    return send_from_directory(target_dir, c)
-
-        # Keep previous fallback behavior: try root with original value.
-        return send_from_directory(upload_root, basename)
+        upload_root = app.config["UPLOAD_FOLDER"]
+        return send_from_directory(upload_root, os.path.basename(requested))
 
     # Serve uploaded files (e.g., employee profile pictures)
     @app.route("/uploads/<path:filename>")
@@ -162,6 +128,18 @@ def create_app(config_class=Config):
             filename,
             ["vendors", "vendor_resources", "vendor_docs", ""],
         )
+
+    @app.route("/static/uploads/<path:filename>")
+    def static_uploads_root(filename):
+        """Client enquiry / phase-1 files (e.g. /static/uploads/<hash>_Screenshot.png)."""
+        from urllib.parse import unquote
+
+        name = unquote(filename or "").strip()
+        if name.startswith("vendor_docs/"):
+            return vendor_docs_static(name[len("vendor_docs/") :])
+        if name.startswith("vendors/"):
+            return vendors_static(name[len("vendors/") :])
+        return _send_upload_with_fallback(name, ["", "enquiries"])
 
     @app.route("/api/view_profile_picture/<emp_id>")
     def view_profile_picture(emp_id):

@@ -15,6 +15,14 @@ import {
   isClientAdvanceBlockingProject,
 } from '../../lib/clientAdvanceGate';
 import { isEmployeeActiveForProjectAssignment } from '../../utils/employeeActive';
+import {
+  formatProjectEndDate,
+  formatProjectLocationDisplay,
+  getProjectDocumentItems,
+  parseAttachmentsField,
+  resolveProjectDocumentHref,
+  type ProjectDocumentItem,
+} from '../../utils/projectDetails';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
@@ -443,6 +451,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;   // path/name of attached file
+  attachments?: ProjectDocumentItem[];
   budget_ceiling?: string;
   source?: string;
   currency?: string;
@@ -514,6 +523,8 @@ export default function ProjectsPM() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
   const [selectedProjectForView, setSelectedProjectForView] = useState<Project | null>(null);
+  const projectDetailDocuments = getProjectDocumentItems(selectedProjectForView ?? undefined);
+  const apiBaseForFiles = String(api.defaults.baseURL || "").replace(/\/api\/?$/i, "");
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -919,6 +930,7 @@ export default function ProjectsPM() {
     description: r.description != null ? String(r.description) : undefined,
     tasks: r.tasks != null ? String(r.tasks) : undefined,
     document_attachment: r.document_attachment != null ? String(r.document_attachment) : undefined,
+    attachments: parseAttachmentsField(r.attachments),
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
     source:
       r.source != null && String(r.source) !== "undefined"
@@ -1744,22 +1756,15 @@ export default function ProjectsPM() {
                           </span>
                           <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                           <div className="flex flex-wrap gap-2">
-                            {selectedProjectForView.document_attachment ? (
-                              selectedProjectForView.document_attachment
-                                .split(",")
-                                .map((file) => file.trim())
-                                .filter(Boolean)
-                                .map((fileName, idx) => {
-                                  const isOutsource = selectedProjectForView.source === "Outsource";
-                                   const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
-                                   const url = isOutsource
-                                     ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
-                                     : `${fileBaseUrl}/uploads/${fileName}`;
+                            {projectDetailDocuments.length > 0 ? (
+                              projectDetailDocuments.map((doc, idx) => {
+                                  const fileName = doc.fileUrl;
+                                  const url = resolveProjectDocumentHref(fileName, apiBaseForFiles, selectedProjectForView.source);
 
                                   return (
                                     <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
                                       <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                        {fileName.split("_").pop() || "Document"}
+                                        {doc.originalFilename || "Document"}
                                       </span>
                                       <div className="flex gap-2.5">
                                         <div className="relative group/tooltip inline-flex shrink-0">
@@ -1814,7 +1819,7 @@ export default function ProjectsPM() {
                           </span>
                           <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                           <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.location || "N/A"}
+                            {formatProjectLocationDisplay(selectedProjectForView.location)}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
@@ -1823,12 +1828,7 @@ export default function ProjectsPM() {
                           </span>
                           <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
-                            {selectedProjectForView.end_date
-                              ? new Date(selectedProjectForView.end_date).toLocaleDateString(
-                                "en-GB",
-                                { day: "2-digit", month: "2-digit", year: "numeric" }
-                              )
-                              : "N/A"}
+                            {formatProjectEndDate(selectedProjectForView.end_date)}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">

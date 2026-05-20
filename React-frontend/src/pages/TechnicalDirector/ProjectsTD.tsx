@@ -10,6 +10,14 @@ import {
   isClientAdvanceBlockingProject,
 } from "../../lib/clientAdvanceGate";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import {
+  formatProjectEndDate,
+  formatProjectLocationDisplay,
+  getProjectDocumentItems,
+  parseAttachmentsField,
+  resolveProjectDocumentHref,
+  type ProjectDocumentItem,
+} from "../../utils/projectDetails";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -453,6 +461,7 @@ interface Project {
   bidding_end_date?: string;
   source?: string;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   currency?: string;
   currency_locked?: boolean;
   commercial_verification_status?: string;
@@ -580,6 +589,13 @@ export default function ProjectsTD() {
   );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
+  const projectDetailDocuments = getProjectDocumentItems(
+    selectedProjectForView ?? undefined,
+  );
+  const apiBaseForFiles = String(api.defaults.baseURL || "").replace(
+    /\/api\/?$/i,
+    "",
+  );
 
   // Add Milestone Modal State
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
@@ -775,6 +791,7 @@ export default function ProjectsTD() {
       description: str(r.description),
       source: str(r.source),
       document_attachment: str(r.document_attachment),
+      attachments: parseAttachmentsField(r.attachments),
       currency:
         r.selected_currency != null &&
         String(r.selected_currency).trim().length > 0
@@ -2270,21 +2287,14 @@ export default function ProjectsTD() {
                               :
                             </span>
                             <div className="flex flex-wrap gap-2">
-                              {selectedProjectForView.document_attachment ? (
-                                selectedProjectForView.document_attachment
-                                  .split(",")
-                                  .map((file) => file.trim())
-                                  .filter(Boolean)
-                                  .map((fileName, idx) => {
-                                    const isOutsource =
-                                      selectedProjectForView.source ===
-                                      "Outsource";
-                                    const fileBaseUrl = (
-                                      api.defaults.baseURL || ""
-                                    ).replace(/\/api\/?$/, "");
-                                    const url = isOutsource
-                                      ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
-                                      : `${fileBaseUrl}/uploads/${fileName}`;
+                              {projectDetailDocuments.length > 0 ? (
+                                projectDetailDocuments.map((doc, idx) => {
+                                    const fileName = doc.fileUrl;
+                                    const url = resolveProjectDocumentHref(
+                                      fileName,
+                                      apiBaseForFiles,
+                                      selectedProjectForView.source,
+                                    );
 
                                     return (
                                       <div
@@ -2292,8 +2302,7 @@ export default function ProjectsTD() {
                                         className="flex items-center gap-3 w-full md:max-w-md mt-1"
                                       >
                                         <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                          {fileName.split("_").pop() ||
-                                            "Document"}
+                                          {doc.originalFilename || "Document"}
                                         </span>
                                         <div className="flex gap-2.5">
                                           <div className="relative group/tooltip inline-flex shrink-0">
@@ -2361,7 +2370,7 @@ export default function ProjectsTD() {
                               :
                             </span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.location || "N/A"}
+                              {formatProjectLocationDisplay(selectedProjectForView.location)}
                             </span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2372,15 +2381,7 @@ export default function ProjectsTD() {
                               :
                             </span>
                             <span className="text-md font-Gantari font-medium text-[#666666]">
-                              {selectedProjectForView.end_date
-                                ? new Date(
-                                    selectedProjectForView.end_date,
-                                  ).toLocaleDateString("en-GB", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                  })
-                                : "N/A"}
+                              {formatProjectEndDate(selectedProjectForView.end_date)}
                             </span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center">
