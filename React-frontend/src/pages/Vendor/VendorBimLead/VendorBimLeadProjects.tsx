@@ -2036,9 +2036,8 @@ export default function VendorBimLeadProjects() {
                         </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161] font-gantari">
-                          {selectedProject.budget ||
-                          selectedProject.budget_ceiling
-                            ? `${selectedProject.budget || selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
+                          {selectedProject.budget
+                            ? `${selectedProject.budget} ${projectCurrencyCode(selectedProject)}`
                             : "N/A"}
                         </span>
                       </div>

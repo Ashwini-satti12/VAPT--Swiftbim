@@ -2252,86 +2252,8 @@ def respond_to_proposal(proposal_id):
     except Exception:
         pass
 
-    # On accept → auto-create vendor project
-    project_id = None
-    if action == "accept" and proposal_data:
-        try:
-            _ensure_vp_table()
-            main_conn = get_db()
-            main_cur = main_conn.cursor(dictionary=True)
-            # Check if project already exists for this proposal
-            main_cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s", (proposal_id,))
-            existing = main_cur.fetchone()
-            if not existing:
-                # Fetch source project details to sync more fields
-                # First get project_id from vendor_bidding
-                main_cur.execute(
-                    "SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s",
-                    (proposal_data.get("opportunity_id"),)
-                )
-                vb_row = main_cur.fetchone()
-                project_id_main = vb_row.get("project_id") if vb_row else None
-
-                if project_id_main:
-                    main_cur.execute(
-                        """SELECT client_id, bidding_end_date, budget_ceiling, location, category, 
-                           department, due_date, start_date, priority, Company_id, document_attachment 
-                           FROM snh6_swiftproject.projects WHERE id = %s""",
-                        (project_id_main,)
-                    )
-                    source_proj = main_cur.fetchone()
-                else:
-                    # Fallback to matching by name if project_id logic fails
-                    main_cur.execute(
-                        """SELECT client_id, bidding_end_date, budget_ceiling, location, category, 
-                           department, due_date, start_date, priority, Company_id, document_attachment 
-                           FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1""",
-                        (proposal_data.get("project_name"),)
-                    )
-                    source_proj = main_cur.fetchone()
-
-                source_proj = source_proj or {}
-
-                main_cur.execute("""
-                    INSERT INTO vendor_projects (
-                        main_project_id,
-                        proposal_id, opportunity_id, vendor_id, project_name, 
-                        description, modules, deliverables, budget, document_attachment,
-                        client_id, bidding_end_date, budget_ceiling, location, category,
-                        department, due_date, start_date, priority, Company_id
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    project_id_main,
-                    proposal_id,
-                    proposal_data.get("opportunity_id"),
-                    proposal_data.get("vendor_id"),
-                    proposal_data.get("project_name"),
-                    proposal_data.get("scope_of_work"),
-                    "", # Removed automatic modules creation at the time of proposal acceptance.
-                    proposal_data.get("deliverables"),
-                    "0",
-                    source_proj.get("document_attachment"),
-                    source_proj.get("client_id"),
-                    source_proj.get("bidding_end_date"),
-                    source_proj.get("budget_ceiling"),
-                    source_proj.get("location"),
-                    source_proj.get("category"),
-                    source_proj.get("department"),
-                    source_proj.get("due_date"),
-                    source_proj.get("start_date"),
-                    source_proj.get("priority"),
-                    source_proj.get("Company_id")
-                ))
-                project_id = main_cur.lastrowid
-                main_conn.commit()
-            else:
-                project_id = existing["id"]
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-
-    return jsonify({"success": True, "status": new_status, "project_id": project_id})
+    # Vendor project is created when the vendor accepts the work order, not here.
+    return jsonify({"success": True, "status": new_status, "project_id": None})
 
 
 # ---------------------------------------------------------------------------
@@ -3460,83 +3382,8 @@ def td_respond_vendor_proposal(proposal_id: int):
         except Exception:
             pass
 
-        # On accept → auto-create vendor project (same as legacy accept)
-        project_id = None
-        if action == "accept":
-            try:
-                _ensure_vp_table()
-                main_cur = conn.cursor(dictionary=True)
-                main_cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s", (proposal_id,))
-                existing = main_cur.fetchone()
-                if existing:
-                    project_id = existing["id"]
-                else:
-                    # project linkage from vendor_bidding
-                    main_cur.execute(
-                        "SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s",
-                        (proposal.get("opportunity_id"),),
-                    )
-                    vb_row = main_cur.fetchone()
-                    project_id_main = vb_row.get("project_id") if vb_row else None
-
-                    if project_id_main:
-                        main_cur.execute(
-                            """SELECT client_id, bidding_end_date, budget_ceiling, location, category,
-                               department, due_date, start_date, priority, Company_id, document_attachment
-                               FROM snh6_swiftproject.projects WHERE id = %s""",
-                            (project_id_main,),
-                        )
-                        source_proj = main_cur.fetchone()
-                    else:
-                        main_cur.execute(
-                            """SELECT client_id, bidding_end_date, budget_ceiling, location, category,
-                               department, due_date, start_date, priority, Company_id, document_attachment
-                               FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1""",
-                            (proposal.get("project_name"),),
-                        )
-                        source_proj = main_cur.fetchone()
-
-                    source_proj = source_proj or {}
-                    main_cur.execute(
-                        """
-                        INSERT INTO vendor_projects (
-                            main_project_id,
-                            proposal_id, opportunity_id, vendor_id, project_name,
-                            description, modules, deliverables, budget, document_attachment,
-                            client_id, bidding_end_date, budget_ceiling, location, category,
-                            department, due_date, start_date, priority, Company_id
-                        )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (
-                            project_id_main,
-                            proposal_id,
-                            proposal.get("opportunity_id"),
-                            proposal.get("vendor_id"),
-                            proposal.get("project_name"),
-                            proposal.get("scope_of_work"),
-                            "",
-                            proposal.get("deliverables"),
-                            "0",
-                            source_proj.get("document_attachment"),
-                            source_proj.get("client_id"),
-                            source_proj.get("bidding_end_date"),
-                            source_proj.get("budget_ceiling"),
-                            source_proj.get("location"),
-                            source_proj.get("category"),
-                            source_proj.get("department"),
-                            source_proj.get("due_date"),
-                            source_proj.get("start_date"),
-                            source_proj.get("priority"),
-                            source_proj.get("Company_id"),
-                        ),
-                    )
-                    project_id = main_cur.lastrowid
-                    conn.commit()
-            except Exception:
-                pass
-
-        return jsonify({"success": True, "status": new_status, "project_id": project_id})
+        # Vendor project is created when the vendor accepts the work order, not here.
+        return jsonify({"success": True, "status": new_status, "project_id": None})
     except Exception as e:
         try:
             conn.rollback()
@@ -5384,6 +5231,172 @@ def _ensure_vp_table():
                 pass
 
 
+def _fetch_proposal_row_for_project(cur, proposal_id: int):
+    """Load proposal data from whichever proposals table owns this id."""
+    if not proposal_id:
+        return None
+    for table in ("td_proposals", "vendor_submitted_proposals"):
+        try:
+            cur.execute(f"SELECT * FROM {table} WHERE id = %s LIMIT 1", (proposal_id,))
+            row = cur.fetchone()
+            if row:
+                return row
+        except Exception:
+            pass
+    try:
+        cur.execute(
+            "SELECT * FROM new_swiftbim.vendor_proposals WHERE id = %s LIMIT 1",
+            (proposal_id,),
+        )
+        return cur.fetchone()
+    except Exception:
+        return None
+
+
+def create_vendor_project_from_proposal(proposal_id, work_order=None):
+    """
+    Create a vendor_projects row when a work order is accepted (not on proposal accept).
+    Returns vendor_projects.id or None.
+    """
+    if not proposal_id:
+        return None
+    try:
+        _ensure_vp_table()
+        conn = get_db()
+        cur = conn.cursor(dictionary=True)
+        cur.execute(
+            "SELECT id FROM vendor_projects WHERE proposal_id = %s LIMIT 1",
+            (proposal_id,),
+        )
+        existing = cur.fetchone()
+        if existing:
+            return existing["id"]
+
+        proposal_data = _fetch_proposal_row_for_project(cur, proposal_id)
+        if not proposal_data:
+            return None
+
+        cur.execute(
+            "SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s",
+            (proposal_data.get("opportunity_id"),),
+        )
+        vb_row = cur.fetchone()
+        project_id_main = vb_row.get("project_id") if vb_row else None
+
+        if project_id_main:
+            cur.execute(
+                """SELECT client_id, bidding_end_date, budget_ceiling, location, category,
+                   department, due_date, start_date, priority, Company_id, document_attachment
+                   FROM snh6_swiftproject.projects WHERE id = %s""",
+                (project_id_main,),
+            )
+            source_proj = cur.fetchone()
+        else:
+            cur.execute(
+                """SELECT client_id, bidding_end_date, budget_ceiling, location, category,
+                   department, due_date, start_date, priority, Company_id, document_attachment
+                   FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1""",
+                (proposal_data.get("project_name"),),
+            )
+            source_proj = cur.fetchone()
+
+        source_proj = source_proj or {}
+        wo = work_order or {}
+
+        vendor_id = proposal_data.get("vendor_id")
+        if not vendor_id and wo.get("vendor_name"):
+            try:
+                cur.execute(
+                    "SELECT id FROM new_swiftbim.vendor_onboarding WHERE company_name = %s LIMIT 1",
+                    (wo["vendor_name"],),
+                )
+                v_onb = cur.fetchone()
+                if v_onb:
+                    vendor_id = v_onb["id"]
+            except Exception:
+                pass
+
+        description = (
+            (wo.get("work_description") or "").strip()
+            or (wo.get("scope_of_work") or "").strip()
+            or proposal_data.get("scope_of_work")
+            or ""
+        )
+        deliverables = (wo.get("deliverables") or "").strip() or proposal_data.get("deliverables") or ""
+        location = (wo.get("project_location") or "").strip() or source_proj.get("location")
+        budget = None
+        opportunity_id = proposal_data.get("opportunity_id")
+        if opportunity_id and vendor_id:
+            try:
+                cur.execute(
+                    """
+                    SELECT vb.bid_amount
+                    FROM snh6_swiftproject.vendor_bids vb
+                    WHERE vb.opportunity_id = %s
+                      AND vb.status IN ('shortlisted', 'won')
+                      AND (
+                        vb.vendor_id = %s
+                        OR EXISTS (
+                          SELECT 1 FROM snh6_swiftproject.vendor_employee ve
+                          WHERE ve.id = vb.vendor_id AND ve.vendor_id = %s
+                        )
+                      )
+                    ORDER BY vb.id DESC
+                    LIMIT 1
+                    """,
+                    (opportunity_id, vendor_id, vendor_id),
+                )
+                bid_row = cur.fetchone()
+                if bid_row and bid_row.get("bid_amount") is not None:
+                    budget = str(bid_row["bid_amount"])
+            except Exception:
+                pass
+        if budget is None:
+            budget = str(wo.get("amount_aed") if wo.get("amount_aed") is not None else "0")
+
+        cur.execute(
+            """
+            INSERT INTO vendor_projects (
+                main_project_id,
+                proposal_id, opportunity_id, vendor_id, project_name,
+                description, modules, deliverables, budget, document_attachment,
+                client_id, bidding_end_date, budget_ceiling, location, category,
+                department, due_date, start_date, priority, Company_id
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                project_id_main,
+                proposal_id,
+                proposal_data.get("opportunity_id"),
+                vendor_id,
+                wo.get("project_name") or proposal_data.get("project_name"),
+                description,
+                "",
+                deliverables,
+                budget,
+                source_proj.get("document_attachment"),
+                source_proj.get("client_id"),
+                source_proj.get("bidding_end_date"),
+                source_proj.get("budget_ceiling"),
+                location,
+                source_proj.get("category"),
+                source_proj.get("department"),
+                source_proj.get("due_date"),
+                source_proj.get("start_date"),
+                source_proj.get("priority"),
+                source_proj.get("Company_id") or wo.get("Company_id"),
+            ),
+        )
+        project_id = cur.lastrowid
+        conn.commit()
+        return project_id
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Vendor Tasks (vendor_task table)
 # ---------------------------------------------------------------------------
@@ -6535,6 +6548,113 @@ def _hydrate_vendor_employee_names(cur, rows):
         r["members_names"] = ", ".join(m_names)
 
 
+_ACCEPTED_BID_AMOUNT_SQL = """
+(
+  SELECT vb.bid_amount
+  FROM snh6_swiftproject.vendor_bids vb
+  WHERE vb.opportunity_id = vp.opportunity_id
+    AND vb.status IN ('shortlisted', 'won')
+    AND (
+      vb.vendor_id = vp.vendor_id
+      OR EXISTS (
+        SELECT 1 FROM snh6_swiftproject.vendor_employee ve
+        WHERE ve.id = vb.vendor_id AND ve.vendor_id = vp.vendor_id
+      )
+    )
+  ORDER BY vb.id DESC
+  LIMIT 1
+)
+"""
+
+
+_CLIENT_BUDGET_SQL = """
+COALESCE(
+    (SELECT mp.budget FROM snh6_swiftproject.projects mp WHERE mp.id = vp.main_project_id LIMIT 1),
+    (
+        SELECT mp2.budget
+        FROM snh6_swiftproject.vendor_bidding vb
+        INNER JOIN snh6_swiftproject.projects mp2 ON mp2.id = vb.project_id
+        WHERE vb.id = vp.opportunity_id
+        LIMIT 1
+    ),
+    NULLIF(p.budget, '')
+)
+"""
+
+
+def _resolve_client_budget_for_vp(cur, row: dict):
+    """Resolve client-phase budget from projects.budget via main_project_id or bidding link."""
+    existing = row.get("client_budget")
+    if existing is not None and str(existing).strip() not in ("", "0", "null", "None"):
+        return existing
+    if not cur:
+        return existing
+    main_id = row.get("main_project_id")
+    if main_id:
+        try:
+            cur.execute(
+                "SELECT budget FROM snh6_swiftproject.projects WHERE id = %s LIMIT 1",
+                (main_id,),
+            )
+            r = cur.fetchone() or {}
+            if r.get("budget") is not None:
+                return r["budget"]
+        except Exception:
+            pass
+    opp_id = row.get("opportunity_id")
+    if opp_id:
+        try:
+            cur.execute(
+                """
+                SELECT p.budget
+                FROM snh6_swiftproject.vendor_bidding vb
+                INNER JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
+                WHERE vb.id = %s
+                LIMIT 1
+                """,
+                (opp_id,),
+            )
+            r = cur.fetchone() or {}
+            if r.get("budget") is not None:
+                return r["budget"]
+        except Exception:
+            pass
+    return existing
+
+
+def _map_vendor_project_budget_fields(row: dict, is_vendor_user: bool, cur=None) -> dict:
+    """
+    Staff/TD: budget = client budget (projects.budget), budget_ceiling = accepted vendor bid.
+    Vendor: budget = accepted bid / vendor_projects.budget only.
+    """
+    client_budget = _resolve_client_budget_for_vp(cur, row)
+    row.pop("client_budget", None)
+    row.pop("bidding_budget_ceiling", None)
+    vp_budget = row.pop("vendor_project_budget", None)
+    accepted_bid = row.pop("accepted_bid_amount", None)
+
+    def _first_amount(*vals):
+        for v in vals:
+            if v is None:
+                continue
+            s = str(v).strip()
+            if s and s.lower() not in ("null", "none", ""):
+                return v
+        return None
+
+    outsourcing_budget = _first_amount(accepted_bid, vp_budget)
+
+    if is_vendor_user:
+        row["budget"] = outsourcing_budget if outsourcing_budget is not None else row.get("budget")
+        row.pop("client_budget", None)
+    else:
+        row["client_budget"] = _first_amount(client_budget)
+        row["budget"] = row["client_budget"]
+        row["outsourcing_budget"] = outsourcing_budget
+        row["budget_ceiling"] = outsourcing_budget
+    return row
+
+
 @bp.route("/vendor-projects", methods=["GET"])
 @login_required
 def list_vendor_projects():
@@ -6732,9 +6852,10 @@ def list_vendor_projects():
             COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
-            -- Prefer main projects.budget_ceiling / budget over vendor_projects values
-            COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
-            COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
+            {_CLIENT_BUDGET_SQL}                                    AS client_budget,
+            p.budget_ceiling                                        AS bidding_budget_ceiling,
+            vp.budget                                               AS vendor_project_budget,
+            {_ACCEPTED_BID_AMOUNT_SQL}                              AS accepted_bid_amount,
             -- Sync additional project metrics from main projects table using TD-compatible aliases
             COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS resources,
             COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS required_resources,
@@ -6803,6 +6924,7 @@ def list_vendor_projects():
 
     final_projects = []
     for p in projects:
+        _map_vendor_project_budget_fields(p, is_vendor_user, cur)
         d = {k: _serialize(v) for k, v in p.items()}
         pid = int(d.get("id") or 0)
         counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
@@ -7105,15 +7227,16 @@ def get_vendor_project_detail(project_id):
     
     # Join with projects and users to get display names, same as list_vendor_projects
     cur.execute(
-        """
+        f"""
         SELECT
             vp.*,
             COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
-            -- Prefer main projects.budget_ceiling / budget over vendor_projects values
-            COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
-            COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
+            {_CLIENT_BUDGET_SQL}                                    AS client_budget,
+            p.budget_ceiling                                        AS bidding_budget_ceiling,
+            vp.budget                                               AS vendor_project_budget,
+            {_ACCEPTED_BID_AMOUNT_SQL}                              AS accepted_bid_amount,
             -- Sync additional project metrics from main projects table using TD-compatible aliases
             COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS resources,
             COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS required_resources,
@@ -7131,7 +7254,10 @@ def get_vendor_project_detail(project_id):
             p.department                                        AS department_name
         FROM snh6_swiftproject.vendor_projects vp
         LEFT JOIN snh6_swiftproject.projects p
-            ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+            ON (
+                (vp.main_project_id IS NOT NULL AND p.id = vp.main_project_id)
+                OR (p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci)
+            )
         LEFT JOIN new_swiftbim.users u
             ON u.id = p.client_id
         WHERE vp.id = %s
@@ -7142,10 +7268,12 @@ def get_vendor_project_detail(project_id):
     if not row:
         return jsonify({"error": "Project not found"}), 404
 
+    is_vendor_user = getattr(g, "user_type", None) == "vendor"
     project = dict(row)
     vcur = vendor_cursor()
     _hydrate_vendor_projects_phase1(vcur, [project])
     _hydrate_vendor_employee_names(vcur, [project])
+    _map_vendor_project_budget_fields(project, is_vendor_user, cur)
     try:
         from advance_client_gate import hydrate_project_list_advance_gate
 

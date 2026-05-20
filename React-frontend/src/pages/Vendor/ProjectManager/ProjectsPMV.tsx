@@ -2218,14 +2218,14 @@ export default function ProjectsPMV() {
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
                       <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Outsourcing Budget
+                        Budget
                       </span>
                       <span className="hidden sm:inline text-[#616161] mr-4">
                         :
                       </span>
                       <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.budget_ceiling
-                          ? `${selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
+                        {selectedProject.budget
+                          ? `${selectedProject.budget} ${projectCurrencyCode(selectedProject)}`
                           : "N/A"}
                       </span>
                     </div>

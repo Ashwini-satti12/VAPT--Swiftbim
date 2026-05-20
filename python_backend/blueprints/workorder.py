@@ -1,8 +1,32 @@
+from datetime import date, datetime
+
 from flask import Blueprint, request, jsonify, g
 from db import get_db
 from auth_middleware import project_app_required
+from blueprints.vendor import create_vendor_project_from_proposal
 
 bp = Blueprint("workorder", __name__, url_prefix="/api/workorders")
+
+
+def _parse_iso_date(val):
+    """Normalize user/API date strings to a date for MySQL DATE columns."""
+    if not val:
+        return None
+    if isinstance(val, (datetime, date)):
+        return val.date() if isinstance(val, datetime) else val
+    s = str(val).strip()
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "")).date()
+    except Exception:
+        pass
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(s[:10], fmt).date()
+        except Exception:
+            continue
+    return None
 def _current_vendor_match_names() -> list[str]:
     """
     Resolve all possible vendor names used in work_orders.vendor_name.
@@ -399,7 +423,7 @@ def create_work_order():
         "vendor_name": vendor_name,
         "vendor_display_name": (data.get("vendorDisplayName") or data.get("vendor_display_name") or "").strip(),
         "vendor_address": (data.get("vendorAddress") or data.get("vendor_address") or "").strip(),
-        "po_date": data.get("poDate") or data.get("po_date") or None,
+        "po_date": _parse_iso_date(data.get("poDate") or data.get("po_date")),
         "po_number": (data.get("poNumber") or data.get("po_number") or "").strip(),
         "project_location": (data.get("projectLocation") or data.get("project_location") or "").strip(),
         "work_description": (data.get("workDescription") or data.get("work_description") or "").strip(),
@@ -416,11 +440,11 @@ def create_work_order():
         "status": (data.get("status") or "Created").strip() or "Created",
         "company_sign_name": (data.get("company_sign_name") or data.get("companySignName") or "").strip(),
         "company_sign_designation": (data.get("company_sign_designation") or data.get("companySignDesignation") or "").strip(),
-        "company_sign_date": data.get("company_sign_date") or data.get("companySignDate") or None,
+        "company_sign_date": _parse_iso_date(data.get("company_sign_date") or data.get("companySignDate")),
         "company_signature": data.get("company_signature") or data.get("companySignature") or None,
         "vendor_sign_name": (data.get("vendor_sign_name") or data.get("vendorSignName") or "").strip(),
         "vendor_sign_designation": (data.get("vendor_sign_designation") or data.get("vendorSignDesignation") or "").strip(),
-        "vendor_sign_date": data.get("vendor_sign_date") or data.get("vendorSignDate") or None,
+        "vendor_sign_date": _parse_iso_date(data.get("vendor_sign_date") or data.get("vendorSignDate")),
         "vendor_signature": data.get("vendor_signature") or data.get("vendorSignature") or None,
         "created_by": getattr(g, "user_id", None),
         "company_id": g.company_id,
@@ -508,7 +532,7 @@ def update_work_order(work_order_id: int):
         "vendor_name": vendor_name,
         "vendor_display_name": (data.get("vendorDisplayName") or data.get("vendor_display_name") or "").strip(),
         "vendor_address": (data.get("vendorAddress") or data.get("vendor_address") or "").strip(),
-        "po_date": data.get("poDate") or data.get("po_date") or None,
+        "po_date": _parse_iso_date(data.get("poDate") or data.get("po_date")),
         "po_number": (data.get("poNumber") or data.get("po_number") or "").strip(),
         "project_location": (data.get("projectLocation") or data.get("project_location") or "").strip(),
         "work_description": (data.get("workDescription") or data.get("work_description") or "").strip(),
@@ -525,11 +549,11 @@ def update_work_order(work_order_id: int):
         "status": (data.get("status") or "").strip(),
         "company_sign_name": (data.get("company_sign_name") or data.get("companySignName") or "").strip(),
         "company_sign_designation": (data.get("company_sign_designation") or data.get("companySignDesignation") or "").strip(),
-        "company_sign_date": data.get("company_sign_date") or data.get("companySignDate") or None,
+        "company_sign_date": _parse_iso_date(data.get("company_sign_date") or data.get("companySignDate")),
         "company_signature": data.get("company_signature") or data.get("companySignature") or None,
         "vendor_sign_name": (data.get("vendor_sign_name") or data.get("vendorSignName") or "").strip(),
         "vendor_sign_designation": (data.get("vendor_sign_designation") or data.get("vendorSignDesignation") or "").strip(),
-        "vendor_sign_date": data.get("vendor_sign_date") or data.get("vendorSignDate") or None,
+        "vendor_sign_date": _parse_iso_date(data.get("vendor_sign_date") or data.get("vendorSignDate")),
         "vendor_signature": data.get("vendor_signature") or data.get("vendorSignature") or None,
     }
 
@@ -623,61 +647,13 @@ def update_work_order(work_order_id: int):
             ),
         )
     conn.commit()
-    
-    # On Acceptance -> Create Vendor Project if not exists
-    if payload.get("status") == "Accepted":
-        try:
-            # Re-fetch or use existing data to ensure we have current state
-            cur.execute("SELECT * FROM work_orders WHERE id = %s", (work_order_id,))
-            wo = cur.fetchone()
-            if wo:
-                proposal_id = wo.get("proposal_id")
-                # Check if a vendor project already exists for this work order or proposal
-                cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s OR project_name = %s LIMIT 1", (proposal_id, wo["project_name"]))
-                existing_vp = cur.fetchone()
-                if not existing_vp:
-                    vendor_id = None
-                    opportunity_id = None
-                    main_project_id = None
-                    
-                    if proposal_id:
-                        cur.execute("SELECT vendor_id, opportunity_id FROM new_swiftbim.proposals WHERE id = %s", (proposal_id,))
-                        prop = cur.fetchone()
-                        if prop:
-                            vendor_id = prop.get("vendor_id")
-                            opportunity_id = prop.get("opportunity_id")
-                    
-                    if not vendor_id:
-                        # Fallback: find vendor_id by name
-                        cur.execute("SELECT id FROM new_swiftbim.vendor_onboarding WHERE company_name = %s LIMIT 1", (wo["vendor_name"],))
-                        v_onb = cur.fetchone()
-                        if v_onb:
-                            vendor_id = v_onb["id"]
-                    
-                    if opportunity_id:
-                        cur.execute("SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s", (opportunity_id,))
-                        vb = cur.fetchone()
-                        if vb:
-                            main_project_id = vb.get("project_id")
-                    
-                    # Insert into vendor_projects
-                    # Note: Using snh6_swiftproject.vendor_projects safely by relying on current connection's DB
-                    cur.execute("""
-                        INSERT INTO vendor_projects (
-                            main_project_id, proposal_id, opportunity_id, vendor_id,
-                            project_name, description, deliverables, location,
-                            budget, Company_id
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (
-                        main_project_id, proposal_id, opportunity_id, vendor_id,
-                        wo["project_name"], wo["work_description"], wo["deliverables"],
-                        wo["project_location"], wo["amount_aed"], wo["Company_id"]
-                    ))
-                    conn.commit()
-        except Exception as e:
-            # We don't want to fail the whole update if auto-project creation fails,
-            # but we should log it.
-            print(f"Error auto-creating vendor project from work order {work_order_id}: {e}")
+
+    # Vendor accepts work order → auto-create vendor project (same flow as legacy proposal accept).
+    if (payload.get("status") or "").strip() == "Accepted":
+        cur.execute("SELECT * FROM work_orders WHERE id = %s", (work_order_id,))
+        wo = cur.fetchone()
+        if wo and wo.get("proposal_id"):
+            create_vendor_project_from_proposal(wo["proposal_id"], work_order=wo)
 
     if cur.rowcount == 0 and payload.get("status") != "Accepted":
         # Note: if it was Accepted, we might have successfully run the logic above even if rowcount was 0

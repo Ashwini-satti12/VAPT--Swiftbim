@@ -466,6 +466,8 @@ interface Project {
   location?: string;
   description?: string;
   budget_ceiling?: string;
+  client_budget?: string;
+  outsourcing_budget?: string;
   bidding_end_date?: string;
   source?: string;
   document_attachment?: string;
@@ -770,6 +772,8 @@ export default function ProjectsTD() {
       total_tasks: num(r.total_tasks),
       completed_tasks: num(r.completed_tasks),
       budget: str(r.budget),
+      client_budget: str(r.client_budget),
+      outsourcing_budget: str(r.outsourcing_budget),
       module_name: str(r.modules),
       client_name: str(r.client_name),
       client_id: num(r.client_id),
@@ -2081,8 +2085,9 @@ export default function ProjectsTD() {
                               :
                             </span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.budget
-                                ? `${selectedProjectForView.budget} ${selectedProjectForView.currency || "INR"}`
+                              {(selectedProjectForView.client_budget ??
+                                selectedProjectForView.budget)
+                                ? `${selectedProjectForView.client_budget ?? selectedProjectForView.budget} ${selectedProjectForView.currency || "INR"}`
                                 : "N/A"}
                             </span>
                           </div>
@@ -2095,8 +2100,9 @@ export default function ProjectsTD() {
                                 :
                               </span>
                               <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProjectForView.budget_ceiling
-                                  ? `${selectedProjectForView.budget_ceiling} ${selectedProjectForView.currency || "INR"}`
+                                {(selectedProjectForView.outsourcing_budget ??
+                                  selectedProjectForView.budget_ceiling)
+                                  ? `${selectedProjectForView.outsourcing_budget ?? selectedProjectForView.budget_ceiling} ${selectedProjectForView.currency || "INR"}`
                                   : "N/A"}
                               </span>
                             </div>
@@ -2809,9 +2815,11 @@ export default function ProjectsTD() {
                                       }
                                       setSelectedProjectForEdit(p);
                                       setCreateName(p.project_name ?? "");
+                                      const clientBudgetVal =
+                                        p.client_budget ?? p.budget;
                                       setCreateBudget(
-                                        p.budget
-                                          ? `${p.budget}`
+                                        clientBudgetVal
+                                          ? `${clientBudgetVal}`
                                           : "Fetching...",
                                       );
                                       setCreateCurrency(p.currency || "INR");
@@ -2848,7 +2856,9 @@ export default function ProjectsTD() {
                                           : "",
                                       );
                                       setCreateBudgetCeiling(
-                                        p.budget_ceiling ?? "",
+                                        p.outsourcing_budget ??
+                                          p.budget_ceiling ??
+                                          "",
                                       );
                                       const biddingDate = p.bidding_end_date
                                         ? p.bidding_end_date.includes("T")
@@ -2879,14 +2889,26 @@ export default function ProjectsTD() {
                                       setCreateLocation(p.location ?? "");
                                       setCreateDescription(p.description ?? "");
                                       setShowEditModal(true);
-                                      if (p.client_name) {
+                                      const clientIdForBudget =
+                                        p.client_id != null &&
+                                        String(p.client_id).trim() !== ""
+                                          ? String(p.client_id)
+                                          : /^\d+$/.test(
+                                                String(p.client_name ?? ""),
+                                              )
+                                            ? String(p.client_name)
+                                            : null;
+                                      if (
+                                        clientIdForBudget &&
+                                        !clientBudgetVal
+                                      ) {
                                         import("../../lib/api").then(
                                           ({ default: api }) => {
                                             api
                                               .get<{
                                                 client_budget: number | null;
                                               }>(
-                                                `/api/vendors/client-budget?client_id=${p.client_name}`,
+                                                `/api/vendors/client-budget?client_id=${clientIdForBudget}`,
                                               )
                                               .then(({ data }) => {
                                                 if (

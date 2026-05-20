@@ -799,8 +799,8 @@ export default function ProjectsV() {
   const openEdit = (p: Project) => {
     setEditId(p.id);
     setCreateName(p.project_name || "");
-    // Prefer budget_ceiling (final agreed budget) when editing; fall back to budget
-    setCreateBudget(p.budget_ceiling || p.budget || "");
+    // Vendor accepted bid amount (from vendor_projects.budget / accepted bid)
+    setCreateBudget(p.budget || "");
     setCreateCurrency(
       (p.currency || p.selected_currency || "INR").toUpperCase(),
     );
