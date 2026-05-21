@@ -1608,6 +1608,24 @@ def get_opportunity(opportunity_id):
         r = cur.fetchone()
         if not r:
             return jsonify({"success": False, "message": "Opportunity not found"}), 404
+        if vendor_id:
+            try:
+                from blueprints.projects import _vendor_can_access_selected_bid
+
+                cur.execute(
+                    "SELECT selected_vendors_to_bid_ids FROM snh6_swiftproject.projects WHERE id = %s LIMIT 1",
+                    (r.get("project_id"),),
+                )
+                sel_row = cur.fetchone()
+                selected_csv = (
+                    (sel_row or {}).get("selected_vendors_to_bid_ids")
+                    if isinstance(sel_row, dict)
+                    else None
+                )
+                if not _vendor_can_access_selected_bid(cur, vendor_id, selected_csv):
+                    return jsonify({"success": False, "message": "Opportunity not found"}), 404
+            except Exception:
+                pass
         item = {k: _serialize(v) for k, v in r.items()}
         item["currency"] = _normalize_currency(item.get("currency") or "AED")
         item["already_bid"] = already_bid
@@ -1645,6 +1663,8 @@ def list_opportunities():
             except Exception:
                 already_bid = set()
 
+        from blueprints.projects import _vendor_can_access_selected_bid
+
         cur.execute(
             """
             SELECT vb.*,
@@ -1657,6 +1677,7 @@ def list_opportunities():
                    NULLIF(TRIM(p.due_date), '') AS project_due_date,
                    NULLIF(TRIM(p.priority), '') AS project_priority,
                    NULLIF(TRIM(p.client_id), '') AS project_client_id,
+                   p.selected_vendors_to_bid_ids AS project_selected_vendors_to_bid_ids,
                    (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
             FROM snh6_swiftproject.vendor_bidding vb
             LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
@@ -1667,7 +1688,14 @@ def list_opportunities():
         rows = cur.fetchall()
         opportunities = []
         for r in rows:
+            if vendor_id and not _vendor_can_access_selected_bid(
+                cur,
+                vendor_id,
+                r.get("project_selected_vendors_to_bid_ids"),
+            ):
+                continue
             item = {k: _serialize(v) for k, v in r.items()}
+            item.pop("project_selected_vendors_to_bid_ids", None)
             item["currency"] = _normalize_currency(item.get("currency") or "AED")
             item["already_bid"] = item["id"] in already_bid
             _annotate_vendor_opportunity(item)
@@ -1712,7 +1740,8 @@ def submit_bid(opportunity_id):
         cur.execute(
             """
             SELECT vb.id, vb.project_name, vb.bid_deadline, vb.outsource_budget, vb.budget_ceiling,
-                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vb.currency), ''), 'AED') AS currency
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vb.currency), ''), 'AED') AS currency,
+                   p.selected_vendors_to_bid_ids
             FROM snh6_swiftproject.vendor_bidding vb
             LEFT JOIN projects p ON p.id = vb.project_id
             WHERE vb.id = %s AND vb.status = 'active'
@@ -1722,6 +1751,17 @@ def submit_bid(opportunity_id):
         opp = cur.fetchone()
         if not opp:
             return jsonify({"success": False, "message": "Opportunity not found or already closed"}), 404
+        from blueprints.projects import _vendor_can_access_selected_bid
+
+        if not _vendor_can_access_selected_bid(
+            cur,
+            vendor_id,
+            opp.get("selected_vendors_to_bid_ids"),
+        ):
+            return jsonify(
+                {"success": False, "message": "You are not invited to bid on this opportunity"},
+                403,
+            )
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -7697,20 +7737,45 @@ def update_vendor_project(project_id):
                 "start_date": "start_date",
                 "due_date": "due_date",
                 "no_resource": "no_resource",
-                "no_resources_required": "no_resources_requried"
+                "no_resources_required": "no_resources_requried",
+                "selected_vendors_to_bid_ids": "selected_vendors_to_bid_ids",
             }
             p_sets = []
             p_params = []
             for k, col in p_allowed.items():
                 if k in data and data[k] is not None:
+                    val = data[k]
+                    if k == "selected_vendors_to_bid_ids":
+                        from blueprints.projects import _normalize_selected_vendors_to_bid_ids
+
+                        val = _normalize_selected_vendors_to_bid_ids(val)
                     p_sets.append(f"`{col}` = %s")
-                    p_params.append(data[k])
+                    p_params.append(val)
             
             if p_sets:
                 cur.execute(
                     "UPDATE snh6_swiftproject.projects SET " + ", ".join(p_sets) + " WHERE id = %s",
                     tuple(p_params + [main_project_id]),
                 )
+
+            try:
+                from blueprints.projects import (
+                    _ensure_projects_selected_vendors_column,
+                    _sync_vendor_bidding_for_outsource_project,
+                )
+
+                _ensure_projects_selected_vendors_column(cur)
+                dept_val = data.get("department") or row.get("department") or ""
+                _sync_vendor_bidding_for_outsource_project(
+                    cur,
+                    getattr(g, "company_id", None),
+                    main_project_id,
+                    dept_val,
+                    data.get("budget_ceiling") or row.get("budget_ceiling"),
+                    data.get("bidding_end_date") or row.get("bidding_end_date"),
+                )
+            except Exception:
+                pass
 
         # Notify currently involved users with editor identity + changed fields.
         cur.execute(

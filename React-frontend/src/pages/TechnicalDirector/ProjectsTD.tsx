@@ -469,6 +469,7 @@ interface Project {
   client_budget?: string;
   outsourcing_budget?: string;
   bidding_end_date?: string;
+  selected_vendors_to_bid_ids?: string;
   source?: string;
   project_manager_profile_picture?: string;
   lead_profile_picture?: string;
@@ -638,6 +639,12 @@ export default function ProjectsTD() {
   >(null);
   const [createBudgetCeiling, setCreateBudgetCeiling] = useState("");
   const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
+  const [approvedBidVendors, setApprovedBidVendors] = useState<
+    Array<{ id: number; company_name: string }>
+  >([]);
+  const [createSelectedBidVendors, setCreateSelectedBidVendors] = useState<
+    string[]
+  >([]);
 
   // Employee data for dropdowns
   const [_employees, setEmployees] = useState<Employee[]>([]);
@@ -862,6 +869,36 @@ export default function ProjectsTD() {
     return cleaned ? Number(cleaned) : 0;
   };
 
+  const approvedBidVendorOptions = useMemo(
+    () =>
+      approvedBidVendors
+        .map((v) => (v.company_name || "").trim())
+        .filter(Boolean),
+    [approvedBidVendors],
+  );
+
+  const bidVendorNamesToIds = (names: string[]) => {
+    const ids = names
+      .map((name) => approvedBidVendors.find((v) => v.company_name === name)?.id)
+      .filter((id): id is number => typeof id === "number" && id > 0);
+    return ids.length > 0 ? ids.join(",") : "";
+  };
+
+  const bidVendorIdsToNames = (raw?: string) => {
+    if (!raw || !String(raw).trim()) return [];
+    const idSet = new Set(
+      String(raw)
+        .split(/[,;]+/)
+        .map((s) => s.trim())
+        .filter((s) => /^\d+$/.test(s))
+        .map((s) => Number(s)),
+    );
+    return approvedBidVendors
+      .filter((v) => idSet.has(v.id))
+      .map((v) => v.company_name)
+      .filter(Boolean);
+  };
+
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => {
     // Change note: map backend `task_name` here once available in response.
     // Example: task_name: str(r.task_name) ?? str(r.tasks),
@@ -911,6 +948,7 @@ export default function ProjectsTD() {
       department: str(r.department_name),
       budget_ceiling: str(r.budget_ceiling),
       bidding_end_date: str(r.bidding_end_date),
+      selected_vendors_to_bid_ids: str(r.selected_vendors_to_bid_ids),
       bim_lead: str(r.lead_name),
       lead_id: str(r.lead_id),
       lead_name: str(r.lead_name),
@@ -1124,6 +1162,24 @@ export default function ProjectsTD() {
       }>("/api/clients/from-users")
       .then(({ data }) => setClientsList(data.clients ?? []))
       .catch(() => setClientsList([]));
+
+    api
+      .get<{
+        vendors?: Array<{
+          id?: number;
+          company_name?: string;
+        }>;
+      }>("/api/vendors", { params: { status: "approved" } })
+      .then(({ data }) => {
+        const vendors = (data.vendors ?? [])
+          .map((v) => ({
+            id: Number(v.id),
+            company_name: String(v.company_name || "").trim(),
+          }))
+          .filter((v) => Number.isFinite(v.id) && v.id > 0 && v.company_name);
+        setApprovedBidVendors(vendors);
+      })
+      .catch(() => setApprovedBidVendors([]));
   }, []);
 
   // Deep-link support: keep project view on refresh using ?projectId=
@@ -1211,8 +1267,27 @@ export default function ProjectsTD() {
   useEffect(() => {
     if (showCreateModal) {
       setSelectedMemberIds([]);
+      setCreateSelectedBidVendors([]);
     }
   }, [showCreateModal]);
+
+  useEffect(() => {
+    if (createDepartment !== "Submission Deadline") {
+      setCreateSelectedBidVendors([]);
+    }
+  }, [createDepartment]);
+
+  useEffect(() => {
+    if (!showEditModal) return;
+    const raw = selectedProjectForEdit?.selected_vendors_to_bid_ids;
+    if (!raw?.trim() || approvedBidVendors.length === 0) return;
+    setCreateSelectedBidVendors(bidVendorIdsToNames(raw));
+  }, [
+    showEditModal,
+    selectedProjectForEdit?.id,
+    selectedProjectForEdit?.selected_vendors_to_bid_ids,
+    approvedBidVendors,
+  ]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -3029,6 +3104,11 @@ export default function ProjectsTD() {
                                           : p.bidding_end_date
                                         : "";
                                       setCreateBiddingEndDate(biddingDate);
+                                      setCreateSelectedBidVendors(
+                                        bidVendorIdsToNames(
+                                          p.selected_vendors_to_bid_ids,
+                                        ),
+                                      );
                                       setCreateBIMLead(
                                         p.bim_lead
                                           ? p.bim_lead
@@ -3222,6 +3302,13 @@ export default function ProjectsTD() {
                       setCreateSubmitting(false);
                       return;
                     }
+                    if (createSelectedBidVendors.length === 0) {
+                      setCreateError(
+                        "Select at least one vendor to invite for bidding.",
+                      );
+                      setCreateSubmitting(false);
+                      return;
+                    }
                   }
 
                   const formData = new FormData();
@@ -3269,6 +3356,9 @@ export default function ProjectsTD() {
                       formData.append("budget_ceiling", createBudgetCeiling);
                     if (createBiddingEndDate)
                       formData.append("bidding_end_date", createBiddingEndDate);
+                    const vendorIds = bidVendorNamesToIds(createSelectedBidVendors);
+                    if (vendorIds)
+                      formData.append("selected_vendors_to_bid_ids", vendorIds);
                   }
 
                   if (createEndDate) formData.append("due_date", createEndDate);
@@ -3319,6 +3409,7 @@ export default function ProjectsTD() {
                         setCreateDepartment("");
                         setCreateBudgetCeiling("");
                         setCreateBiddingEndDate("");
+                        setCreateSelectedBidVendors([]);
                         setCreateBIMLead([]);
                         setCreateBIMCoOrdinator([]);
                         setCreateMember("");
@@ -3709,6 +3800,24 @@ export default function ProjectsTD() {
                           onChange={(e) =>
                             setCreateBiddingEndDate(e.target.value)
                           }
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Select Vendors to Bid{" "}
+                          <span className="text-[#DD4342]">*</span>
+                        </label>
+                        <FormSelect
+                          label="Select Vendors"
+                          placeholder={
+                            approvedBidVendorOptions.length > 0
+                              ? "Select Vendors"
+                              : "No approved vendors available"
+                          }
+                          options={approvedBidVendorOptions}
+                          value={createSelectedBidVendors}
+                          isMulti={true}
+                          onChange={setCreateSelectedBidVendors}
                         />
                       </div>
                     </>
@@ -4133,6 +4242,10 @@ export default function ProjectsTD() {
                     const outsourceNum = parseBudgetValue(createBudgetCeiling);
                     if (outsourceNum > clientNum) return;
                   }
+                  if (isEditSourceOutsource && createSelectedBidVendors.length === 0) {
+                    toast.error("Select at least one vendor to invite for bidding.");
+                    return;
+                  }
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
                   const primaryEndpoint =
@@ -4188,6 +4301,9 @@ export default function ProjectsTD() {
                       formData.append("budget_ceiling", createBudgetCeiling);
                     if (createBiddingEndDate)
                       formData.append("bidding_end_date", createBiddingEndDate);
+                    const vendorIds = bidVendorNamesToIds(createSelectedBidVendors);
+                    if (vendorIds)
+                      formData.append("selected_vendors_to_bid_ids", vendorIds);
                   }
 
                   if (createEndDate) formData.append("due_date", createEndDate);
@@ -4246,6 +4362,7 @@ export default function ProjectsTD() {
                         setEditDropdownOpen(null);
                         setCreateBudgetCeiling("");
                         setCreateBiddingEndDate("");
+                        setCreateSelectedBidVendors([]);
                         // Refresh the project list to get updated data
                         Promise.all([
                           api.get<{ projects?: Record<string, unknown>[] }>(
@@ -4577,6 +4694,24 @@ export default function ProjectsTD() {
                           }
                         />
                       </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
+                          Select Vendors to Bid{" "}
+                          <span className="text-[#DD4342]">*</span>
+                        </label>
+                        <FormSelect
+                          label="Select Vendors"
+                          placeholder={
+                            approvedBidVendorOptions.length > 0
+                              ? "Select Vendors"
+                              : "No approved vendors available"
+                          }
+                          options={approvedBidVendorOptions}
+                          value={createSelectedBidVendors}
+                          isMulti={true}
+                          onChange={setCreateSelectedBidVendors}
+                        />
+                      </div>
                     </>
                   )}
                 </div>
@@ -4590,6 +4725,7 @@ export default function ProjectsTD() {
                       setEditDropdownOpen(null);
                       setCreateBudgetCeiling("");
                       setCreateBiddingEndDate("");
+                      setCreateSelectedBidVendors([]);
                       setCurrencyDropdownOpen(false);
                       // Reset all form fields
                       setCreateName("");

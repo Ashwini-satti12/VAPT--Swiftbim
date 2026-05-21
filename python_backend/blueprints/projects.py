@@ -50,6 +50,137 @@ def _ensure_projects_currency_column(cur):
         pass
 
 
+def _ensure_projects_selected_vendors_column(cur):
+    """Ensure projects.selected_vendors_to_bid_ids exists (comma-separated vendor ids)."""
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'projects'
+              AND COLUMN_NAME = 'selected_vendors_to_bid_ids'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE projects ADD COLUMN selected_vendors_to_bid_ids TEXT NULL"
+            )
+    except Exception:
+        pass
+
+
+def _normalize_selected_vendors_to_bid_ids(raw):
+    """Parse request value into a comma-separated id string, or None when empty."""
+    if raw is None:
+        return None
+    if isinstance(raw, (list, tuple)):
+        parts = [str(x).strip() for x in raw if str(x).strip()]
+    else:
+        text = str(raw).strip()
+        if not text:
+            return None
+        if text.startswith("["):
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    parts = [str(x).strip() for x in parsed if str(x).strip()]
+                else:
+                    parts = []
+            except Exception:
+                parts = re.split(r"[,;]+", text)
+        else:
+            parts = re.split(r"[,;]+", text)
+    ids = []
+    for p in parts:
+        token = str(p).strip()
+        if token.isdigit():
+            ids.append(int(token))
+    if not ids:
+        return None
+    # Preserve order, drop duplicates
+    seen = set()
+    ordered = []
+    for i in ids:
+        if i not in seen:
+            seen.add(i)
+            ordered.append(str(i))
+    return ",".join(ordered)
+
+
+def _vendor_can_access_selected_bid(cur, vendor_user_id, selected_csv):
+    """
+    When selected_vendors_to_bid_ids is set, only listed vendors may see/bid.
+    Values may be vendor_onboarding.id (vendor_employee.vendor_id) or vendor_employee.id.
+    Empty selection keeps legacy behavior (all vendors).
+    """
+    if not selected_csv or not str(selected_csv).strip():
+        return True
+    allowed = set()
+    for token in re.split(r"[,;]+", str(selected_csv)):
+        token = token.strip()
+        if token.isdigit():
+            allowed.add(int(token))
+    if not allowed:
+        return True
+    if not vendor_user_id:
+        return False
+    try:
+        cur.execute(
+            "SELECT id, vendor_id FROM vendor_employee WHERE id = %s LIMIT 1",
+            (vendor_user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return int(vendor_user_id) in allowed
+        ve_id = row.get("id") if isinstance(row, dict) else row[0]
+        ve_vendor_id = row.get("vendor_id") if isinstance(row, dict) else row[1]
+        if ve_id is not None and int(ve_id) in allowed:
+            return True
+        if ve_vendor_id is not None and int(ve_vendor_id) in allowed:
+            return True
+        return False
+    except Exception:
+        return int(vendor_user_id) in allowed
+
+
+def _onboarding_vendor_in_selected(cur, onboarding_id, contact_email, selected_csv):
+    if not selected_csv or not str(selected_csv).strip():
+        return True
+    allowed = set()
+    for token in re.split(r"[,;]+", str(selected_csv)):
+        token = token.strip()
+        if token.isdigit():
+            allowed.add(int(token))
+    if not allowed:
+        return True
+    if onboarding_id is not None:
+        try:
+            if int(onboarding_id) in allowed:
+                return True
+        except (TypeError, ValueError):
+            pass
+    email = (contact_email or "").strip().lower()
+    if email:
+        try:
+            cur.execute(
+                "SELECT id, vendor_id FROM vendor_employee WHERE LOWER(TRIM(email)) = %s LIMIT 1",
+                (email,),
+            )
+            row = cur.fetchone()
+            if row:
+                ve_id = row.get("id") if isinstance(row, dict) else row[0]
+                ve_vendor_id = row.get("vendor_id") if isinstance(row, dict) else row[1]
+                if ve_id is not None and int(ve_id) in allowed:
+                    return True
+                if ve_vendor_id is not None and int(ve_vendor_id) in allowed:
+                    return True
+        except Exception:
+            pass
+    return False
+
+
 def _ensure_vendor_bidding_table(vendor_conn):
     """Create vendor_bidding table if it doesn't exist."""
     cur = vendor_conn.cursor()
@@ -123,6 +254,7 @@ def list_projects():
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     _ensure_projects_currency_column(cur)
+    _ensure_projects_selected_vendors_column(cur)
 
     # Base WHERE clauses
     where_clauses = ["Company_id = %s"]
@@ -984,6 +1116,22 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
 
         # Notify vendors (in-app + email). Best-effort only.
         try:
+            selected_csv = None
+            try:
+                cur.execute(
+                    "SELECT selected_vendors_to_bid_ids FROM projects WHERE id = %s LIMIT 1",
+                    (project_id,),
+                )
+                sel_row = cur.fetchone()
+                if sel_row:
+                    selected_csv = (
+                        sel_row.get("selected_vendors_to_bid_ids")
+                        if isinstance(sel_row, dict)
+                        else sel_row[0]
+                    )
+            except Exception:
+                selected_csv = None
+
             # In-app notifications for vendor users stored in employee table
             # (many parts of vendor bidding use g.user_id as employee id).
             cur.execute(
@@ -997,6 +1145,8 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
             for vu in vendor_users:
                 try:
                     vid = vu.get("id") if isinstance(vu, dict) else vu[0]
+                    if not _vendor_can_access_selected_bid(cur, vid, selected_csv):
+                        continue
                     v_company = vu.get("Company_id") if isinstance(vu, dict) else None
                     cur.execute(
                         """
@@ -1011,6 +1161,9 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
             # Email vendors from employee table
             for vu in vendor_users:
                 try:
+                    vid = vu.get("id") if isinstance(vu, dict) else vu[0]
+                    if not _vendor_can_access_selected_bid(cur, vid, selected_csv):
+                        continue
                     name = (vu.get("full_name") if isinstance(vu, dict) else "") or "Vendor"
                     email = (vu.get("email") if isinstance(vu, dict) else "") or ""
                     if email:
@@ -1040,11 +1193,18 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
                 )
                 vcur = vconn.cursor(dictionary=True)
                 vcur.execute(
-                    "SELECT contact_name, contact_email FROM vendor_onboarding WHERE status = 'approved' AND contact_email IS NOT NULL"
+                    "SELECT id, contact_name, contact_email FROM vendor_onboarding WHERE status = 'approved' AND contact_email IS NOT NULL"
                 )
                 rows = vcur.fetchall() or []
                 for r in rows:
                     try:
+                        if not _onboarding_vendor_in_selected(
+                            cur,
+                            r.get("id"),
+                            r.get("contact_email"),
+                            selected_csv,
+                        ):
+                            continue
                         email = (r.get("contact_email") or "").strip()
                         if not email:
                             continue
@@ -1097,6 +1257,9 @@ def create_project():
     tasks = data.get("tasks") or ""
     budget_ceiling = data.get("budget_ceiling")
     bidding_end_date = data.get("bidding_end_date")
+    selected_vendors_to_bid_ids = _normalize_selected_vendors_to_bid_ids(
+        data.get("selected_vendors_to_bid_ids")
+    )
 
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
@@ -1121,6 +1284,7 @@ def create_project():
     conn = get_db()
     cur = conn.cursor()
     _ensure_projects_currency_column(cur)
+    _ensure_projects_selected_vendors_column(cur)
     # Resolve names to IDs
     client_id = _resolve_client_id(cur, g.company_id, raw_client)
     project_manager_id = _resolve_employee_id(cur, g.company_id, raw_pm)
@@ -1130,11 +1294,11 @@ def create_project():
 
     cur.execute(
         """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, currency, modules,
-           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried, tasks, document_attachment, budget_ceiling, bidding_end_date)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried, tasks, document_attachment, budget_ceiling, bidding_end_date, selected_vendors_to_bid_ids)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (project_name, g.user_id, members, department, due_date, priority, budget, currency, modules, g.company_id,
          client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
-         resources, required_resources, tasks, document_attachment, budget_ceiling, bidding_end_date),
+         resources, required_resources, tasks, document_attachment, budget_ceiling, bidding_end_date, selected_vendors_to_bid_ids),
     )
     project_id = cur.lastrowid
 
@@ -1242,6 +1406,7 @@ def update_project(project_id):
     conn = get_db()
     cur = conn.cursor()
     _ensure_projects_currency_column(cur)
+    _ensure_projects_selected_vendors_column(cur)
     # MySQL may report rowcount=0 when an UPDATE doesn't change any values.
     # So we check existence up front to avoid returning a false 404.
     cur.execute("SELECT 1 FROM projects WHERE id = %s AND Company_id = %s", (project_id, g.company_id))
@@ -1300,9 +1465,15 @@ def update_project(project_id):
     if data.get("required_resources") is not None and data.get("no_resources_requried") is None:
         data["no_resources_requried"] = data.get("required_resources")
 
+    if "selected_vendors_to_bid_ids" in data:
+        data["selected_vendors_to_bid_ids"] = _normalize_selected_vendors_to_bid_ids(
+            data.get("selected_vendors_to_bid_ids")
+        )
+
     allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "currency", "modules", "progress",
                "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
-               "budget_ceiling", "bidding_end_date", "no_resource", "no_resources_requried", "tasks", "document_attachment")
+               "budget_ceiling", "bidding_end_date", "no_resource", "no_resources_requried", "tasks", "document_attachment",
+               "selected_vendors_to_bid_ids")
     sets = []
     params = []
     for key in allowed:
