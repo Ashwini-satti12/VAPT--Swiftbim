@@ -557,17 +557,19 @@ def get_client_budget():
     cur = vendor_cursor()
     try:
         cur.execute(
-            """SELECT SUM(total_cost) AS client_budget
-               FROM contracts
-               WHERE client_id = %s
-               AND status NOT IN ('Draft', 'cancelled')
-               LIMIT 1""",
+            """
+            SELECT total_cost AS client_budget
+            FROM contracts
+            WHERE client_id = %s
+              AND status NOT IN ('Draft', 'cancelled', 'Cancelled')
+            ORDER BY id DESC
+            LIMIT 1
+            """,
             (client_id,),
         )
         row = cur.fetchone()
         if row and row["client_budget"] is not None:
             return jsonify({"client_budget": float(row["client_budget"])})
-        # Try without status filter in case all are draft
         cur.execute(
             "SELECT total_cost FROM contracts WHERE client_id = %s ORDER BY id DESC LIMIT 1",
             (client_id,),
@@ -6552,13 +6554,23 @@ _ACCEPTED_BID_AMOUNT_SQL = """
 (
   SELECT vb.bid_amount
   FROM snh6_swiftproject.vendor_bids vb
-  WHERE vb.opportunity_id = vp.opportunity_id
-    AND vb.status IN ('shortlisted', 'won')
+  WHERE vb.status IN ('shortlisted', 'won')
     AND (
       vb.vendor_id = vp.vendor_id
       OR EXISTS (
         SELECT 1 FROM snh6_swiftproject.vendor_employee ve
         WHERE ve.id = vb.vendor_id AND ve.vendor_id = vp.vendor_id
+      )
+    )
+    AND (
+      vb.opportunity_id = vp.opportunity_id
+      OR vb.opportunity_id = (
+        SELECT tp.opportunity_id FROM snh6_swiftproject.td_proposals tp
+        WHERE tp.id = vp.proposal_id LIMIT 1
+      )
+      OR vb.opportunity_id = (
+        SELECT vsp.opportunity_id FROM snh6_swiftproject.vendor_submitted_proposals vsp
+        WHERE vsp.id = vp.proposal_id LIMIT 1
       )
     )
   ORDER BY vb.id DESC
@@ -6569,12 +6581,22 @@ _ACCEPTED_BID_AMOUNT_SQL = """
 
 _CLIENT_BUDGET_SQL = """
 COALESCE(
+    (
+        SELECT c.total_cost
+        FROM new_swiftbim.contracts c
+        WHERE c.client_id = COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, ''))
+          AND c.status NOT IN ('Draft', 'cancelled', 'Cancelled')
+        ORDER BY c.id DESC
+        LIMIT 1
+    ),
     (SELECT mp.budget FROM snh6_swiftproject.projects mp WHERE mp.id = vp.main_project_id LIMIT 1),
     (
         SELECT mp2.budget
         FROM snh6_swiftproject.vendor_bidding vb
         INNER JOIN snh6_swiftproject.projects mp2 ON mp2.id = vb.project_id
         WHERE vb.id = vp.opportunity_id
+           OR vb.id = (SELECT tp.opportunity_id FROM snh6_swiftproject.td_proposals tp WHERE tp.id = vp.proposal_id LIMIT 1)
+           OR vb.id = (SELECT vsp.opportunity_id FROM snh6_swiftproject.vendor_submitted_proposals vsp WHERE vsp.id = vp.proposal_id LIMIT 1)
         LIMIT 1
     ),
     NULLIF(p.budget, '')
@@ -6583,11 +6605,30 @@ COALESCE(
 
 
 def _resolve_client_budget_for_vp(cur, row: dict):
-    """Resolve client-phase budget from projects.budget via main_project_id or bidding link."""
+    """Resolve client-phase budget: contracts.total_cost first, then projects.budget."""
     existing = row.get("client_budget")
-    if existing is not None and str(existing).strip() not in ("", "0", "null", "None"):
-        return existing
     if not cur:
+        return existing
+    client_id = row.get("client_id")
+    if client_id:
+        try:
+            cur.execute(
+                """
+                SELECT total_cost
+                FROM new_swiftbim.contracts
+                WHERE client_id = %s
+                  AND status NOT IN ('Draft', 'cancelled', 'Cancelled')
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (client_id,),
+            )
+            c_row = cur.fetchone() or {}
+            if c_row.get("total_cost") is not None:
+                return c_row["total_cost"]
+        except Exception:
+            pass
+    if existing is not None and str(existing).strip() not in ("", "0", "null", "None"):
         return existing
     main_id = row.get("main_project_id")
     if main_id:
