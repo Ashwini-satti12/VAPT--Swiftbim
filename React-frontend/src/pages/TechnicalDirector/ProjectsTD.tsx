@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -470,6 +470,13 @@ interface Project {
   outsourcing_budget?: string;
   bidding_end_date?: string;
   source?: string;
+  project_manager_profile_picture?: string;
+  lead_profile_picture?: string;
+  bim_coordinator_profile_picture?: string;
+  member_profile_pictures?: Array<{
+    id: number | string;
+    profile_picture?: string;
+  }>;
   document_attachment?: string;
   attachments?: ProjectDocumentItem[];
   currency?: string;
@@ -646,6 +653,9 @@ export default function ProjectsTD() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
+  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<Employee[]>(
+    [],
+  );
 
   const [typeFilter, setTypeFilter] = useState<
     "Execution Type" | "In House" | "Outsource"
@@ -676,13 +686,123 @@ export default function ProjectsTD() {
     }>
   >([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
-  const rosterEmployees = [...allEmployees, ...vendorResourceProfiles];
-  const resolveProjectMember = (id: string | number) =>
-    rosterEmployees.find(
+  const rosterEmployees = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: Employee[] = [];
+    for (const emp of [
+      ...allEmployees,
+      ...vendorResourceProfiles,
+      ...vendorTeamEmployees,
+    ]) {
+      const key = String(emp.id ?? emp.full_name ?? "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(emp);
+    }
+    return merged;
+  }, [allEmployees, vendorResourceProfiles, vendorTeamEmployees]);
+
+  /** Vendor team only — avoids ID collision with internal `employee` rows (same numeric ids). */
+  const outsourceRosterEmployees = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: Employee[] = [];
+    for (const emp of [...vendorTeamEmployees, ...vendorResourceProfiles]) {
+      const key = String(emp.id ?? emp.full_name ?? "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(emp);
+    }
+    return merged;
+  }, [vendorTeamEmployees, vendorResourceProfiles]);
+
+  const isOutsourceProject = (proj?: { source?: string; department?: string }) =>
+    proj?.source === "Outsource" ||
+    String(proj?.department ?? "")
+      .trim()
+      .toLowerCase() === "submission deadline";
+
+  const employeesForProject = (proj?: Project) =>
+    isOutsourceProject(proj) ? outsourceRosterEmployees : rosterEmployees;
+
+  const resolveProjectMember = (
+    id: string | number,
+    projectSource?: string,
+  ) => {
+    const pool =
+      projectSource === "Outsource"
+        ? outsourceRosterEmployees
+        : rosterEmployees;
+    return pool.find(
       (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
     );
+  };
+
+  const profileUserTypeForMember = (
+    empId?: string | number,
+    projectSource?: string,
+  ) =>
+    projectSource === "Outsource" ||
+    vendorTeamEmployees.some((e) => Number(e.id) === Number(empId))
+      ? "vendor"
+      : undefined;
+
+  const profileUrlFor = (
+    emp: Employee | null | undefined,
+    projectSource?: string,
+  ) => {
+    if (!emp?.profile_picture) return null;
+    return getGlobalProfileUrl(
+      emp.id,
+      emp.profile_picture,
+      profileUserTypeForMember(emp.id, projectSource),
+    );
+  };
+
+  const enrichOutsourceRosterProfiles = (
+    proj: Project,
+    roster: PmTeamRosterEntry[],
+  ): PmTeamRosterEntry[] => {
+    if (!isOutsourceProject(proj)) return roster;
+    const memberPicById = new Map<string, string>();
+    for (const m of proj.member_profile_pictures ?? []) {
+      if (m?.id != null && m.profile_picture) {
+        memberPicById.set(String(m.id), m.profile_picture);
+      }
+    }
+    return roster.map((entry) => {
+      if (entry.profile_picture) return entry;
+      const id = String(entry.id);
+      let pic: string | undefined;
+      if (
+        id &&
+        String(proj.project_manager_id ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .includes(id)
+      ) {
+        pic = proj.project_manager_profile_picture;
+      } else if (
+        id &&
+        String(proj.lead_id ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .includes(id)
+      ) {
+        pic = proj.lead_profile_picture;
+      } else {
+        pic = memberPicById.get(id);
+      }
+      return pic ? { ...entry, profile_picture: pic } : entry;
+    });
+  };
+
   const teamRosterForProject = (proj: Project) =>
-    collectPmProjectTeamRoster(proj, rosterEmployees);
+    enrichOutsourceRosterProfiles(
+      proj,
+      collectPmProjectTeamRoster(proj, employeesForProject(proj), {
+        skipBimCoordinator: isOutsourceProject(proj),
+      }),
+    );
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -817,6 +937,12 @@ export default function ProjectsTD() {
       advance_payment_verified: Boolean(r.advance_payment_verified),
       swiftbim_contract_internal_id: num(r.swiftbim_contract_internal_id),
       swiftbim_proposal_id: num(r.swiftbim_proposal_id),
+      project_manager_profile_picture: str(r.project_manager_profile_picture),
+      lead_profile_picture: str(r.lead_profile_picture),
+      bim_coordinator_profile_picture: str(r.bim_coordinator_profile_picture),
+      member_profile_pictures: Array.isArray(r.member_profile_pictures)
+        ? (r.member_profile_pictures as Project["member_profile_pictures"])
+        : undefined,
     };
   };
 
@@ -881,6 +1007,34 @@ export default function ProjectsTD() {
       .get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
       .then(({ data }) => setVendorResourceProfiles(data.resources ?? []))
       .catch(() => setVendorResourceProfiles([]));
+
+    const vendorRoles = [
+      "Vendor PM",
+      "Vendor Bim Lead",
+      "Vendor Employee",
+      "Vendor BIM Coordinator",
+    ];
+    Promise.all(
+      vendorRoles.map((role) =>
+        api.get<{ employees?: Employee[] }>(
+          `/api/vendors/vendor-by-role?role=${encodeURIComponent(role)}`,
+        ),
+      ),
+    )
+      .then((responses) => {
+        const seen = new Set<number>();
+        const merged: Employee[] = [];
+        responses.forEach(({ data }) => {
+          (data.employees ?? []).forEach((emp) => {
+            const id = Number(emp.id);
+            if (!id || seen.has(id)) return;
+            seen.add(id);
+            merged.push(emp);
+          });
+        });
+        setVendorTeamEmployees(merged);
+      })
+      .catch(() => setVendorTeamEmployees([]));
 
     // Fetch projects - Combine internal and vendor projects
     const status = searchParams.get("status");
@@ -1525,7 +1679,13 @@ export default function ProjectsTD() {
                       <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
                         Team Overview
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
+                      <div
+                        className={`grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12 items-center ${
+                          selectedProjectForView.source === "Outsource"
+                            ? "xl:grid-cols-3"
+                            : "xl:grid-cols-4"
+                        }`}
+                      >
                         {/* Project Manager */}
                         {(() => {
                           const pmIds =
@@ -1569,18 +1729,17 @@ export default function ProjectsTD() {
                             const pId = pmIds[i];
                             const pName = pmNames[i];
                             const pmEmp = pId
-                              ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
+                              ? resolveProjectMember(
+                                  pId,
+                                  selectedProjectForView.source,
                                 )
                               : null;
                             const dName =
                               pmEmp?.full_name || pName || "Unknown";
-                            const url = pmEmp?.profile_picture
-                              ? getGlobalProfileUrl(
-                                  pmEmp.id,
-                                  pmEmp.profile_picture,
-                                )
-                              : null;
+                            const url = profileUrlFor(
+                              pmEmp,
+                              selectedProjectForView.source,
+                            );
                             return { key: i, dName, url, emp: pmEmp };
                           });
                           const visiblePm = pmEntries.slice(0, 3);
@@ -1726,18 +1885,17 @@ export default function ProjectsTD() {
                             const pId = blIds[i];
                             const pName = blNames[i];
                             const blEmp = pId
-                              ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
+                              ? resolveProjectMember(
+                                  pId,
+                                  selectedProjectForView.source,
                                 )
                               : null;
                             const dName =
                               blEmp?.full_name || pName || "Unknown";
-                            const url = blEmp?.profile_picture
-                              ? getGlobalProfileUrl(
-                                  blEmp.id,
-                                  blEmp.profile_picture,
-                                )
-                              : null;
+                            const url = profileUrlFor(
+                              blEmp,
+                              selectedProjectForView.source,
+                            );
                             return { key: i, dName, url, emp: blEmp };
                           });
                           const visibleBl = blEntries.slice(0, 3);
@@ -1838,8 +1996,9 @@ export default function ProjectsTD() {
                           );
                         })()}
 
-                        {/* BIM Coordinator */}
-                        {(() => {
+                        {/* BIM Coordinator — not used on outsource projects */}
+                        {selectedProjectForView.source !== "Outsource" &&
+                        (() => {
                           const bcIds =
                             selectedProjectForView.bim_coordinator_id
                               ? String(
@@ -1884,19 +2043,13 @@ export default function ProjectsTD() {
                           }).map((_, i) => {
                             const pId = bcIds[i];
                             const pName = bcNames[i];
-                            const bcEmp = pId
-                              ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
-                                )
-                              : null;
+                            const bcEmp = pId ? resolveProjectMember(pId) : null;
                             const dName =
                               bcEmp?.full_name || pName || "Unknown";
-                            const url = bcEmp?.profile_picture
-                              ? getGlobalProfileUrl(
-                                  bcEmp.id,
-                                  bcEmp.profile_picture,
-                                )
-                              : null;
+                            const url = profileUrlFor(
+                              bcEmp,
+                              selectedProjectForView.source,
+                            );
                             return { key: i, dName, url, emp: bcEmp };
                           });
                           const visibleBc = bcEntries.slice(0, 3);
@@ -2019,9 +2172,19 @@ export default function ProjectsTD() {
                           <ProjectMembersInvolvedAvatars
                             members={collectProjectMembersOnly(
                               selectedProjectForView,
-                              rosterEmployees,
+                              employeesForProject(selectedProjectForView),
                             )}
-                            resolveMember={(id) => resolveProjectMember(id)}
+                            profileUserType={
+                              selectedProjectForView.source === "Outsource"
+                                ? "vendor"
+                                : undefined
+                            }
+                            resolveMember={(id) =>
+                              resolveProjectMember(
+                                id,
+                                selectedProjectForView.source,
+                              )
+                            }
                             onMemberClick={(emp) =>
                               openMemberProfile(normalizeMemberForProfile(emp as Employee))
                             }
@@ -2967,13 +3130,19 @@ export default function ProjectsTD() {
                           <div className="flex -space-x-4">
                             <ProjectCardTeamAvatars
                               roster={teamRosterForProject(p)}
+                              profileUserType={
+                                p.source === "Outsource" ? "vendor" : undefined
+                              }
                               onOpenAll={() => {
                                 setAllMembersList(teamRosterForProject(p));
                                 setShowAllMembersModal(true);
                               }}
                               onMemberClick={(emp) => {
                                 if (!emp.id) return;
-                                const full = resolveProjectMember(emp.id);
+                                const full = resolveProjectMember(
+                                  emp.id,
+                                  p.source,
+                                );
                                 if (full)
                                   openMemberProfile(
                                     normalizeMemberForProfile(full),
@@ -4472,10 +4641,16 @@ export default function ProjectsTD() {
       <ProjectAllMembersModal
         open={showAllMembersModal}
         members={allMembersList}
+        profileUserType={
+          selectedProjectForView?.source === "Outsource" ? "vendor" : undefined
+        }
         onClose={() => setShowAllMembersModal(false)}
         onMemberClick={(emp) => {
           if (!emp.id) return;
-          const full = resolveProjectMember(emp.id);
+          const full = resolveProjectMember(
+            emp.id,
+            selectedProjectForView?.source,
+          );
           if (full) openMemberProfile(normalizeMemberForProfile(full));
           setShowAllMembersModal(false);
         }}
@@ -4520,6 +4695,10 @@ export default function ProjectsTD() {
                     src={getGlobalProfileUrl(
                       selectedMember.id,
                       selectedMember.profile_picture,
+                      profileUserTypeForMember(
+                        selectedMember.id,
+                        selectedProjectForView?.source,
+                      ),
                     )}
                     alt={selectedMember.full_name || "Member"}
                     className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"

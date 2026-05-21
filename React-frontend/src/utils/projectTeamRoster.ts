@@ -82,10 +82,16 @@ function memberIdsFromProject(project: PmProjectTeamLike): (string | number)[] {
   });
 }
 
+export type CollectPmProjectTeamRosterOptions = {
+  /** Omit BIM Coordinator (e.g. outsource vendor projects). */
+  skipBimCoordinator?: boolean;
+};
+
 /** Ordered roster: Project Manager → BIM Lead → BIM Coordinator → Members. */
 export function collectPmProjectTeamRoster(
   project: PmProjectTeamLike,
   employees: PmEmployeeLike[],
+  options?: CollectPmProjectTeamRosterOptions,
 ): PmTeamRosterEntry[] {
   const out: PmTeamRosterEntry[] = [];
   const seen = new Set<string>();
@@ -123,12 +129,14 @@ export function collectPmProjectTeamRoster(
     push(emp, "BIM Lead");
   }
 
-  for (const emp of namesFromIds(
-    project.bim_coordinator_id,
-    project.bim_coordinator_name || project.bim_co_ordinator,
-    employees,
-  )) {
-    push(emp, "BIM Coordinator");
+  if (!options?.skipBimCoordinator) {
+    for (const emp of namesFromIds(
+      project.bim_coordinator_id,
+      project.bim_coordinator_name || project.bim_co_ordinator,
+      employees,
+    )) {
+      push(emp, "BIM Coordinator");
+    }
   }
 
   for (const mid of memberIdsFromProject(project)) {

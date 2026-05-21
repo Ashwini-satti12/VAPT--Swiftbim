@@ -29,10 +29,14 @@ import ProjectAllMembersModal from '../../components/ProjectAllMembersModal';
 import ProjectCardTeamAvatars from '../../components/ProjectCardTeamAvatars';
 import ProjectMembersInvolvedAvatars from '../../components/ProjectMembersInvolvedAvatars';
 import {
-  collectPmProjectTeamRoster,
   collectProjectMembersOnly,
   type PmTeamRosterEntry,
 } from '../../utils/projectTeamRoster';
+import {
+  fetchVendorTeamEmployees,
+  useProjectTeamRoster,
+  vendorProfileFieldsFromApi,
+} from '../../hooks/useProjectTeamRoster';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
@@ -464,6 +468,12 @@ interface Project {
   attachments?: ProjectDocumentItem[];
   budget_ceiling?: string;
   source?: string;
+  project_manager_profile_picture?: string;
+  lead_profile_picture?: string;
+  member_profile_pictures?: Array<{
+    id: number | string;
+    profile_picture?: string;
+  }>;
   currency?: string;
   currency_locked?: boolean;
   client_id?: number;
@@ -576,16 +586,21 @@ export default function ProjectsPM() {
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
+  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<Employee[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
-  const rosterEmployees = [...allEmployees, ...vendorResourceProfiles];
-  const resolveProjectMember = (id: string | number) =>
-    rosterEmployees.find(
-      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
-    );
-  const teamRosterForProject = (proj: Project) =>
-    collectPmProjectTeamRoster(proj, rosterEmployees);
+  const {
+    employeesForProject,
+    resolveProjectMember,
+    profileUserTypeForMember,
+    profileUrlFor,
+    teamRosterForProject,
+  } = useProjectTeamRoster(
+    allEmployees,
+    vendorResourceProfiles,
+    vendorTeamEmployees,
+  );
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -686,6 +701,13 @@ export default function ProjectsPM() {
           );
           setAllEmployees(empData);
           setVendorResourceProfiles(vendorRes.data.resources || []);
+          fetchVendorTeamEmployees(api.get.bind(api))
+            .then((team) => {
+              if (isMounted) setVendorTeamEmployees(team as Employee[]);
+            })
+            .catch(() => {
+              if (isMounted) setVendorTeamEmployees([]);
+            });
           setDepartments(depRes.data.departments || []);
           setClientsList(clientRes.data.clients || []);
         }
@@ -937,7 +959,7 @@ export default function ProjectsPM() {
     total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
     per_day: r.perday != null ? String(r.perday) : undefined,
     department: r.department_name != null ? String(r.department_name) : undefined,
-    bim_lead: r.lead_id != null ? String(r.lead_id) : undefined,
+    bim_lead: r.lead_name != null ? String(r.lead_name) : undefined,
     lead_id: r.lead_id != null ? String(r.lead_id) : undefined,
     lead_name: r.lead_name != null ? String(r.lead_name) : undefined,
     bim_co_ordinator: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
@@ -975,6 +997,7 @@ export default function ProjectsPM() {
       String(r.swiftbim_proposal_id).trim() !== ""
         ? Number(r.swiftbim_proposal_id)
         : undefined,
+    ...vendorProfileFieldsFromApi(r),
   });
 
   // Deep-link support: keep project view on refresh using ?projectId=
@@ -1278,7 +1301,13 @@ export default function ProjectsPM() {
                     <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
                       Team Overview
                     </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
+                    <div
+                      className={`grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-12 items-start ${
+                        selectedProjectForView.source === "Outsource"
+                          ? "xl:grid-cols-3"
+                          : "xl:grid-cols-4"
+                      }`}
+                    >
                       {/* Project Manager */}
                       {(() => {
                         const pmIds = selectedProjectForView.project_manager_id
@@ -1300,9 +1329,17 @@ export default function ProjectsPM() {
                         const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
                           const pId = pmIds[i];
                           const pName = pmNames[i];
-                          const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                          const pmEmp = pId
+                            ? resolveProjectMember(
+                                pId,
+                                selectedProjectForView.source,
+                              )
+                            : null;
                           const dName = pmEmp?.full_name || pName || "Unknown";
-                          const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
+                          const url = profileUrlFor(
+                            pmEmp,
+                            selectedProjectForView.source,
+                          );
                           return { key: i, dName, url };
                         });
                         const visiblePm = pmEntries.slice(0, 3);
@@ -1387,12 +1424,16 @@ export default function ProjectsPM() {
                             const pId = blIds[i];
                             const pName = blNames[i];
                             const blEmp = pId
-                              ? allEmployees.find((e: any) => String(e.id) === pId)
+                              ? resolveProjectMember(
+                                  pId,
+                                  selectedProjectForView.source,
+                                )
                               : null;
                             const dName = blEmp?.full_name || pName || "Unknown";
-                            const url = blEmp?.profile_picture
-                              ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture)
-                              : null;
+                            const url = profileUrlFor(
+                              blEmp,
+                              selectedProjectForView.source,
+                            );
                             return { key: i, dName, url };
                           }
                         );
@@ -1476,8 +1517,9 @@ export default function ProjectsPM() {
                         );
                       })()}
 
-                      {/* BIM Coordinator */}
-                      {(() => {
+                      {/* BIM Coordinator — not used on outsource projects */}
+                      {selectedProjectForView.source !== "Outsource" &&
+                      (() => {
                         const bcIds = selectedProjectForView.bim_coordinator_id
                           ? String(selectedProjectForView.bim_coordinator_id)
                               .split(",")
@@ -1507,12 +1549,13 @@ export default function ProjectsPM() {
                             const pId = bcIds[i];
                             const pName = bcNames[i];
                             const bcEmp = pId
-                              ? allEmployees.find((e: any) => String(e.id) === pId)
+                              ? resolveProjectMember(pId, selectedProjectForView.source)
                               : null;
                             const dName = bcEmp?.full_name || pName || "Unknown";
-                            const url = bcEmp?.profile_picture
-                              ? getGlobalProfileUrl(bcEmp.id, bcEmp.profile_picture)
-                              : null;
+                            const url = profileUrlFor(
+                              bcEmp,
+                              selectedProjectForView.source,
+                            );
                             return { key: i, dName, url };
                           }
                         );
@@ -1611,9 +1654,19 @@ export default function ProjectsPM() {
                         <ProjectMembersInvolvedAvatars
                           members={collectProjectMembersOnly(
                             selectedProjectForView,
-                            rosterEmployees,
+                            employeesForProject(selectedProjectForView),
                           )}
-                          resolveMember={(id) => resolveProjectMember(id)}
+                          profileUserType={
+                            selectedProjectForView.source === "Outsource"
+                              ? "vendor"
+                              : undefined
+                          }
+                          resolveMember={(id) =>
+                            resolveProjectMember(
+                              id,
+                              selectedProjectForView.source,
+                            )
+                          }
                           onMemberClick={(emp) =>
                             openMemberProfile(emp as Employee)
                           }
@@ -3451,14 +3504,23 @@ export default function ProjectsPM() {
                               <div className="hover:cursor-pointer flex items-center -space-x-4" onClick={(e) => e.stopPropagation()}>
                                 <ProjectCardTeamAvatars
                                   roster={teamRosterForProject(p)}
+                                  profileUserType={
+                                    p.source === "Outsource" ? "vendor" : undefined
+                                  }
                                   onOpenAll={() => {
                                     setAllMembersList(teamRosterForProject(p));
                                     setShowAllMembersModal(true);
                                   }}
                                   onMemberClick={(emp) => {
                                     if (!emp.id) return;
-                                    const full = resolveProjectMember(emp.id);
-                                    if (full) openMemberProfile(full);
+                                    const full = resolveProjectMember(
+                                      emp.id,
+                                      p.source,
+                                    );
+                                    if (full)
+                                      openMemberProfile(
+                                        normalizeMemberForProfile(full as Employee),
+                                      );
                                   }}
                                 />
                               </div>
@@ -3605,7 +3667,14 @@ export default function ProjectsPM() {
                       <div className="flex flex-col items-center">
                         {selectedMember.profile_picture ? (
                           <img
-                            src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                            src={getGlobalProfileUrl(
+                              selectedMember.id,
+                              selectedMember.profile_picture,
+                              profileUserTypeForMember(
+                                selectedMember.id,
+                                selectedProjectForView?.source,
+                              ),
+                            )}
                             alt={selectedMember.full_name || 'Member'}
                             className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
                             onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
@@ -3790,11 +3859,22 @@ export default function ProjectsPM() {
               <ProjectAllMembersModal
                 open={showAllMembersModal}
                 members={allMembersList}
+                profileUserType={
+                  selectedProjectForView?.source === "Outsource"
+                    ? "vendor"
+                    : undefined
+                }
                 onClose={() => setShowAllMembersModal(false)}
                 onMemberClick={(emp) => {
                   if (!emp.id) return;
-                  const full = resolveProjectMember(emp.id);
-                  if (full) openMemberProfile(full);
+                  const full = resolveProjectMember(
+                    emp.id,
+                    selectedProjectForView?.source,
+                  );
+                  if (full)
+                    openMemberProfile(
+                      normalizeMemberForProfile(full as Employee),
+                    );
                   setShowAllMembersModal(false);
                 }}
               />

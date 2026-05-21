@@ -13,6 +13,8 @@ type Props = {
   resolveMember: (id: number | string) => ResolvedMemberLike | undefined;
   onMemberClick: (member: ResolvedMemberLike) => void;
   onOpenAll: () => void;
+  /** e.g. "vendor" for outsource project team photos */
+  profileUserType?: string;
 };
 
 export default function ProjectMembersInvolvedAvatars({
@@ -20,6 +22,7 @@ export default function ProjectMembersInvolvedAvatars({
   resolveMember,
   onMemberClick,
   onOpenAll,
+  profileUserType,
 }: Props) {
   if (members.length === 0) {
     return (
@@ -32,7 +35,7 @@ export default function ProjectMembersInvolvedAvatars({
     if (!emp) return null;
     const url =
       emp.id && emp.profile_picture
-        ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+        ? getGlobalProfileUrl(emp.id, emp.profile_picture, profileUserType)
         : null;
 
     return (
@@ -80,7 +83,7 @@ export default function ProjectMembersInvolvedAvatars({
     }
     const url =
       emp.id && emp.profile_picture
-        ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+        ? getGlobalProfileUrl(emp.id, emp.profile_picture, profileUserType)
         : null;
     return (
       <div className="flex items-center gap-3">

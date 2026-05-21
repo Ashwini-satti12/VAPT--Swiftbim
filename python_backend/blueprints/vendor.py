@@ -6526,28 +6526,50 @@ def _hydrate_vendor_employee_names(cur, rows):
     if not emp_ids:
         return
     
-    # Fetch names
+    # Fetch names and profile pictures for vendor team roster
     placeholders = ",".join(["%s"] * len(emp_ids))
     cur.execute(
-        f"SELECT id, full_name FROM snh6_swiftproject.vendor_employee WHERE id IN ({placeholders})",
-        list(emp_ids)
+        f"""
+        SELECT id, full_name, profile_picture, role
+        FROM snh6_swiftproject.vendor_employee
+        WHERE id IN ({placeholders})
+        """,
+        list(emp_ids),
     )
-    name_map = {str(r["id"]): r["full_name"] for r in cur.fetchall()}
-    
+    emp_map = {str(row["id"]): row for row in (cur.fetchall() or [])}
+
     # Hydrate
     for r in rows:
-        r["project_manager_name"] = name_map.get(str(r.get("project_manager_id")), "")
-        r["lead_name"] = name_map.get(str(r.get("lead_id")), "")
-        r["bim_coordinator_name"] = name_map.get(str(r.get("bim_coordinator_id")), "")
+        pm_id = str(r.get("project_manager_id") or "").strip()
+        lead_id = str(r.get("lead_id") or "").strip()
+        bc_id = str(r.get("bim_coordinator_id") or "").strip()
+        pm_row = emp_map.get(pm_id) or {}
+        lead_row = emp_map.get(lead_id) or {}
+        bc_row = emp_map.get(bc_id) or {}
+        r["project_manager_name"] = pm_row.get("full_name") or ""
+        r["lead_name"] = lead_row.get("full_name") or ""
+        r["bim_coordinator_name"] = bc_row.get("full_name") or ""
+        r["project_manager_profile_picture"] = pm_row.get("profile_picture")
+        r["lead_profile_picture"] = lead_row.get("profile_picture")
+        r["bim_coordinator_profile_picture"] = bc_row.get("profile_picture")
         
         m_names = []
+        member_profiles = []
         members = r.get("members")
         if members:
             for m_id in str(members).split(","):
                 m_id = m_id.strip()
-                if m_id in name_map:
-                    m_names.append(name_map[m_id])
+                if m_id in emp_map:
+                    m_names.append(emp_map[m_id].get("full_name") or "")
+                    if emp_map[m_id].get("profile_picture"):
+                        member_profiles.append(
+                            {
+                                "id": int(m_id) if str(m_id).isdigit() else m_id,
+                                "profile_picture": emp_map[m_id].get("profile_picture"),
+                            }
+                        )
         r["members_names"] = ", ".join(m_names)
+        r["member_profile_pictures"] = member_profiles
 
 
 _ACCEPTED_BID_AMOUNT_SQL = """
