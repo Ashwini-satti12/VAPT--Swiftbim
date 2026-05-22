@@ -8,6 +8,7 @@ import {
   type PmProjectTeamLike,
   type PmTeamRosterEntry,
 } from "../utils/projectTeamRoster";
+import { parseAttachmentsField } from "../utils/projectDetails";
 
 export type RosterEmployeeLike = PmEmployeeLike & {
   id: number | string;
@@ -298,10 +299,16 @@ export const vendorProfileFieldsFromApi = (r: Record<string, unknown>) => ({
 
 /** Normalize vendor-projects API rows for roster avatar enrichment. */
 export function mapVendorProjectFromApi<T extends Record<string, unknown>>(row: T) {
+  const attachments = parseAttachmentsField(row.attachments);
   return {
     ...row,
     source: "Outsource" as const,
     ...vendorProfileFieldsFromApi(row),
+    attachments: attachments?.length ? attachments : undefined,
+    document_attachment:
+      row.document_attachment != null
+        ? String(row.document_attachment)
+        : undefined,
   };
 }
 

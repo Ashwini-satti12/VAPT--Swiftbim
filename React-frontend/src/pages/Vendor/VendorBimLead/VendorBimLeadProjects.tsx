@@ -23,6 +23,13 @@ import {
   useProjectTeamRoster,
 } from "../../../hooks/useProjectTeamRoster";
 import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
+import ProjectDocumentsSection from "../../../components/ProjectDocumentsSection";
+import ProjectEditAttachments from "../../../components/ProjectEditAttachments";
+import {
+  getProjectApiBase,
+  splitProjectEditDocuments,
+  type ProjectDocumentItem,
+} from "../../../utils/projectDetails";
 
 interface Project {
   id: number;
@@ -59,6 +66,7 @@ interface Project {
   proposal_id?: number;
   opportunity_id?: number;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   source?: string;
   project_manager_name?: string;
   lead_name?: string;
@@ -301,7 +309,10 @@ export default function VendorBimLeadProjects() {
   const [moduleInput, setModuleInput] = useState("");
 
   const [createFile, setCreateFile] = useState<File | null>(null);
-  const [existingDoc, setExistingDoc] = useState<string | null>(null);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [clientViewOnlyDocs, setClientViewOnlyDocs] = useState<
+    ProjectDocumentItem[]
+  >([]);
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -351,33 +362,7 @@ export default function VendorBimLeadProjects() {
     }
     return (days * per).toFixed(2);
   }, [createStartDate, createEndDate, createPerDay]);
-  const resolveVendorDocUrl = (rawPath: string) => {
-    const cleaned = (rawPath || "").trim();
-    if (!cleaned) return "";
-    if (/^https?:\/\//i.test(cleaned)) return cleaned;
-    const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
-    if (cleaned.startsWith("/uploads/")) {
-      const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
-      if (/^uploads\/[^/]+$/i.test(rest)) {
-        const fileOnly = rest.replace(/^uploads\//i, "");
-        return `${base}/static/uploads/vendor_docs/${fileOnly}`;
-      }
-      return `${base}${cleaned}`;
-    }
-    if (
-      cleaned.startsWith("/uploads/") ||
-      cleaned.startsWith("/static/uploads/")
-    ) {
-      return `${base}${cleaned}`;
-    }
-    if (
-      cleaned.startsWith("uploads/") ||
-      cleaned.startsWith("static/uploads/")
-    ) {
-      return `${base}/${cleaned}`;
-    }
-    return `${base}/static/uploads/vendor_docs/${cleaned}`;
-  };
+  const apiBaseForFiles = getProjectApiBase(String(api.defaults.baseURL || ""));
   const resolveVendorMember = (id: string | number) =>
     vendorResourceProfiles.find((e) => Number(e.id) === Number(id)) ||
     projectManagers.find((e) => Number(e.id) === Number(id)) ||
@@ -658,7 +643,9 @@ export default function VendorBimLeadProjects() {
     setCreateDeliverables(p.deliverables || "");
     setCreateDepartment(p.department || "");
     setCreateTaskName(p.deliverables || "");
-    setExistingDoc(p.document_attachment || null);
+    const docSplit = splitProjectEditDocuments(p);
+    setClientViewOnlyDocs(docSplit.clientViewOnly);
+    setExistingFiles(docSplit.teamEditable.map((d) => d.fileUrl));
     setShowEditModal(true);
   };
 
@@ -701,6 +688,7 @@ export default function VendorBimLeadProjects() {
         description: createDescription,
         deliverables: createTaskName,
         department: createDepartment,
+        document_attachment: existingFiles.join(","),
       })
       .then(async ({ data }) => {
         if (data.success) {
@@ -740,7 +728,8 @@ export default function VendorBimLeadProjects() {
           setCreateDescription("");
           setCreateDeliverables("");
           setCreateFile(null);
-          setExistingDoc(null);
+          setExistingFiles([]);
+          setClientViewOnlyDocs([]);
           setCreateDepartment("");
           setCreateTaskName("");
           setCreateFile(null);
@@ -1386,47 +1375,18 @@ export default function VendorBimLeadProjects() {
             className="hidden"
             onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
           />
-          {existingDoc && !createFile ? (
-            <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white rounded-xl shadow-sm">
-                  <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
-                    {existingDoc.split("_").pop() || "Document"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={resolveVendorDocUrl(existingDoc)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
-                  title="View document"
-                >
-                  <img src={viewIcon} alt="View" className="w-5 h-5" />
-                </a>
-                <a
-                  href={resolveVendorDocUrl(existingDoc)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
-                  title="Download document"
-                >
-                  <FiUploadCloud className="w-5 h-5 rotate-180" />
-                </a>
-                <label
-                  htmlFor="edit-file-upload"
-                  className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
-                  title="Replace file"
-                >
-                  <img src={editIcon} alt="Replace" className="w-5 h-5" />
-                </label>
-              </div>
-            </div>
-          ) : !createFile ? (
+          <ProjectEditAttachments
+            clientViewOnly={clientViewOnlyDocs}
+            teamFileRefs={existingFiles}
+            newFiles={createFile ? [createFile] : []}
+            apiBaseUrl={apiBaseForFiles}
+            projectSource="Outsource"
+            onRemoveTeamFile={(fileRef) =>
+              setExistingFiles((prev) => prev.filter((f) => f !== fileRef))
+            }
+            onRemoveNewFile={() => setCreateFile(null)}
+          />
+          {!createFile ? (
             <label
               htmlFor="edit-file-upload"
               className="flex flex-col items-center justify-center w-full h-32 bg-[#F2F3F4] border-2 border-dashed border-slate-200 rounded-md cursor-pointer hover:border-[#DD4342]/20 transition-all"
@@ -2121,31 +2081,11 @@ export default function VendorBimLeadProjects() {
                           Project Document
                         </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        {selectedProject.document_attachment ? (
-                          <div className="flex items-center gap-3">
-                            <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                              {selectedProject.document_attachment
-                                .split("/")
-                                .pop()
-                                ?.split("_")
-                                .pop() || "Document.pdf"}
-                            </span>
-                            <a
-                              href={resolveVendorDocUrl(
-                                selectedProject.document_attachment,
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2 py-1 bg-[#E8F0FE] text-[#1967D2] rounded flex items-center justify-center hover:bg-[#D2E3FC] transition-colors"
-                            >
-                              <FiUploadCloud className="w-4 h-4 rotate-180" />
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-[14px] font-medium text-[#616161]">
-                            No Document Available
-                          </span>
-                        )}
+                        <ProjectDocumentsSection
+                          project={selectedProject}
+                          apiBaseUrl={apiBaseForFiles}
+                          projectSource={selectedProject.source ?? "Outsource"}
+                        />
                       </div>
                     </div>
                   </div>

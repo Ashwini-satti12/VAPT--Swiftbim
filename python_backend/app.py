@@ -139,7 +139,7 @@ def create_app(config_class=Config):
             return vendor_docs_static(name[len("vendor_docs/") :])
         if name.startswith("vendors/"):
             return vendors_static(name[len("vendors/") :])
-        return _send_upload_with_fallback(name, ["", "enquiries"])
+        return _send_upload_with_fallback(name, ["vendor_docs", "", "enquiries"])
 
     @app.route("/api/view_profile_picture/<emp_id>")
     def view_profile_picture(emp_id):

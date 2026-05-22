@@ -20,6 +20,11 @@ import {
   useProjectTeamRoster,
 } from "../../../hooks/useProjectTeamRoster";
 import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
+import ProjectDocumentsSection from "../../../components/ProjectDocumentsSection";
+import {
+  getProjectApiBase,
+  type ProjectDocumentItem,
+} from "../../../utils/projectDetails";
 
 type VendorResourceProfileRow = {
   id: number;
@@ -72,6 +77,7 @@ type Project = {
   deliverables?: string;
   budget_ceiling?: string;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   client_id?: string;
   no_resource?: string;
   no_resources_required?: string;
@@ -414,21 +420,7 @@ export default function ProjectEV() {
   const projectCurrencyCode = (p?: Project | null) =>
     ((p?.selected_currency || p?.currency || "INR") as string).toUpperCase();
 
-  const resolveVendorDocUrl = (rawPath: string) => {
-    const cleaned = (rawPath || "").trim();
-    if (!cleaned) return "";
-    if (/^https?:\/\//i.test(cleaned)) return cleaned;
-    const base = String(api.defaults.baseURL || "").replace(/\/api\/?$/, "").replace(/\/+$/, "");
-    if (cleaned.startsWith("/uploads/")) {
-      const rest = cleaned.replace(/^\/+/, "");
-      if (/^uploads\/[^/]+$/i.test(rest)) {
-        const fileOnly = rest.replace(/^uploads\//i, "");
-        return `${base}/static/uploads/vendor_docs/${fileOnly}`;
-      }
-      return `${base}${cleaned}`;
-    }
-    return `${base}/static/uploads/vendor_docs/${cleaned}`;
-  };
+  const apiBaseForFiles = getProjectApiBase(String(api.defaults.baseURL || ""));
 
   const { teamRosterForProject, resolveProjectMember } = useProjectTeamRoster(
     allEmployees,
@@ -1008,21 +1000,11 @@ export default function ProjectEV() {
                       <div className="flex items-center">
                         <span className="w-56 text-[14px] font-medium text-[#353535] shrink-0">Project Document</span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        {selectedProject.document_attachment ? (
-                          <div className="flex items-center gap-3">
-                            <span className="text-[16px] font-medium text-[#616161] line-clamp-1">{selectedProject.document_attachment.split("/").pop()}</span>
-                            <a
-                              href={resolveVendorDocUrl(selectedProject.document_attachment)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2 py-1 bg-[#E8F0FE] text-[#1967D2] rounded flex items-center justify-center hover:bg-[#D2E3FC] transition-colors"
-                            >
-                              <FiUploadCloud className="w-4 h-4 rotate-180" />
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="text-[14px] font-medium text-[#616161]">No Document Available</span>
-                        )}
+                        <ProjectDocumentsSection
+                          project={selectedProject}
+                          apiBaseUrl={apiBaseForFiles}
+                          projectSource={selectedProject.source ?? "Outsource"}
+                        />
                       </div>
                     </div>
                   </div>

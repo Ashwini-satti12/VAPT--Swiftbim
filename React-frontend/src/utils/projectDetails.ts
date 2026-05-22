@@ -68,13 +68,33 @@ export function resolveProjectDocumentHref(
     return `${base}/${normalizeDocumentRef(ref).replace(/^\//, "")}`;
   }
 
+  if (ref.includes("vendor_docs/")) {
+    const tail = ref.replace(/^.*vendor_docs\/?/i, "");
+    return `${base}/static/uploads/vendor_docs/${encodeURIComponent(tail)}`;
+  }
+
   if (isOutsourceProject(source)) {
+    // PM/TD uploads: /static/uploads/<uuid>_file.png — served from upload root (not vendor_docs only).
+    if (ref.startsWith("/static/uploads/") || ref.startsWith("static/uploads/")) {
+      return `${base}${normalizeDocumentRef(ref)}`;
+    }
+    if (/^[0-9a-f]{16,}_/i.test(ref) || ref.includes("/")) {
+      return `${base}/static/uploads/${encodeURIComponent(ref.replace(/^\/+/, ""))}`;
+    }
     return `${base}/static/uploads/vendor_docs/${encodeURIComponent(ref)}`;
   }
   if (ref.includes("/")) {
     return `${base}/${ref.replace(/^\/+/, "")}`;
   }
   return `${base}/static/uploads/${encodeURIComponent(ref)}`;
+}
+
+/** API origin for project file links (no /api suffix). */
+export function getProjectApiBase(apiBaseUrl?: string): string {
+  const raw = apiBaseUrl ?? "";
+  return String(raw)
+    .replace(/\/+$/, "")
+    .replace(/\/api\/?$/i, "");
 }
 
 export function parseAttachmentsField(

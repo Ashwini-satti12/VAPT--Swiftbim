@@ -7854,8 +7854,20 @@ def update_vendor_project(project_id):
                 file.save(os.path.join(vendor_docs_dir, unique_filename))
                 new_file_paths.append(unique_filename)
 
-    # Combine and update data
-    all_files = list(set(existing_files + new_file_paths))
+    # Combine: JSON may send an explicit team file list; multipart adds vendor_docs uploads.
+    if (
+        request.is_json
+        and "document_attachment" in data
+        and data["document_attachment"] is not None
+    ):
+        explicit = [
+            f.strip()
+            for f in str(data["document_attachment"]).split(",")
+            if f.strip()
+        ]
+        all_files = list(dict.fromkeys(explicit + new_file_paths))
+    else:
+        all_files = list(dict.fromkeys(existing_files + new_file_paths))
     data["document_attachment"] = ",".join(all_files)
 
     # 3. Update database

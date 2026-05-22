@@ -25,6 +25,13 @@ import {
   useProjectTeamRoster,
 } from "../../../hooks/useProjectTeamRoster";
 import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
+import ProjectDocumentsSection from "../../../components/ProjectDocumentsSection";
+import ProjectEditAttachments from "../../../components/ProjectEditAttachments";
+import {
+  getProjectApiBase,
+  splitProjectEditDocuments,
+  type ProjectDocumentItem,
+} from "../../../utils/projectDetails";
 
 interface Project {
   id: number;
@@ -64,6 +71,7 @@ interface Project {
   proposal_id?: number;
   opportunity_id?: number;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   source?: string;
   project_manager_profile_picture?: string;
   lead_profile_picture?: string;
@@ -309,8 +317,10 @@ export default function ProjectsPMV() {
 
   // File & Document State
   const [createFile, setCreateFile] = useState<File | null>(null);
-  const [currentAttachments, setCurrentAttachments] = useState<string>("");
-  const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [clientViewOnlyDocs, setClientViewOnlyDocs] = useState<
+    ProjectDocumentItem[]
+  >([]);
 
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
@@ -433,35 +443,7 @@ export default function ProjectsPMV() {
     return filteredList.slice(selectedRange.start, rangeEnd);
   }, [filteredList, selectedRange, rangeEnd]);
 
-  const resolveVendorDocUrl = (rawPath: string) => {
-    const cleaned = (rawPath || "").trim();
-    if (!cleaned) return "";
-    if (/^https?:\/\//i.test(cleaned)) return cleaned;
-    const base = String(api.defaults.baseURL || "")
-      .replace(/\/api\/?$/, "")
-      .replace(/\/+$/, "");
-    if (cleaned.startsWith("/uploads/")) {
-      const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
-      if (/^uploads\/[^/]+$/i.test(rest)) {
-        const fileOnly = rest.replace(/^uploads\//i, "");
-        return `${base}/static/uploads/vendor_docs/${fileOnly}`;
-      }
-      return `${base}${cleaned}`;
-    }
-    if (
-      cleaned.startsWith("/uploads/") ||
-      cleaned.startsWith("/static/uploads/")
-    ) {
-      return `${base}${cleaned}`;
-    }
-    if (
-      cleaned.startsWith("uploads/") ||
-      cleaned.startsWith("static/uploads/")
-    ) {
-      return `${base}/${cleaned}`;
-    }
-    return `${base}/static/uploads/vendor_docs/${cleaned}`;
-  };
+  const apiBaseForFiles = getProjectApiBase(String(api.defaults.baseURL || ""));
 
   const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
     const seen = new Set<string>();
@@ -827,8 +809,9 @@ export default function ProjectsPMV() {
     setCreateLocation(p.location || "");
     setCreateDescription(p.description || "");
     setCreateDeliverables(p.deliverables || "");
-    setCurrentAttachments(p.document_attachment || "");
-    setRemovedAttachments([]);
+    const docSplit = splitProjectEditDocuments(p);
+    setClientViewOnlyDocs(docSplit.clientViewOnly);
+    setExistingFiles(docSplit.teamEditable.map((d) => d.fileUrl));
     setShowEditModal(true);
   };
 
@@ -876,7 +859,7 @@ export default function ProjectsPMV() {
         location: createLocation,
         description: createDescription,
         deliverables: createDeliverables,
-        removed_files: removedAttachments.join(","),
+        document_attachment: existingFiles.join(","),
       })
       .then(async ({ data }) => {
         if (data.success) {
@@ -1490,94 +1473,17 @@ export default function ProjectsPMV() {
           Project Documents
         </label>
 
-        {/* Existing Documents */}
-        {currentAttachments && (
-          <div className="flex flex-wrap gap-3 mb-4">
-            {currentAttachments
-              .split(",")
-              .map((file) => file.trim())
-              .filter(Boolean)
-              .map((fileName, idx) => {
-                const url = resolveVendorDocUrl(fileName);
-                return (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-3 w-full md:max-w-md mt-1"
-                  >
-                    <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
-                      {fileName.split("_").pop()}
-                    </span>
-                    <div className="flex gap-2.5">
-                      <div className="relative group/tooltip inline-flex shrink-0">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            window.open(url, "_blank", "noopener,noreferrer")
-                          }
-                          className="p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <img
-                            src={viewIcon}
-                            alt="View"
-                            className="w-4 h-4 cursor-pointer"
-                          />
-                        </button>
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                              View
-                            </span>
-                          </div>
-                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                        </div>
-                      </div>
-                      <div className="relative group/tooltip inline-flex shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const remaining = currentAttachments
-                              .split(",")
-                              .map((f) => f.trim())
-                              .filter((f) => f !== fileName)
-                              .join(",");
-                            setCurrentAttachments(remaining);
-                            setRemovedAttachments((prev) =>
-                              prev.includes(fileName)
-                                ? prev
-                                : [...prev, fileName],
-                            );
-                          }}
-                          className="p-1 rounded transition-colors cursor-pointer"
-                        >
-                          <svg
-                            className="w-4 h-4 text-slate-400 hover:text-[#DD4342]"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                              Remove
-                            </span>
-                          </div>
-                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
+        <ProjectEditAttachments
+          clientViewOnly={clientViewOnlyDocs}
+          teamFileRefs={existingFiles}
+          newFiles={createFile ? [createFile] : []}
+          apiBaseUrl={apiBaseForFiles}
+          projectSource="Outsource"
+          onRemoveTeamFile={(fileRef) =>
+            setExistingFiles((prev) => prev.filter((f) => f !== fileRef))
+          }
+          onRemoveNewFile={() => setCreateFile(null)}
+        />
 
         <div className="relative group">
           <input
@@ -2311,81 +2217,12 @@ export default function ProjectsPMV() {
                   <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">
                     Project Document
                   </p>
-                  {selectedProject.document_attachment ? (
-                    <div className="flex flex-wrap gap-3">
-                      {selectedProject.document_attachment
-                        .split(",")
-                        .map((file) => file.trim())
-                        .filter(Boolean)
-                        .map((fileName, idx) => {
-                          const url = resolveVendorDocUrl(fileName);
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-3 w-full md:max-w-md mt-1"
-                            >
-                              <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                {fileName.split("_").pop() || "Document"}
-                              </span>
-                              <div className="flex gap-2.5">
-                                <div className="relative group/tooltip inline-flex shrink-0">
-                                  <a
-                                    onClick={() =>
-                                      window.open(
-                                        url,
-                                        "_blank",
-                                        "noopener,noreferrer",
-                                      )
-                                    }
-                                    className="p-1 rounded transition-colors cursor-pointer"
-                                  >
-                                    <img
-                                      src={viewIcon}
-                                      alt="View"
-                                      className="w-4 h-4 cursor-pointer"
-                                    />
-                                  </a>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                        View
-                                      </span>
-                                    </div>
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                  </div>
-                                </div>
-
-                                <div className="relative group/tooltip inline-flex shrink-0">
-                                  <a
-                                    href={url}
-                                    download
-                                    className="p-1 hover:bg-white rounded transition-colors"
-                                  >
-                                    <img
-                                      src={downloadIcon}
-                                      alt="Download"
-                                      className="w-4 h-4 cursor-pointer"
-                                    />
-                                  </a>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                        Download
-                                      </span>
-                                    </div>
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <span className="text-[16px] font-medium text-[#616161]">
-                      No Document Available
-                    </span>
-                  )}
+                  <ProjectDocumentsSection
+                    project={selectedProject}
+                    apiBaseUrl={apiBaseForFiles}
+                    projectSource={selectedProject.source ?? "Outsource"}
+                    emptyLabel="No Document Available"
+                  />
                 </div>
               </div>
             </div>

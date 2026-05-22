@@ -25,6 +25,13 @@ import {
   type ProjectWithVendorProfiles,
 } from "../../hooks/useProjectTeamRoster";
 import type { PmTeamRosterEntry } from "../../utils/projectTeamRoster";
+import ProjectDocumentsSection from "../../components/ProjectDocumentsSection";
+import ProjectEditAttachments from "../../components/ProjectEditAttachments";
+import {
+  getProjectApiBase,
+  splitProjectEditDocuments,
+  type ProjectDocumentItem,
+} from "../../utils/projectDetails";
 
 interface Project {
   id: number;
@@ -62,6 +69,7 @@ interface Project {
   opportunity_id?: number;
   deliverables?: string;
   document_attachment?: string;
+  attachments?: ProjectDocumentItem[];
   source?: string;
   project_manager_name?: string;
   lead_name?: string;
@@ -358,7 +366,10 @@ export default function ProjectsV() {
   const [createCurrency, setCreateCurrency] = useState("INR");
   const [createModuleName, setCreateModuleName] = useState("");
   const [createFile, setCreateFile] = useState<File | null>(null);
-  const [currentAttachments, setCurrentAttachments] = useState<string>("");
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [clientViewOnlyDocs, setClientViewOnlyDocs] = useState<
+    ProjectDocumentItem[]
+  >([]);
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -413,35 +424,7 @@ export default function ProjectsV() {
     return (code || "INR").toUpperCase();
   };
 
-  const resolveVendorDocUrl = (rawPath: string) => {
-    const cleaned = (rawPath || "").trim();
-    if (!cleaned) return "";
-    if (/^https?:\/\//i.test(cleaned)) return cleaned;
-    const base = String(api.defaults.baseURL || "")
-      .replace(/\/api\/?$/, "")
-      .replace(/\/+$/, "");
-    if (cleaned.startsWith("/uploads/")) {
-      const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
-      if (/^uploads\/[^/]+$/i.test(rest)) {
-        const fileOnly = rest.replace(/^uploads\//i, "");
-        return `${base}/static/uploads/vendor_docs/${fileOnly}`;
-      }
-      return `${base}${cleaned}`;
-    }
-    if (
-      cleaned.startsWith("/uploads/") ||
-      cleaned.startsWith("/static/uploads/")
-    ) {
-      return `${base}${cleaned}`;
-    }
-    if (
-      cleaned.startsWith("uploads/") ||
-      cleaned.startsWith("static/uploads/")
-    ) {
-      return `${base}/${cleaned}`;
-    }
-    return `${base}/static/uploads/vendor_docs/${cleaned}`;
-  };
+  const apiBaseForFiles = getProjectApiBase(String(api.defaults.baseURL || ""));
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
@@ -846,7 +829,9 @@ export default function ProjectsV() {
     );
     setCreatePriority(p.priority || "");
     setCreateLocation(p.location || "");
-    setCurrentAttachments(p.document_attachment || "");
+    const docSplit = splitProjectEditDocuments(p);
+    setClientViewOnlyDocs(docSplit.clientViewOnly);
+    setExistingFiles(docSplit.teamEditable.map((d) => d.fileUrl));
     setCreateDeliverables(p.deliverables || "");
     // Strip HTML tags / entities so the textarea shows clean text
     setCreateDescription(htmlToPlainText(p.description));
@@ -895,7 +880,7 @@ export default function ProjectsV() {
         location: createLocation,
         description: createDescription,
         deliverables: createDeliverables,
-        document_attachment: currentAttachments, // Send updated string of existing attachments
+        document_attachment: existingFiles.join(","),
       })
       .then(async ({ data }) => {
         if (data.success) {
@@ -932,7 +917,8 @@ export default function ProjectsV() {
           setCreateDescription("");
           setCreateDeliverables("");
           setCreateFile(null);
-          setCurrentAttachments("");
+          setExistingFiles([]);
+          setClientViewOnlyDocs([]);
 
           toast.success("Project updated successfully");
           fetchProjects();
@@ -1557,73 +1543,17 @@ export default function ProjectsV() {
             Project Documents
           </label>
 
-          {/* Existing Documents List */}
-          {currentAttachments &&
-            currentAttachments
-              .split(",")
-              .map((f) => f.trim())
-              .filter(Boolean).length > 0 && (
-              <div className="flex flex-col gap-2 mb-4">
-                {currentAttachments
-                  .split(",")
-                  .map((f) => f.trim())
-                  .filter(Boolean)
-                  .map((fileName, idx) => {
-                    const url = resolveVendorDocUrl(fileName);
-                    return (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-md"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[13px] font-medium text-[#353535] truncate max-w-[200px] md:max-w-md">
-                              {fileName.split("_").pop()}
-                            </span>
-                            <span className="text-[11px] text-[#8B8B8B]">
-                              Existing Document
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => viewRemoteDocument(url)}
-                            className="p-1 hover:bg-white rounded transition-colors"
-                            title="View"
-                          >
-                            <img
-                              src={viewIcon}
-                              alt="View"
-                              className="w-5 h-5 opacity-70"
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const remaining = currentAttachments
-                                .split(",")
-                                .map((f) => f.trim())
-                                .filter((f) => f !== fileName)
-                                .join(",");
-                              setCurrentAttachments(remaining);
-                            }}
-                            className="p-1 hover:bg-white rounded transition-colors"
-                            title="Remove"
-                          >
-                            <img
-                              src={deleteIcon}
-                              alt="Delete"
-                              className="w-5 h-5 opacity-70"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
+          <ProjectEditAttachments
+            clientViewOnly={clientViewOnlyDocs}
+            teamFileRefs={existingFiles}
+            newFiles={createFile ? [createFile] : []}
+            apiBaseUrl={apiBaseForFiles}
+            projectSource="Outsource"
+            onRemoveTeamFile={(fileRef) =>
+              setExistingFiles((prev) => prev.filter((f) => f !== fileRef))
+            }
+            onRemoveNewFile={() => setCreateFile(null)}
+          />
 
           {/* New File Upload Selector */}
           <div className="flex items-center bg-[#F2F2F2] rounded-md overflow-hidden">
@@ -2340,58 +2270,11 @@ export default function ProjectsV() {
                         <span className="hidden sm:inline text-[#616161] mr-4">
                           :
                         </span>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedProject.document_attachment ? (
-                            selectedProject.document_attachment
-                              .split(",")
-                              .map((file) => file.trim())
-                              .filter(Boolean)
-                              .map((fileName, idx) => {
-                                const url = resolveVendorDocUrl(fileName);
-
-                                return (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1"
-                                  >
-                                    <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                      <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                    </div>
-                                    <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                      {fileName.split("_").pop() || "Document"}
-                                    </span>
-                                    <div className="flex gap-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => viewRemoteDocument(url)}
-                                        className="p-1 hover:bg-white rounded"
-                                        title="View"
-                                      >
-                                        <img
-                                          src={viewIcon}
-                                          alt="View"
-                                          className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
-                                        />
-                                      </button>
-                                      <a
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-1 hover:bg-white rounded"
-                                        title="Download"
-                                      >
-                                        <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
-                                      </a>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                          ) : (
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              No Document Available
-                            </span>
-                          )}
-                        </div>
+                        <ProjectDocumentsSection
+                          project={selectedProject}
+                          apiBaseUrl={apiBaseForFiles}
+                          projectSource={selectedProject.source ?? "Outsource"}
+                        />
                       </div>
                     </div>
                   </div>
