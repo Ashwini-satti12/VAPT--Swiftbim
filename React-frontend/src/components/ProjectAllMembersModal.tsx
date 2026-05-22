@@ -1,6 +1,6 @@
 import closeBtnIcon from "../assets/ProductNavbarIcons/close button.svg";
 import ProfileIcon from "../assets/ProductNavbarIcons/Profile.svg";
-import { getGlobalProfileUrl } from "../lib/profileHelpers";
+import { getRosterProfileUrl } from "../lib/profileHelpers";
 import type { PmTeamRosterEntry } from "../utils/projectTeamRoster";
 
 type Props = {
@@ -43,10 +43,7 @@ export default function ProjectAllMembersModal({
           {members.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {members.map((emp, idx) => {
-                const profileUrl =
-                  emp.id && emp.profile_picture
-                    ? getGlobalProfileUrl(emp.id, emp.profile_picture, profileUserType)
-                    : null;
+                const profileUrl = getRosterProfileUrl(emp, profileUserType);
 
                 return (
                   <div

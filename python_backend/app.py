@@ -157,22 +157,59 @@ def create_app(config_class=Config):
             # Check if emp_id is an integer ID or a name
             is_digit = str(emp_id).isdigit()
             
+            profile_picture = None
             if user_type == "vendor":
                 if is_digit:
                     cur.execute("SELECT profile_picture FROM vendor_employee WHERE id = %s", (emp_id,))
+                    row = cur.fetchone()
+                    profile_picture = row.get("profile_picture") if row else None
+                    if not profile_picture:
+                        try:
+                            from blueprints.vendor import vendor_cursor
+
+                            vcur = vendor_cursor()
+                            vcur.execute(
+                                """
+                                SELECT profile_picture, vendor_employee_id
+                                FROM vendor_resource_profiles
+                                WHERE id = %s
+                                   OR vendor_employee_id = %s
+                                ORDER BY (id = %s) DESC
+                                LIMIT 1
+                                """,
+                                (emp_id, emp_id, emp_id),
+                            )
+                            res = vcur.fetchone()
+                            if res:
+                                profile_picture = res.get("profile_picture")
+                                if not profile_picture and res.get("vendor_employee_id"):
+                                    cur.execute(
+                                        "SELECT profile_picture FROM vendor_employee WHERE id = %s",
+                                        (res.get("vendor_employee_id"),),
+                                    )
+                                    ve_row = cur.fetchone()
+                                    profile_picture = (
+                                        ve_row.get("profile_picture") if ve_row else None
+                                    )
+                        except Exception:
+                            pass
                 else:
-                    cur.execute("SELECT profile_picture FROM vendor_employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s))", (emp_id,))
+                    cur.execute(
+                        "SELECT profile_picture FROM vendor_employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s))",
+                        (emp_id,),
+                    )
+                    row = cur.fetchone()
+                    profile_picture = row.get("profile_picture") if row else None
             else:
                 if is_digit:
                     cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
                 else:
                     cur.execute("SELECT profile_picture FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s))", (emp_id,))
-            row = cur.fetchone()
-            
-            if not row or not row.get("profile_picture"):
+                row = cur.fetchone()
+                profile_picture = row.get("profile_picture") if row else None
+
+            if not profile_picture:
                 return jsonify({"error": "No profile picture found for this employee"}), 404
-                
-            profile_picture = row["profile_picture"]
             
             upload_dir = current_app.config.get("UPLOAD_FOLDER")
             if not upload_dir:

@@ -11,6 +11,15 @@ import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import swifterzLogo from "../../../assets/ProductNavbarIcons/swifterzlogo.png";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+import ProjectAllMembersModal from "../../../components/ProjectAllMembersModal";
+import ProjectCardTeamAvatars from "../../../components/ProjectCardTeamAvatars";
+import {
+  fetchVendorTeamEmployees,
+  mapVendorProjectFromApi,
+  toVendorProjectTeamLike,
+  useProjectTeamRoster,
+} from "../../../hooks/useProjectTeamRoster";
+import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
 
 type VendorResourceProfileRow = {
   id: number;
@@ -67,6 +76,14 @@ type Project = {
   no_resource?: string;
   no_resources_required?: string;
   required_resources?: string;
+  source?: string;
+  project_manager_profile_picture?: string;
+  lead_profile_picture?: string;
+  bim_coordinator_profile_picture?: string;
+  member_profile_pictures?: Array<{
+    id: number | string;
+    profile_picture?: string;
+  }>;
 };
 
 type Tower = {
@@ -369,6 +386,9 @@ export default function ProjectEV() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
+  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<Employee[]>(
+    [],
+  );
 
   const [showProjectView, setShowProjectView] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -383,7 +403,7 @@ export default function ProjectEV() {
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
 
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<VendorResourceProfileRow[]>([]);
+  const [allMembersList, setAllMembersList] = useState<PmTeamRosterEntry[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<VendorResourceProfileRow | null>(null);
 
@@ -410,7 +430,16 @@ export default function ProjectEV() {
     return `${base}/static/uploads/vendor_docs/${cleaned}`;
   };
 
+  const { teamRosterForProject, resolveProjectMember } = useProjectTeamRoster(
+    allEmployees,
+    resourceProfiles,
+    vendorTeamEmployees,
+  );
+  const teamRosterForVendorProject = (proj: Project) =>
+    teamRosterForProject(toVendorProjectTeamLike(proj));
+
   const resolveVendorMember = (id: string | number) =>
+    resolveProjectMember(id, "Outsource") ||
     resourceProfiles.find((e) => Number(e.id) === Number(id)) ||
     projectManagers.find((e) => Number(e.id) === Number(id)) ||
     bimLeads.find((e) => Number(e.id) === Number(id)) ||
@@ -464,7 +493,14 @@ export default function ProjectEV() {
         setBimLeads(bls);
 
         setProjects(
-          filterInvolvedVendorProjects(allProjects, myTasks, user, profiles),
+          filterInvolvedVendorProjects(
+            allProjects.map(
+              (row) => mapVendorProjectFromApi(row as Record<string, unknown>) as Project,
+            ),
+            myTasks,
+            user,
+            profiles,
+          ),
         );
       })
       .catch(() => {
@@ -475,6 +511,10 @@ export default function ProjectEV() {
         setBimLeads([]);
       })
       .finally(() => setLoading(false));
+
+    fetchVendorTeamEmployees((url) => api.get(url))
+      .then(setVendorTeamEmployees)
+      .catch(() => setVendorTeamEmployees([]));
   }, [user]);
 
   useEffect(() => {
@@ -1112,7 +1152,6 @@ export default function ProjectEV() {
                   listInRange.map((p) => {
                   const normalizedStatus = normalizeProjectStatus(p);
                   const progress = normalizedStatus === "completed" ? 100 : safePercent(p.progress, 0);
-                  const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
                   const radius = 28;
                   const circumference = 2 * Math.PI * radius;
                   const offset = circumference - (progress / 100) * circumference;
@@ -1185,120 +1224,26 @@ export default function ProjectEV() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                        {(() => {
-                          const projectEmployees = memberIds
-                            .map((id) => resolveVendorMember(id))
-                            .filter(Boolean) as VendorResourceProfileRow[];
-
-                          if (projectEmployees.length === 0) return null;
-
-                          const visibleMembers = projectEmployees.slice(0, 3);
-                          const remainingCount = Math.max(
-                            0,
-                            projectEmployees.length - 3,
-                          );
-
-                          return (
-                            <div className="flex -space-x-2 min-w-0 pr-2">
-                              {visibleMembers.map((emp) => {
-                                const profileUrl = emp.profile_picture
-                                  ? getGlobalProfileUrl(
-                                      emp.id,
-                                      emp.profile_picture,
-                                      "vendor",
-                                    )
-                                  : null;
-
-                                return (
-                                  <div
-                                    key={emp.id}
-                                    className="relative group shrink-0"
-                                  >
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openMemberProfile(emp);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (
-                                          e.key === "Enter" ||
-                                          e.key === " "
-                                        ) {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          openMemberProfile(emp);
-                                        }
-                                      }}
-                                    >
-                                      {profileUrl ? (
-                                        <img
-                                          src={profileUrl}
-                                          alt={emp.full_name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (
-                                              e.target as HTMLImageElement
-                                            ).src = ProfileIcon;
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-medium text-slate-600">
-                                          {(emp.full_name || "U")
-                                            .charAt(0)
-                                            .toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          {emp.full_name || "Unknown"}
-                                        </span>
-                                      </div>
-                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {remainingCount > 0 && (
-                                <div className="relative group shrink-0">
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="w-8 h-8 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setAllMembersList(projectEmployees);
-                                      setShowAllMembersModal(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setAllMembersList(projectEmployees);
-                                        setShowAllMembersModal(true);
-                                      }
-                                    }}
-                                  >
-                                    +{remainingCount}
-                                  </div>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                                      <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                        {remainingCount} more
-                                      </span>
-                                    </div>
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
+                      <div
+                        className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center -space-x-4 min-w-0 pr-2">
+                          <ProjectCardTeamAvatars
+                            roster={teamRosterForVendorProject(p)}
+                            profileUserType="vendor"
+                            avatarClassName="w-8 h-8"
+                            onOpenAll={() => {
+                              setAllMembersList(teamRosterForVendorProject(p));
+                              setShowAllMembersModal(true);
+                            }}
+                            onMemberClick={(emp) => {
+                              if (!emp.id) return;
+                              const full = resolveVendorMember(emp.id);
+                              if (full) openMemberProfile(full);
+                            }}
+                          />
+                        </div>
                         <div
                           className={`px-3 py-1 rounded-[5px] text-white text-[12px] font-medium font-Gantari shadow-sm shrink-0 ${
                             (p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent"
@@ -1318,46 +1263,18 @@ export default function ProjectEV() {
         )}
       </div>
 
-      {showAllMembersModal && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
-              <button onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
-                <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              <div className="space-y-4">
-                {allMembersList.map((member, index) => (
-                  <div
-                    key={member.id ?? index}
-                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => { openMemberProfile(member); setShowAllMembersModal(false); }}
-                  >
-                    <div className="w-12 h-12 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 shrink-0">
-                      {member.profile_picture ? (
-                        <img
-                          src={getGlobalProfileUrl(member.id, member.profile_picture, "vendor")}
-                          alt={member.full_name || "Member"}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
-                        />
-                      ) : (
-                        <img src={ProfileIcon} alt={member.full_name || "Member"} className="w-full h-full object-cover p-1" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{member.full_name || "Unknown"}</p>
-                      {member.email && <p className="text-[14px] text-[#8B8B8B] font-Gantari">{member.email}</p>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProjectAllMembersModal
+        open={showAllMembersModal}
+        members={allMembersList}
+        profileUserType="vendor"
+        onClose={() => setShowAllMembersModal(false)}
+        onMemberClick={(emp) => {
+          if (!emp.id) return;
+          const full = resolveVendorMember(emp.id);
+          if (full) openMemberProfile(full);
+          setShowAllMembersModal(false);
+        }}
+      />
 
       {showMemberProfileModal && selectedMember && (
         <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">

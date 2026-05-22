@@ -1,5 +1,5 @@
 import ProfileIcon from "../assets/ProductNavbarIcons/Profile.svg";
-import { getGlobalProfileUrl } from "../lib/profileHelpers";
+import { getRosterProfileUrl } from "../lib/profileHelpers";
 import type { PmTeamRosterEntry } from "../utils/projectTeamRoster";
 
 type Props = {
@@ -40,10 +40,7 @@ export default function ProjectCardTeamAvatars({
   return (
     <>
       {visible.map((emp) => {
-        const profileUrl =
-          emp.id && emp.profile_picture
-            ? getGlobalProfileUrl(emp.id, emp.profile_picture, profileUserType)
-            : null;
+        const profileUrl = getRosterProfileUrl(emp, profileUserType);
         return (
           <div
             key={emp.id ? String(emp.id) : emp.full_name}

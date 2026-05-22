@@ -298,7 +298,9 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
                         (client_id,),
                     )
                     con = vendor_cur.fetchone() or {}
-                    
+                    if con.get("total_cost") is not None:
+                        p["client_budget"] = con["total_cost"]
+
                     found_prop_id = con.get("proposal_id")
                     if found_prop_id:
                         vendor_cur.execute("SELECT * FROM proposals WHERE id = %s LIMIT 1", (found_prop_id,))
@@ -6550,23 +6552,22 @@ def upload_vendor_task_output_files(task_id):
 
 def _hydrate_vendor_employee_names(cur, rows):
     """Resolves vendor employee IDs into names (PM, Lead, Coordinator, Members)."""
-    # Collect all unique IDs
+    if not rows:
+        return
+
     emp_ids = set()
+    member_ids = set()
     for r in rows:
         for f in ["project_manager_id", "lead_id", "bim_coordinator_id"]:
-            val = r.get(f)
-            if val:
-                emp_ids.add(str(val))
-        members = r.get("members")
-        if members:
-            for m_id in str(members).split(","):
-                if m_id.strip():
-                    emp_ids.add(m_id.strip())
-    
+            for pid in _extract_int_ids(r.get(f)):
+                emp_ids.add(pid)
+        for mid in _extract_int_ids(r.get("members")):
+            emp_ids.add(mid)
+            member_ids.add(mid)
+
     if not emp_ids:
         return
-    
-    # Fetch names and profile pictures for vendor team roster
+
     placeholders = ",".join(["%s"] * len(emp_ids))
     cur.execute(
         f"""
@@ -6578,36 +6579,98 @@ def _hydrate_vendor_employee_names(cur, rows):
     )
     emp_map = {str(row["id"]): row for row in (cur.fetchall() or [])}
 
-    # Hydrate
+    resource_map = {}
+    unresolved_member_ids = [mid for mid in member_ids if str(mid) not in emp_map]
+    if unresolved_member_ids:
+        try:
+            vcur = vendor_cursor()
+            r_placeholders = ",".join(["%s"] * len(unresolved_member_ids))
+            vcur.execute(
+                f"""
+                SELECT id, name, profile_picture, vendor_employee_id
+                FROM vendor_resource_profiles
+                WHERE id IN ({r_placeholders})
+                """,
+                list(unresolved_member_ids),
+            )
+            for row in vcur.fetchall() or []:
+                resource_map[str(row["id"])] = row
+                ve_id = row.get("vendor_employee_id")
+                if ve_id is not None and str(ve_id) not in emp_map:
+                    cur.execute(
+                        """
+                        SELECT id, full_name, profile_picture, role
+                        FROM snh6_swiftproject.vendor_employee
+                        WHERE id = %s
+                        LIMIT 1
+                        """,
+                        (ve_id,),
+                    )
+                    ve_row = cur.fetchone()
+                    if ve_row:
+                        emp_map[str(ve_row["id"])] = ve_row
+        except Exception:
+            resource_map = {}
+
+    def _names_for_field(raw):
+        names = []
+        for pid in _extract_int_ids(raw):
+            row = emp_map.get(str(pid)) or {}
+            name = (row.get("full_name") or "").strip()
+            if name:
+                names.append(name)
+        return ", ".join(names)
+
+    def _first_profile_for_field(raw):
+        for pid in _extract_int_ids(raw):
+            row = emp_map.get(str(pid)) or {}
+            pic = row.get("profile_picture")
+            if pic:
+                return pic
+        return None
+
     for r in rows:
-        pm_id = str(r.get("project_manager_id") or "").strip()
-        lead_id = str(r.get("lead_id") or "").strip()
-        bc_id = str(r.get("bim_coordinator_id") or "").strip()
-        pm_row = emp_map.get(pm_id) or {}
-        lead_row = emp_map.get(lead_id) or {}
-        bc_row = emp_map.get(bc_id) or {}
-        r["project_manager_name"] = pm_row.get("full_name") or ""
-        r["lead_name"] = lead_row.get("full_name") or ""
-        r["bim_coordinator_name"] = bc_row.get("full_name") or ""
-        r["project_manager_profile_picture"] = pm_row.get("profile_picture")
-        r["lead_profile_picture"] = lead_row.get("profile_picture")
-        r["bim_coordinator_profile_picture"] = bc_row.get("profile_picture")
-        
+        r["project_manager_name"] = _names_for_field(r.get("project_manager_id"))
+        r["lead_name"] = _names_for_field(r.get("lead_id"))
+        r["bim_coordinator_name"] = _names_for_field(r.get("bim_coordinator_id"))
+        r["project_manager_profile_picture"] = _first_profile_for_field(
+            r.get("project_manager_id")
+        )
+        r["lead_profile_picture"] = _first_profile_for_field(r.get("lead_id"))
+        r["bim_coordinator_profile_picture"] = _first_profile_for_field(
+            r.get("bim_coordinator_id")
+        )
+
         m_names = []
         member_profiles = []
-        members = r.get("members")
-        if members:
-            for m_id in str(members).split(","):
-                m_id = m_id.strip()
-                if m_id in emp_map:
-                    m_names.append(emp_map[m_id].get("full_name") or "")
-                    if emp_map[m_id].get("profile_picture"):
-                        member_profiles.append(
-                            {
-                                "id": int(m_id) if str(m_id).isdigit() else m_id,
-                                "profile_picture": emp_map[m_id].get("profile_picture"),
-                            }
-                        )
+        for m_id in _extract_int_ids(r.get("members")):
+            key = str(m_id)
+            if key in emp_map:
+                m_names.append(emp_map[key].get("full_name") or "")
+                pic = emp_map[key].get("profile_picture")
+                if pic:
+                    member_profiles.append(
+                        {
+                            "id": m_id,
+                            "profile_picture": pic,
+                        }
+                    )
+                continue
+            res = resource_map.get(key) or {}
+            res_name = (res.get("name") or "").strip()
+            if res_name:
+                m_names.append(res_name)
+            pic = res.get("profile_picture")
+            if not pic and res.get("vendor_employee_id"):
+                ve_row = emp_map.get(str(res.get("vendor_employee_id"))) or {}
+                pic = ve_row.get("profile_picture")
+            if pic:
+                member_profiles.append(
+                    {
+                        "id": m_id,
+                        "profile_picture": pic,
+                    }
+                )
         r["members_names"] = ", ".join(m_names)
         r["member_profile_pictures"] = member_profiles
 
@@ -6634,6 +6697,13 @@ _ACCEPTED_BID_AMOUNT_SQL = """
         SELECT vsp.opportunity_id FROM snh6_swiftproject.vendor_submitted_proposals vsp
         WHERE vsp.id = vp.proposal_id LIMIT 1
       )
+      OR vb.opportunity_id = (
+        SELECT vbi.id
+        FROM snh6_swiftproject.vendor_bidding vbi
+        WHERE vbi.project_id = vp.main_project_id
+        ORDER BY vbi.id DESC
+        LIMIT 1
+      )
     )
   ORDER BY vb.id DESC
   LIMIT 1
@@ -6641,38 +6711,96 @@ _ACCEPTED_BID_AMOUNT_SQL = """
 """
 
 
+# Client budget at outsource create is stored on vendor_bidding.outsource_budget (TD form "budget").
+# projects.budget may later match the accepted vendor bid — do not use joined p.budget as client budget.
 _CLIENT_BUDGET_SQL = """
 COALESCE(
     (
         SELECT c.total_cost
         FROM new_swiftbim.contracts c
-        WHERE c.client_id = COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, ''))
+        WHERE c.client_id = COALESCE(
+            NULLIF(TRIM(CAST(p.client_id AS CHAR)), ''),
+            NULLIF(TRIM(CAST(vp.client_id AS CHAR)), '')
+        )
+          AND COALESCE(
+            NULLIF(TRIM(CAST(p.client_id AS CHAR)), ''),
+            NULLIF(TRIM(CAST(vp.client_id AS CHAR)), '')
+          ) REGEXP '^[0-9]+$'
           AND c.status NOT IN ('Draft', 'cancelled', 'Cancelled')
         ORDER BY c.id DESC
         LIMIT 1
     ),
-    (SELECT mp.budget FROM snh6_swiftproject.projects mp WHERE mp.id = vp.main_project_id LIMIT 1),
     (
-        SELECT mp2.budget
-        FROM snh6_swiftproject.vendor_bidding vb
-        INNER JOIN snh6_swiftproject.projects mp2 ON mp2.id = vb.project_id
-        WHERE vb.id = vp.opportunity_id
-           OR vb.id = (SELECT tp.opportunity_id FROM snh6_swiftproject.td_proposals tp WHERE tp.id = vp.proposal_id LIMIT 1)
-           OR vb.id = (SELECT vsp.opportunity_id FROM snh6_swiftproject.vendor_submitted_proposals vsp WHERE vsp.id = vp.proposal_id LIMIT 1)
+        SELECT c.total_cost
+        FROM new_swiftbim.contracts c
+        WHERE c.proposal_id = vp.proposal_id
+          AND vp.proposal_id IS NOT NULL
+          AND c.status NOT IN ('Draft', 'cancelled', 'Cancelled')
+        ORDER BY c.id DESC
         LIMIT 1
     ),
-    NULLIF(p.budget, '')
+    (
+        SELECT vbi.outsource_budget
+        FROM snh6_swiftproject.vendor_bidding vbi
+        WHERE vbi.project_id = vp.main_project_id
+        ORDER BY vbi.id DESC
+        LIMIT 1
+    ),
+    (
+        SELECT vbi.outsource_budget
+        FROM snh6_swiftproject.vendor_bidding vbi
+        WHERE vbi.id = vp.opportunity_id
+        LIMIT 1
+    ),
+    (
+        SELECT mp.budget
+        FROM snh6_swiftproject.projects mp
+        WHERE mp.id = vp.main_project_id
+          AND mp.budget_ceiling IS NOT NULL
+          AND NULLIF(TRIM(CAST(mp.budget AS CHAR)), '') IS NOT NULL
+          AND (
+            mp.budget_ceiling IS NULL
+            OR CAST(NULLIF(TRIM(CAST(mp.budget AS CHAR)), '') AS DECIMAL(20,2))
+               <> CAST(mp.budget_ceiling AS DECIMAL(20,2))
+          )
+        LIMIT 1
+    )
 )
 """
 
 
+def _outsourcing_budget_hints(row: dict) -> set[str]:
+    hints = set()
+    for key in (
+        "accepted_bid_amount",
+        "vendor_project_budget",
+        "bidding_budget_ceiling",
+        "budget_ceiling",
+        "outsourcing_budget",
+    ):
+        v = row.get(key)
+        if v is None:
+            continue
+        s = str(v).strip()
+        if s and s.lower() not in ("null", "none", ""):
+            hints.add(s)
+    return hints
+
+
 def _resolve_client_budget_for_vp(cur, row: dict):
-    """Resolve client-phase budget: contracts.total_cost first, then projects.budget."""
-    existing = row.get("client_budget")
+    """Client budget: contract total_cost, then vendor_bidding.outsource_budget, then distinct projects.budget."""
     if not cur:
-        return existing
+        return row.get("client_budget")
+
+    outsource_hints = _outsourcing_budget_hints(row)
+
+    def _not_outsource(val):
+        if val is None:
+            return False
+        return str(val).strip() not in outsource_hints
+
     client_id = row.get("client_id")
-    if client_id:
+    if client_id and str(client_id).strip():
         try:
             cur.execute(
                 """
@@ -6690,38 +6818,78 @@ def _resolve_client_budget_for_vp(cur, row: dict):
                 return c_row["total_cost"]
         except Exception:
             pass
-    if existing is not None and str(existing).strip() not in ("", "0", "null", "None"):
-        return existing
+
+    proposal_id = row.get("proposal_id")
+    if proposal_id:
+        try:
+            cur.execute(
+                """
+                SELECT total_cost
+                FROM new_swiftbim.contracts
+                WHERE proposal_id = %s
+                  AND status NOT IN ('Draft', 'cancelled', 'Cancelled')
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (proposal_id,),
+            )
+            c_row = cur.fetchone() or {}
+            if c_row.get("total_cost") is not None:
+                return c_row["total_cost"]
+        except Exception:
+            pass
+
     main_id = row.get("main_project_id")
     if main_id:
         try:
             cur.execute(
-                "SELECT budget FROM snh6_swiftproject.projects WHERE id = %s LIMIT 1",
+                """
+                SELECT outsource_budget
+                FROM snh6_swiftproject.vendor_bidding
+                WHERE project_id = %s
+                ORDER BY id DESC
+                LIMIT 1
+                """,
                 (main_id,),
             )
-            r = cur.fetchone() or {}
-            if r.get("budget") is not None:
-                return r["budget"]
+            vbi = cur.fetchone() or {}
+            ob = vbi.get("outsource_budget")
+            if ob is not None and _not_outsource(ob):
+                return ob
         except Exception:
             pass
-    opp_id = row.get("opportunity_id")
-    if opp_id:
+
+    existing = row.get("client_budget")
+    if existing is not None and _not_outsource(existing):
+        ex = str(existing).strip()
+        if ex and ex.lower() not in ("null", "none", ""):
+            return existing
+
+    if main_id:
         try:
             cur.execute(
                 """
-                SELECT p.budget
-                FROM snh6_swiftproject.vendor_bidding vb
-                INNER JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
-                WHERE vb.id = %s
+                SELECT budget, budget_ceiling
+                FROM snh6_swiftproject.projects
+                WHERE id = %s
                 LIMIT 1
                 """,
-                (opp_id,),
+                (main_id,),
             )
             r = cur.fetchone() or {}
-            if r.get("budget") is not None:
-                return r["budget"]
+            main_budget = r.get("budget")
+            ceiling = r.get("budget_ceiling")
+            if main_budget is not None and _not_outsource(main_budget):
+                if ceiling is None:
+                    return main_budget
+                try:
+                    if float(main_budget) != float(ceiling):
+                        return main_budget
+                except (TypeError, ValueError):
+                    return main_budget
         except Exception:
             pass
+
     return existing
 
 
@@ -6731,6 +6899,7 @@ def _map_vendor_project_budget_fields(row: dict, is_vendor_user: bool, cur=None)
     Vendor: budget = accepted bid / vendor_projects.budget only.
     """
     client_budget = _resolve_client_budget_for_vp(cur, row)
+    bidding_ceiling = row.get("bidding_budget_ceiling")
     row.pop("client_budget", None)
     row.pop("bidding_budget_ceiling", None)
     vp_budget = row.pop("vendor_project_budget", None)
@@ -6745,7 +6914,11 @@ def _map_vendor_project_budget_fields(row: dict, is_vendor_user: bool, cur=None)
                 return v
         return None
 
-    outsourcing_budget = _first_amount(accepted_bid, vp_budget)
+    outsourcing_budget = _first_amount(
+        accepted_bid,
+        vp_budget,
+        bidding_ceiling,
+    )
 
     if is_vendor_user:
         row["budget"] = outsourcing_budget if outsourcing_budget is not None else row.get("budget")
@@ -6952,7 +7125,10 @@ def list_vendor_projects():
         f"""
         SELECT
             vp.*,
-            COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
+            COALESCE(
+                NULLIF(TRIM(CAST(p.client_id AS CHAR)), ''),
+                NULLIF(TRIM(CAST(vp.client_id AS CHAR)), '')
+            ) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
             {_CLIENT_BUDGET_SQL}                                    AS client_budget,
@@ -6994,7 +7170,7 @@ def list_vendor_projects():
     vcur = vendor_cursor()
     projects = [dict(r) for r in rows]
     _hydrate_vendor_projects_phase1(vcur, projects)
-    _hydrate_vendor_employee_names(vcur, projects)
+    _hydrate_vendor_employee_names(cur, projects)
     try:
         from advance_client_gate import hydrate_project_list_advance_gate
 
@@ -7024,18 +7200,6 @@ def list_vendor_projects():
                 "total_tasks": int(r.get("total_tasks") or 0),
                 "completed_tasks": int(r.get("completed_tasks") or 0),
             }
-
-    final_projects = []
-    for p in projects:
-        _map_vendor_project_budget_fields(p, is_vendor_user, cur)
-        d = {k: _serialize(v) for k, v in p.items()}
-        pid = int(d.get("id") or 0)
-        counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
-        d["total_tasks"] = counts["total_tasks"]
-        d["completed_tasks"] = counts["completed_tasks"]
-        # Tag every vendor_project row as Outsource so frontend can route correctly
-        d["source"] = "Outsource"
-        final_projects.append(d)
 
     # Enrich from new_swiftbim phase-1 (enquiry/proposal/contract) when fields are missing
     try:
@@ -7200,6 +7364,8 @@ def list_vendor_projects():
         for p in projects:
             pname = (p.get("project_name") or "").strip()
             enq_row, prop_row, con_row = fetch_phase1_chain(vcur, p)
+            if con_row.get("total_cost") is not None:
+                p["client_budget"] = con_row["total_cost"]
             enrich_project_from_phase1(
                 p,
                 vcur,
@@ -7258,11 +7424,21 @@ def list_vendor_projects():
     except Exception:
         pass
 
-    # Final pass to ensure all fields are JSON serialisable
     final_projects = []
     for p in projects:
-        final_projects.append({k: _serialize(v) for k, v in p.items()})
-        
+        _map_vendor_project_budget_fields(p, is_vendor_user, cur)
+        d = {
+            k: _serialize(v)
+            for k, v in p.items()
+            if not str(k).startswith("_")
+        }
+        pid = int(d.get("id") or 0)
+        counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
+        d["total_tasks"] = counts["total_tasks"]
+        d["completed_tasks"] = counts["completed_tasks"]
+        d["source"] = "Outsource"
+        final_projects.append(d)
+
     return jsonify({"projects": final_projects})
 
 
@@ -7333,7 +7509,10 @@ def get_vendor_project_detail(project_id):
         f"""
         SELECT
             vp.*,
-            COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
+            COALESCE(
+                NULLIF(TRIM(CAST(p.client_id AS CHAR)), ''),
+                NULLIF(TRIM(CAST(vp.client_id AS CHAR)), '')
+            ) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
             {_CLIENT_BUDGET_SQL}                                    AS client_budget,
@@ -7375,7 +7554,7 @@ def get_vendor_project_detail(project_id):
     project = dict(row)
     vcur = vendor_cursor()
     _hydrate_vendor_projects_phase1(vcur, [project])
-    _hydrate_vendor_employee_names(vcur, [project])
+    _hydrate_vendor_employee_names(cur, [project])
     _map_vendor_project_budget_fields(project, is_vendor_user, cur)
     try:
         from advance_client_gate import hydrate_project_list_advance_gate
@@ -8239,6 +8418,7 @@ def list_all_vendor_resource_profiles():
                 designation,
                 role,
                 vendor_id,
+                vendor_employee_id,
                 profile_picture
             FROM vendor_resource_profiles
             ORDER BY name

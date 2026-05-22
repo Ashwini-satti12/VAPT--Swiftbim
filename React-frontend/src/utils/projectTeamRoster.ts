@@ -28,12 +28,14 @@ export type PmTeamRosterEntry = {
   user_role?: string;
   email?: string;
   profile_picture?: string;
+  /** Entity id used for /api/view_profile_picture (may differ from roster id for resource profiles). */
+  profile_user_id?: number | string;
 };
 
 const rosterKey = (id: number | string, name: string) =>
   id ? `id:${id}` : `name:${name}`;
 
-function splitCsv(value?: string | null): string[] {
+export function splitCsv(value?: string | null): string[] {
   if (!value) return [];
   return value
     .split(",")
@@ -74,7 +76,7 @@ function namesFromIds(
     .filter((e): e is PmEmployeeLike => Boolean(e));
 }
 
-function memberIdsFromProject(project: PmProjectTeamLike): (string | number)[] {
+export function memberIdsFromProject(project: PmProjectTeamLike): (string | number)[] {
   const raw = project.members || project.member || "";
   return splitCsv(raw).map((m) => {
     const n = Number(m);
@@ -85,6 +87,10 @@ function memberIdsFromProject(project: PmProjectTeamLike): (string | number)[] {
 export type CollectPmProjectTeamRosterOptions = {
   /** Omit BIM Coordinator (e.g. outsource vendor projects). */
   skipBimCoordinator?: boolean;
+  /** Pool for PM / BIM Lead / BIM Coordinator (vendor_employee rows). */
+  roleEmployees?: PmEmployeeLike[];
+  /** Pool for `members` field (often vendor_resource_profiles ids). */
+  memberEmployees?: PmEmployeeLike[];
 };
 
 /** Ordered roster: Project Manager → BIM Lead → BIM Coordinator → Members. */
@@ -95,6 +101,8 @@ export function collectPmProjectTeamRoster(
 ): PmTeamRosterEntry[] {
   const out: PmTeamRosterEntry[] = [];
   const seen = new Set<string>();
+  const rolePool = options?.roleEmployees ?? employees;
+  const memberPool = options?.memberEmployees ?? employees;
 
   const push = (emp: PmEmployeeLike | undefined, defaultRole: string) => {
     if (!emp) return;
@@ -104,19 +112,35 @@ export function collectPmProjectTeamRoster(
     const key = rosterKey(id || name, name);
     if (seen.has(key)) return;
     seen.add(key);
+    const raw = emp as PmEmployeeLike & { vendor_employee_id?: number | string };
+    const profileUserId =
+      raw.vendor_employee_id != null && String(raw.vendor_employee_id).trim() !== ""
+        ? raw.vendor_employee_id
+        : id;
     out.push({
       id: Number.isFinite(id) && id > 0 ? id : 0,
       full_name: name || `Employee ${id}`,
       user_role: (emp.user_role && String(emp.user_role).trim()) || defaultRole,
       email: emp.email,
       profile_picture: emp.profile_picture,
+      profile_user_id: profileUserId,
     });
+  };
+
+  const resolveMember = (mid: string | number) => {
+    const fromMembers = memberPool.find(
+      (e) => Number(e.id) === Number(mid) || String(e.id) === String(mid),
+    );
+    if (fromMembers) return fromMembers;
+    return rolePool.find(
+      (e) => Number(e.id) === Number(mid) || String(e.id) === String(mid),
+    );
   };
 
   for (const emp of namesFromIds(
     project.project_manager_id,
     project.project_manager_name || project.project_manager,
-    employees,
+    rolePool,
   )) {
     push(emp, "Project Manager");
   }
@@ -124,7 +148,7 @@ export function collectPmProjectTeamRoster(
   for (const emp of namesFromIds(
     project.lead_id,
     project.lead_name || project.bim_lead,
-    employees,
+    rolePool,
   )) {
     push(emp, "BIM Lead");
   }
@@ -133,17 +157,14 @@ export function collectPmProjectTeamRoster(
     for (const emp of namesFromIds(
       project.bim_coordinator_id,
       project.bim_coordinator_name || project.bim_co_ordinator,
-      employees,
+      rolePool,
     )) {
       push(emp, "BIM Coordinator");
     }
   }
 
   for (const mid of memberIdsFromProject(project)) {
-    const emp = employees.find(
-      (e) => Number(e.id) === Number(mid) || String(e.id) === String(mid),
-    );
-    push(emp, "Member");
+    push(resolveMember(mid), "Member");
   }
 
   return out.filter((e) => e.full_name);
@@ -178,4 +199,13 @@ export function collectProjectMembersOnly(
   }
 
   return out;
+}
+
+/** Member rows from an enriched team roster (correct avatars for outsource). */
+export function filterRosterMembers(
+  roster: PmTeamRosterEntry[],
+  project: PmProjectTeamLike,
+): PmTeamRosterEntry[] {
+  const memberIds = new Set(memberIdsFromProject(project).map(String));
+  return roster.filter((e) => memberIds.has(String(e.id)));
 }

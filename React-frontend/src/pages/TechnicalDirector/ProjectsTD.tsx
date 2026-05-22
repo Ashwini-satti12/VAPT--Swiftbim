@@ -3,6 +3,7 @@ import { toast } from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
+import { useProjectTeamRoster } from "../../hooks/useProjectTeamRoster";
 import api from "../../lib/api";
 import {
   buildAdvancePaymentMilestonesHref,
@@ -21,8 +22,7 @@ import {
 import ProjectAllMembersModal from "../../components/ProjectAllMembersModal";
 import ProjectCardTeamAvatars from "../../components/ProjectCardTeamAvatars";
 import {
-  collectPmProjectTeamRoster,
-  collectProjectMembersOnly,
+  filterRosterMembers,
   type PmTeamRosterEntry,
 } from "../../utils/projectTeamRoster";
 import ProjectMembersInvolvedAvatars from "../../components/ProjectMembersInvolvedAvatars";
@@ -693,123 +693,17 @@ export default function ProjectsTD() {
     }>
   >([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
-  const rosterEmployees = useMemo(() => {
-    const seen = new Set<string>();
-    const merged: Employee[] = [];
-    for (const emp of [
-      ...allEmployees,
-      ...vendorResourceProfiles,
-      ...vendorTeamEmployees,
-    ]) {
-      const key = String(emp.id ?? emp.full_name ?? "");
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      merged.push(emp);
-    }
-    return merged;
-  }, [allEmployees, vendorResourceProfiles, vendorTeamEmployees]);
-
-  /** Vendor team only — avoids ID collision with internal `employee` rows (same numeric ids). */
-  const outsourceRosterEmployees = useMemo(() => {
-    const seen = new Set<string>();
-    const merged: Employee[] = [];
-    for (const emp of [...vendorTeamEmployees, ...vendorResourceProfiles]) {
-      const key = String(emp.id ?? emp.full_name ?? "");
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      merged.push(emp);
-    }
-    return merged;
-  }, [vendorTeamEmployees, vendorResourceProfiles]);
-
-  const isOutsourceProject = (proj?: { source?: string; department?: string }) =>
-    proj?.source === "Outsource" ||
-    String(proj?.department ?? "")
-      .trim()
-      .toLowerCase() === "submission deadline";
-
-  const employeesForProject = (proj?: Project) =>
-    isOutsourceProject(proj) ? outsourceRosterEmployees : rosterEmployees;
-
-  const resolveProjectMember = (
-    id: string | number,
-    projectSource?: string,
-  ) => {
-    const pool =
-      projectSource === "Outsource"
-        ? outsourceRosterEmployees
-        : rosterEmployees;
-    return pool.find(
-      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
-    );
-  };
-
-  const profileUserTypeForMember = (
-    empId?: string | number,
-    projectSource?: string,
-  ) =>
-    projectSource === "Outsource" ||
-    vendorTeamEmployees.some((e) => Number(e.id) === Number(empId))
-      ? "vendor"
-      : undefined;
-
-  const profileUrlFor = (
-    emp: Employee | null | undefined,
-    projectSource?: string,
-  ) => {
-    if (!emp?.profile_picture) return null;
-    return getGlobalProfileUrl(
-      emp.id,
-      emp.profile_picture,
-      profileUserTypeForMember(emp.id, projectSource),
-    );
-  };
-
-  const enrichOutsourceRosterProfiles = (
-    proj: Project,
-    roster: PmTeamRosterEntry[],
-  ): PmTeamRosterEntry[] => {
-    if (!isOutsourceProject(proj)) return roster;
-    const memberPicById = new Map<string, string>();
-    for (const m of proj.member_profile_pictures ?? []) {
-      if (m?.id != null && m.profile_picture) {
-        memberPicById.set(String(m.id), m.profile_picture);
-      }
-    }
-    return roster.map((entry) => {
-      if (entry.profile_picture) return entry;
-      const id = String(entry.id);
-      let pic: string | undefined;
-      if (
-        id &&
-        String(proj.project_manager_id ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .includes(id)
-      ) {
-        pic = proj.project_manager_profile_picture;
-      } else if (
-        id &&
-        String(proj.lead_id ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .includes(id)
-      ) {
-        pic = proj.lead_profile_picture;
-      } else {
-        pic = memberPicById.get(id);
-      }
-      return pic ? { ...entry, profile_picture: pic } : entry;
-    });
-  };
-
-  const teamRosterForProject = (proj: Project) =>
-    enrichOutsourceRosterProfiles(
-      proj,
-      collectPmProjectTeamRoster(proj, employeesForProject(proj), {
-        skipBimCoordinator: isOutsourceProject(proj),
-      }),
-    );
+  const {
+    resolveProjectMember,
+    profileUserTypeForMember,
+    profileUrlFor,
+    teamRosterForProject,
+    isOutsourceProject,
+  } = useProjectTeamRoster(
+    allEmployees,
+    vendorResourceProfiles,
+    vendorTeamEmployees,
+  );
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -1807,12 +1701,13 @@ export default function ProjectsTD() {
                               ? resolveProjectMember(
                                   pId,
                                   selectedProjectForView.source,
+                                  selectedProjectForView,
                                 )
                               : null;
                             const dName =
                               pmEmp?.full_name || pName || "Unknown";
                             const url = profileUrlFor(
-                              pmEmp,
+                              pmEmp as Employee | undefined,
                               selectedProjectForView.source,
                             );
                             return { key: i, dName, url, emp: pmEmp };
@@ -1839,7 +1734,11 @@ export default function ProjectsTD() {
                                   className={`flex items-center gap-3 ${visiblePm[0].emp ? "cursor-pointer" : ""}`}
                                   onClick={() =>
                                     visiblePm[0].emp &&
-                                    openMemberProfile(visiblePm[0].emp)
+                                    openMemberProfile(
+                                      normalizeMemberForProfile(
+                                        visiblePm[0].emp as Employee,
+                                      ),
+                                    )
                                   }
                                 >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
@@ -1873,7 +1772,11 @@ export default function ProjectsTD() {
                                       className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`}
                                       onClick={() =>
                                         entry.emp &&
-                                        openMemberProfile(entry.emp)
+                                        openMemberProfile(
+                                          normalizeMemberForProfile(
+                                            entry.emp as Employee,
+                                          ),
+                                        )
                                       }
                                     >
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
@@ -1963,12 +1866,13 @@ export default function ProjectsTD() {
                               ? resolveProjectMember(
                                   pId,
                                   selectedProjectForView.source,
+                                  selectedProjectForView,
                                 )
                               : null;
                             const dName =
                               blEmp?.full_name || pName || "Unknown";
                             const url = profileUrlFor(
-                              blEmp,
+                              blEmp as Employee | undefined,
                               selectedProjectForView.source,
                             );
                             return { key: i, dName, url, emp: blEmp };
@@ -1993,7 +1897,11 @@ export default function ProjectsTD() {
                                   className={`flex items-center gap-3 ${visibleBl[0].emp ? "cursor-pointer" : ""}`}
                                   onClick={() =>
                                     visibleBl[0].emp &&
-                                    openMemberProfile(visibleBl[0].emp)
+                                    openMemberProfile(
+                                      normalizeMemberForProfile(
+                                        visibleBl[0].emp as Employee,
+                                      ),
+                                    )
                                   }
                                 >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
@@ -2027,7 +1935,11 @@ export default function ProjectsTD() {
                                       className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`}
                                       onClick={() =>
                                         entry.emp &&
-                                        openMemberProfile(entry.emp)
+                                        openMemberProfile(
+                                          normalizeMemberForProfile(
+                                            entry.emp as Employee,
+                                          ),
+                                        )
                                       }
                                     >
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
@@ -2118,11 +2030,17 @@ export default function ProjectsTD() {
                           }).map((_, i) => {
                             const pId = bcIds[i];
                             const pName = bcNames[i];
-                            const bcEmp = pId ? resolveProjectMember(pId) : null;
+                            const bcEmp = pId
+                              ? resolveProjectMember(
+                                  pId,
+                                  selectedProjectForView.source,
+                                  selectedProjectForView,
+                                )
+                              : null;
                             const dName =
                               bcEmp?.full_name || pName || "Unknown";
                             const url = profileUrlFor(
-                              bcEmp,
+                              bcEmp as Employee | undefined,
                               selectedProjectForView.source,
                             );
                             return { key: i, dName, url, emp: bcEmp };
@@ -2149,7 +2067,11 @@ export default function ProjectsTD() {
                                   className={`flex items-center gap-3 ${bcEntries[0].emp ? "cursor-pointer" : ""}`}
                                   onClick={() =>
                                     bcEntries[0].emp &&
-                                    openMemberProfile(bcEntries[0].emp)
+                                    openMemberProfile(
+                                      normalizeMemberForProfile(
+                                        bcEntries[0].emp as Employee,
+                                      ),
+                                    )
                                   }
                                 >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
@@ -2183,7 +2105,11 @@ export default function ProjectsTD() {
                                       className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`}
                                       onClick={() =>
                                         entry.emp &&
-                                        openMemberProfile(entry.emp)
+                                        openMemberProfile(
+                                          normalizeMemberForProfile(
+                                            entry.emp as Employee,
+                                          ),
+                                        )
                                       }
                                     >
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
@@ -2245,9 +2171,9 @@ export default function ProjectsTD() {
                             Members Involved
                           </p>
                           <ProjectMembersInvolvedAvatars
-                            members={collectProjectMembersOnly(
+                            members={filterRosterMembers(
+                              teamRosterForProject(selectedProjectForView),
                               selectedProjectForView,
-                              employeesForProject(selectedProjectForView),
                             )}
                             profileUserType={
                               selectedProjectForView.source === "Outsource"
@@ -2258,6 +2184,7 @@ export default function ProjectsTD() {
                               resolveProjectMember(
                                 id,
                                 selectedProjectForView.source,
+                                selectedProjectForView,
                               )
                             }
                             onMemberClick={(emp) =>
@@ -3222,10 +3149,11 @@ export default function ProjectsTD() {
                                 const full = resolveProjectMember(
                                   emp.id,
                                   p.source,
+                                  p,
                                 );
                                 if (full)
                                   openMemberProfile(
-                                    normalizeMemberForProfile(full),
+                                    normalizeMemberForProfile(full as Employee),
                                   );
                               }}
                             />
@@ -4786,8 +4714,10 @@ export default function ProjectsTD() {
           const full = resolveProjectMember(
             emp.id,
             selectedProjectForView?.source,
+            selectedProjectForView ?? undefined,
           );
-          if (full) openMemberProfile(normalizeMemberForProfile(full));
+          if (full)
+            openMemberProfile(normalizeMemberForProfile(full as Employee));
           setShowAllMembersModal(false);
         }}
       />

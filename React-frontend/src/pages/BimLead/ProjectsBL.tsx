@@ -18,7 +18,7 @@ import ProjectAllMembersModal from "../../components/ProjectAllMembersModal";
 import ProjectCardTeamAvatars from "../../components/ProjectCardTeamAvatars";
 import ProjectMembersInvolvedAvatars from "../../components/ProjectMembersInvolvedAvatars";
 import {
-  collectProjectMembersOnly,
+  filterRosterMembers,
   type PmTeamRosterEntry,
 } from "../../utils/projectTeamRoster";
 import {
@@ -680,7 +680,6 @@ export default function ProjectsBL() {
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const {
-    employeesForProject,
     resolveProjectMember,
     profileUserTypeForMember,
     profileUrlFor,
@@ -1616,6 +1615,7 @@ export default function ProjectsBL() {
                           ? resolveProjectMember(
                               pId,
                               selectedProjectForView.source,
+                              selectedProjectForView,
                             )
                           : null;
                         const dName = pmEmp?.full_name || pName || "Unknown";
@@ -1745,6 +1745,7 @@ export default function ProjectsBL() {
                           ? resolveProjectMember(
                               pId,
                               selectedProjectForView.source,
+                              selectedProjectForView,
                             )
                           : null;
                         const dName = blEmp?.full_name || pName || "Unknown";
@@ -1873,6 +1874,7 @@ export default function ProjectsBL() {
                                                 ? resolveProjectMember(
                                                     pId,
                                                     selectedProjectForView.source,
+                                                    selectedProjectForView,
                                                   )
                                                 : null;
                                               const dName = bcEmp?.full_name || pName || "Unknown";
@@ -1981,9 +1983,9 @@ export default function ProjectsBL() {
                       Members Involved
                     </p>
                     <ProjectMembersInvolvedAvatars
-                      members={collectProjectMembersOnly(
+                      members={filterRosterMembers(
+                        teamRosterForProject(selectedProjectForView),
                         selectedProjectForView,
-                        employeesForProject(selectedProjectForView),
                       )}
                       profileUserType={
                         selectedProjectForView.source === "Outsource"
@@ -1994,6 +1996,7 @@ export default function ProjectsBL() {
                         resolveProjectMember(
                           id,
                           selectedProjectForView.source,
+                          selectedProjectForView,
                         )
                       }
                       onMemberClick={(emp) =>
@@ -4494,6 +4497,7 @@ export default function ProjectsBL() {
                               const full = resolveProjectMember(
                                 emp.id,
                                 p.source,
+                                p,
                               );
                               if (full)
                                 openMemberProfile(
@@ -4538,6 +4542,7 @@ export default function ProjectsBL() {
           const full = resolveProjectMember(
             emp.id,
             selectedProjectForView?.source,
+            selectedProjectForView ?? undefined,
           );
           if (full)
             openMemberProfile(normalizeMemberForProfile(full as Employee));

@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import { getGlobalProfileUrl } from "../lib/profileHelpers";
+import { getGlobalProfileUrl, getRosterProfileUrl } from "../lib/profileHelpers";
 import {
   collectPmProjectTeamRoster,
+  memberIdsFromProject,
+  splitCsv,
   type PmEmployeeLike,
   type PmProjectTeamLike,
   type PmTeamRosterEntry,
@@ -11,6 +13,7 @@ export type RosterEmployeeLike = PmEmployeeLike & {
   id: number | string;
   full_name?: string;
   profile_picture?: string;
+  vendor_employee_id?: number | string;
 };
 
 export type ProjectWithVendorProfiles = PmProjectTeamLike & {
@@ -23,6 +26,23 @@ export type ProjectWithVendorProfiles = PmProjectTeamLike & {
     profile_picture?: string;
   }>;
 };
+
+type PicMeta = { pic: string; profileUserId: number | string };
+
+function buildPicMap(employees: RosterEmployeeLike[]): Map<string, PicMeta> {
+  const map = new Map<string, PicMeta>();
+  for (const emp of employees) {
+    const id = emp.id;
+    if (id == null || !emp.profile_picture) continue;
+    const profileUserId =
+      emp.vendor_employee_id != null &&
+      String(emp.vendor_employee_id).trim() !== ""
+        ? emp.vendor_employee_id
+        : id;
+    map.set(String(id), { pic: emp.profile_picture, profileUserId });
+  }
+  return map;
+}
 
 export function useProjectTeamRoster(
   allEmployees: RosterEmployeeLike[],
@@ -45,18 +65,6 @@ export function useProjectTeamRoster(
     return merged;
   }, [allEmployees, vendorResourceProfiles, vendorTeamEmployees]);
 
-  const outsourceRosterEmployees = useMemo(() => {
-    const seen = new Set<string>();
-    const merged: RosterEmployeeLike[] = [];
-    for (const emp of [...vendorTeamEmployees, ...vendorResourceProfiles]) {
-      const key = String(emp.id ?? emp.full_name ?? "");
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      merged.push(emp);
-    }
-    return merged;
-  }, [vendorTeamEmployees, vendorResourceProfiles]);
-
   const isOutsourceProject = (proj?: {
     source?: string;
     department?: string;
@@ -66,18 +74,38 @@ export function useProjectTeamRoster(
       .trim()
       .toLowerCase() === "submission deadline";
 
-  const employeesForProject = (proj?: ProjectWithVendorProfiles) =>
-    isOutsourceProject(proj) ? outsourceRosterEmployees : rosterEmployees;
+  const employeesForProject = (proj?: ProjectWithVendorProfiles) => {
+    if (isOutsourceProject(proj)) {
+      return [...vendorTeamEmployees, ...vendorResourceProfiles];
+    }
+    return rosterEmployees;
+  };
 
   const resolveProjectMember = (
     id: string | number,
     projectSource?: string,
+    proj?: ProjectWithVendorProfiles,
   ) => {
-    const pool =
-      projectSource === "Outsource"
-        ? outsourceRosterEmployees
-        : rosterEmployees;
-    return pool.find(
+    if (projectSource === "Outsource" || (proj && isOutsourceProject(proj))) {
+      const sid = String(id);
+      const isMember =
+        proj != null &&
+        memberIdsFromProject(proj).some((m) => String(m) === sid);
+      if (isMember) {
+        const fromResource = vendorResourceProfiles.find(
+          (e) => Number(e.id) === Number(id) || String(e.id) === sid,
+        );
+        if (fromResource) return fromResource;
+      }
+      const fromTeam = vendorTeamEmployees.find(
+        (e) => Number(e.id) === Number(id) || String(e.id) === sid,
+      );
+      if (fromTeam) return fromTeam;
+      return vendorResourceProfiles.find(
+        (e) => Number(e.id) === Number(id) || String(e.id) === sid,
+      );
+    }
+    return rosterEmployees.find(
       (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
     );
   };
@@ -87,7 +115,8 @@ export function useProjectTeamRoster(
     projectSource?: string,
   ) =>
     projectSource === "Outsource" ||
-    vendorTeamEmployees.some((e) => Number(e.id) === Number(empId))
+    vendorTeamEmployees.some((e) => Number(e.id) === Number(empId)) ||
+    vendorResourceProfiles.some((e) => Number(e.id) === Number(empId))
       ? "vendor"
       : undefined;
 
@@ -96,8 +125,9 @@ export function useProjectTeamRoster(
     projectSource?: string,
   ) => {
     if (!emp?.profile_picture) return null;
+    const profileUserId = emp.vendor_employee_id ?? emp.id;
     return getGlobalProfileUrl(
-      emp.id,
+      profileUserId,
       emp.profile_picture,
       profileUserTypeForMember(emp.id, projectSource),
     );
@@ -108,55 +138,113 @@ export function useProjectTeamRoster(
     roster: PmTeamRosterEntry[],
   ): PmTeamRosterEntry[] => {
     if (!isOutsourceProject(proj)) return roster;
+
+    const teamPicMap = buildPicMap(vendorTeamEmployees);
+    const resourcePicMap = buildPicMap(vendorResourceProfiles);
     const memberPicById = new Map<string, string>();
     for (const m of proj.member_profile_pictures ?? []) {
       if (m?.id != null && m.profile_picture) {
         memberPicById.set(String(m.id), m.profile_picture);
       }
     }
+
+    const pmIds = new Set(splitCsv(proj.project_manager_id));
+    const leadIds = new Set(splitCsv(proj.lead_id));
+    const memberIds = new Set(
+      memberIdsFromProject(proj).map((m) => String(m)),
+    );
+
     return roster.map((entry) => {
-      if (entry.profile_picture) return entry;
       const id = String(entry.id);
       let pic: string | undefined;
-      if (
-        id &&
-        String(proj.project_manager_id ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .includes(id)
-      ) {
-        pic = proj.project_manager_profile_picture;
-      } else if (
-        id &&
-        String(proj.lead_id ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .includes(id)
-      ) {
-        pic = proj.lead_profile_picture;
+      let profileUserId: number | string =
+        entry.profile_user_id ?? entry.id;
+
+      if (pmIds.has(id)) {
+        const team = teamPicMap.get(id);
+        if (team) {
+          pic = team.pic;
+          profileUserId = team.profileUserId;
+        } else if (
+          proj.project_manager_profile_picture &&
+          splitCsv(proj.project_manager_id).length === 1
+        ) {
+          pic = proj.project_manager_profile_picture;
+        }
+      } else if (leadIds.has(id)) {
+        const team = teamPicMap.get(id);
+        if (team) {
+          pic = team.pic;
+          profileUserId = team.profileUserId;
+        } else if (
+          proj.lead_profile_picture &&
+          splitCsv(proj.lead_id).length === 1
+        ) {
+          pic = proj.lead_profile_picture;
+        }
+      } else if (memberIds.has(id)) {
+        const resource = resourcePicMap.get(id);
+        if (resource) {
+          pic = resource.pic;
+          profileUserId = resource.profileUserId;
+        } else {
+          pic = memberPicById.get(id);
+          const team = teamPicMap.get(id);
+          if (!pic && team) {
+            pic = team.pic;
+            profileUserId = team.profileUserId;
+          }
+        }
       } else {
-        pic = memberPicById.get(id);
+        const team = teamPicMap.get(id);
+        const resource = resourcePicMap.get(id);
+        if (team) {
+          pic = team.pic;
+          profileUserId = team.profileUserId;
+        } else if (resource) {
+          pic = resource.pic;
+          profileUserId = resource.profileUserId;
+        } else {
+          pic = memberPicById.get(id);
+        }
       }
-      return pic ? { ...entry, profile_picture: pic } : entry;
+
+      if (!pic) return entry;
+      return { ...entry, profile_picture: pic, profile_user_id: profileUserId };
     });
   };
 
-  const teamRosterForProject = (proj: ProjectWithVendorProfiles) =>
-    enrichOutsourceRosterProfiles(
-      proj,
-      collectPmProjectTeamRoster(proj, employeesForProject(proj), {
-        skipBimCoordinator: isOutsourceProject(proj),
-      }),
+  const teamRosterForProject = (proj: ProjectWithVendorProfiles) => {
+    const outsource = isOutsourceProject(proj);
+    const basePool = outsource ? vendorTeamEmployees : rosterEmployees;
+    const roster = collectPmProjectTeamRoster(proj, basePool, {
+      skipBimCoordinator: outsource,
+      roleEmployees: outsource ? vendorTeamEmployees : undefined,
+      memberEmployees: outsource ? vendorResourceProfiles : undefined,
+    });
+    return enrichOutsourceRosterProfiles(proj, roster);
+  };
+
+  const rosterProfileUrl = (
+    entry: PmTeamRosterEntry,
+    projectSource?: string,
+  ) =>
+    getRosterProfileUrl(
+      entry,
+      profileUserTypeForMember(
+        entry.profile_user_id ?? entry.id,
+        projectSource,
+      ),
     );
 
   return {
     rosterEmployees,
-    outsourceRosterEmployees,
     isOutsourceProject,
     employeesForProject,
     resolveProjectMember,
     profileUserTypeForMember,
     profileUrlFor,
+    rosterProfileUrl,
     teamRosterForProject,
   };
 }
@@ -207,3 +295,28 @@ export const vendorProfileFieldsFromApi = (r: Record<string, unknown>) => ({
     ? (r.member_profile_pictures as ProjectWithVendorProfiles["member_profile_pictures"])
     : undefined,
 });
+
+/** Normalize vendor-projects API rows for roster avatar enrichment. */
+export function mapVendorProjectFromApi<T extends Record<string, unknown>>(row: T) {
+  return {
+    ...row,
+    source: "Outsource" as const,
+    ...vendorProfileFieldsFromApi(row),
+  };
+}
+
+export function toVendorProjectTeamLike(
+  proj: ProjectWithVendorProfiles & {
+    project_manager_name?: string;
+    lead_name?: string;
+    bim_coordinator_name?: string;
+  },
+): ProjectWithVendorProfiles {
+  return {
+    ...proj,
+    source: proj.source ?? "Outsource",
+    project_manager: proj.project_manager_name ?? proj.project_manager,
+    bim_lead: proj.lead_name ?? proj.bim_lead,
+    bim_co_ordinator: proj.bim_coordinator_name ?? proj.bim_co_ordinator,
+  };
+}

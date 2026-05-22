@@ -1,5 +1,5 @@
 import ProfileIcon from "../assets/ProductNavbarIcons/Profile.svg";
-import { getGlobalProfileUrl } from "../lib/profileHelpers";
+import { getGlobalProfileUrl, getRosterProfileUrl } from "../lib/profileHelpers";
 import type { PmTeamRosterEntry } from "../utils/projectTeamRoster";
 
 export type ResolvedMemberLike = {
@@ -32,11 +32,17 @@ export default function ProjectMembersInvolvedAvatars({
 
   const avatar = (entry: PmTeamRosterEntry) => {
     const emp = resolveMember(entry.id);
-    if (!emp) return null;
+    if (!emp && !entry.profile_picture) return null;
     const url =
-      emp.id && emp.profile_picture
-        ? getGlobalProfileUrl(emp.id, emp.profile_picture, profileUserType)
-        : null;
+      getRosterProfileUrl(entry, profileUserType) ||
+      (emp?.id && emp.profile_picture
+        ? getGlobalProfileUrl(
+            (emp as ResolvedMemberLike & { vendor_employee_id?: number | string })
+              .vendor_employee_id ?? emp.id,
+            emp.profile_picture,
+            profileUserType,
+          )
+        : null);
 
     return (
       <div key={String(entry.id)} className="relative group shrink-0">

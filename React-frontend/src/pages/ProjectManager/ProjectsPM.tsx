@@ -29,7 +29,7 @@ import ProjectAllMembersModal from '../../components/ProjectAllMembersModal';
 import ProjectCardTeamAvatars from '../../components/ProjectCardTeamAvatars';
 import ProjectMembersInvolvedAvatars from '../../components/ProjectMembersInvolvedAvatars';
 import {
-  collectProjectMembersOnly,
+  filterRosterMembers,
   type PmTeamRosterEntry,
 } from '../../utils/projectTeamRoster';
 import {
@@ -591,7 +591,6 @@ export default function ProjectsPM() {
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const {
-    employeesForProject,
     resolveProjectMember,
     profileUserTypeForMember,
     profileUrlFor,
@@ -1333,6 +1332,7 @@ export default function ProjectsPM() {
                             ? resolveProjectMember(
                                 pId,
                                 selectedProjectForView.source,
+                                selectedProjectForView,
                               )
                             : null;
                           const dName = pmEmp?.full_name || pName || "Unknown";
@@ -1427,6 +1427,7 @@ export default function ProjectsPM() {
                               ? resolveProjectMember(
                                   pId,
                                   selectedProjectForView.source,
+                                  selectedProjectForView,
                                 )
                               : null;
                             const dName = blEmp?.full_name || pName || "Unknown";
@@ -1549,7 +1550,11 @@ export default function ProjectsPM() {
                             const pId = bcIds[i];
                             const pName = bcNames[i];
                             const bcEmp = pId
-                              ? resolveProjectMember(pId, selectedProjectForView.source)
+                              ? resolveProjectMember(
+                                  pId,
+                                  selectedProjectForView.source,
+                                  selectedProjectForView,
+                                )
                               : null;
                             const dName = bcEmp?.full_name || pName || "Unknown";
                             const url = profileUrlFor(
@@ -1652,9 +1657,9 @@ export default function ProjectsPM() {
                       <div className="flex flex-col gap-3">
                         <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
                         <ProjectMembersInvolvedAvatars
-                          members={collectProjectMembersOnly(
+                          members={filterRosterMembers(
+                            teamRosterForProject(selectedProjectForView),
                             selectedProjectForView,
-                            employeesForProject(selectedProjectForView),
                           )}
                           profileUserType={
                             selectedProjectForView.source === "Outsource"
@@ -1665,6 +1670,7 @@ export default function ProjectsPM() {
                             resolveProjectMember(
                               id,
                               selectedProjectForView.source,
+                              selectedProjectForView,
                             )
                           }
                           onMemberClick={(emp) =>
@@ -3516,6 +3522,7 @@ export default function ProjectsPM() {
                                     const full = resolveProjectMember(
                                       emp.id,
                                       p.source,
+                                      p,
                                     );
                                     if (full)
                                       openMemberProfile(
@@ -3870,6 +3877,7 @@ export default function ProjectsPM() {
                   const full = resolveProjectMember(
                     emp.id,
                     selectedProjectForView?.source,
+                    selectedProjectForView ?? undefined,
                   );
                   if (full)
                     openMemberProfile(

@@ -17,9 +17,12 @@ import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg"
 import ProjectAllMembersModal from "../../../components/ProjectAllMembersModal";
 import ProjectCardTeamAvatars from "../../../components/ProjectCardTeamAvatars";
 import {
-  collectPmProjectTeamRoster,
-  type PmTeamRosterEntry,
-} from "../../../utils/projectTeamRoster";
+  fetchVendorTeamEmployees,
+  mapVendorProjectFromApi,
+  toVendorProjectTeamLike,
+  useProjectTeamRoster,
+} from "../../../hooks/useProjectTeamRoster";
+import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
 
 interface Project {
   id: number;
@@ -56,6 +59,17 @@ interface Project {
   proposal_id?: number;
   opportunity_id?: number;
   document_attachment?: string;
+  source?: string;
+  project_manager_name?: string;
+  lead_name?: string;
+  bim_coordinator_name?: string;
+  project_manager_profile_picture?: string;
+  lead_profile_picture?: string;
+  bim_coordinator_profile_picture?: string;
+  member_profile_pictures?: Array<{
+    id: number | string;
+    profile_picture?: string;
+  }>;
 }
 
 interface Employee {
@@ -262,6 +276,9 @@ export default function VendorBimLeadProjects() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
+  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<Employee[]>(
+    [],
+  );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [clientsList, setClientsList] = useState<
     Array<{ id: number; fullName?: string; full_name?: string }>
@@ -377,36 +394,26 @@ export default function VendorBimLeadProjects() {
     setShowMemberProfileModal(true);
   };
 
-  const rosterEmployees = useMemo(() => {
-    const byId = new Map<number, Employee>();
-    for (const e of [
-      ...projectManagers,
-      ...bimLeads,
-      ...bimCoordinators,
-      ...allEmployees,
-      ...vendorResourceProfiles,
-    ]) {
-      if (e?.id != null) byId.set(Number(e.id), e);
-    }
-    return [...byId.values()];
-  }, [
-    projectManagers,
-    bimLeads,
-    bimCoordinators,
+  const { teamRosterForProject, resolveProjectMember } = useProjectTeamRoster(
     allEmployees,
     vendorResourceProfiles,
-  ]);
-  const resolveProjectMember = (id: string | number) =>
-    rosterEmployees.find(
-      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
-    );
-  const teamRosterForProject = (proj: Project) =>
-    collectPmProjectTeamRoster(proj, rosterEmployees);
+    vendorTeamEmployees,
+  );
+  const teamRosterForVendorProject = (proj: Project) =>
+    teamRosterForProject(toVendorProjectTeamLike(proj));
 
   const fetchProjects = () => {
     api
-      .get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
-      .then(({ data }) => setList(data.projects ?? []))
+      .get<{ projects?: Record<string, unknown>[] }>(
+        "/api/vendors/vendor-projects",
+      )
+      .then(({ data }) =>
+        setList(
+          (data.projects ?? []).map(
+            (row) => mapVendorProjectFromApi(row) as Project,
+          ),
+        ),
+      )
       .catch(() => setList([]))
       .finally(() => setLoading(false));
   };
@@ -446,6 +453,9 @@ export default function VendorBimLeadProjects() {
       .get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
       .then(({ data }) => setVendorResourceProfiles(data.resources ?? []))
       .catch(() => setVendorResourceProfiles([]));
+    fetchVendorTeamEmployees((url) => api.get(url))
+      .then(setVendorTeamEmployees)
+      .catch(() => setVendorTeamEmployees([]));
 
     // Fetch clients
     api
@@ -1971,14 +1981,14 @@ export default function VendorBimLeadProjects() {
                                 className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
                                 onClick={() => {
                                   if (!selectedProject) return;
-                                  setAllMembersList(teamRosterForProject(selectedProject));
+                                  setAllMembersList(teamRosterForVendorProject(selectedProject));
                                   setShowAllMembersModal(true);
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     if (!selectedProject) return;
-                                    setAllMembersList(teamRosterForProject(selectedProject));
+                                    setAllMembersList(teamRosterForVendorProject(selectedProject));
                                     setShowAllMembersModal(true);
                                   }
                                 }}
@@ -2445,15 +2455,18 @@ export default function VendorBimLeadProjects() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <ProjectCardTeamAvatars
-                              roster={teamRosterForProject(p)}
+                              roster={teamRosterForVendorProject(p)}
                               profileUserType="vendor"
                               onOpenAll={() => {
-                                setAllMembersList(teamRosterForProject(p));
+                                setAllMembersList(teamRosterForVendorProject(p));
                                 setShowAllMembersModal(true);
                               }}
                               onMemberClick={(emp) => {
                                 if (!emp.id) return;
-                                const full = resolveProjectMember(emp.id);
+                                const full = resolveProjectMember(
+                                  emp.id,
+                                  "Outsource",
+                                );
                                 if (full) openMemberProfile(full);
                               }}
                             />
@@ -2492,7 +2505,7 @@ export default function VendorBimLeadProjects() {
         onClose={() => setShowAllMembersModal(false)}
         onMemberClick={(emp) => {
           if (!emp.id) return;
-          const full = resolveProjectMember(emp.id);
+          const full = resolveProjectMember(emp.id, "Outsource");
           if (full) openMemberProfile(full);
           setShowAllMembersModal(false);
         }}

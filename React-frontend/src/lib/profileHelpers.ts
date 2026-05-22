@@ -46,3 +46,18 @@ export const getGlobalProfileUrl = (
 
   return url;
 };
+
+/** Profile URL for a project roster row (uses profile_user_id when set). */
+export const getRosterProfileUrl = (
+  entry: {
+    id?: number;
+    profile_picture?: string;
+    profile_user_id?: number | string;
+  },
+  profileUserType?: string,
+): string | null => {
+  if (!entry.profile_picture) return null;
+  const userId = entry.profile_user_id ?? entry.id;
+  if (!userId) return null;
+  return getGlobalProfileUrl(userId, entry.profile_picture, profileUserType);
+};
