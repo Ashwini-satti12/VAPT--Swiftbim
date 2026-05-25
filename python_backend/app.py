@@ -37,10 +37,17 @@ from blueprints.vendor import bp as vendor_bp
 from blueprints.workorder import bp as workorder_bp
 
 
-def create_app(config_class=Config): 
+def create_app(config_class=Config):
     app = Flask(__name__)
     app.url_map.strict_slashes = False
     app.config.from_object(config_class)
+
+    # Mail credentials from environment only (set in .env or OS env vars)
+    app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+    if not app.config.get("MAIL_DEFAULT_SENDER"):
+        app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER") or app.config["MAIL_USERNAME"]
+
     CORS(app, origins=["*"], supports_credentials=True)
 
     mysql.init_app(app)

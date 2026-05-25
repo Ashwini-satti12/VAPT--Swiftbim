@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 from flask import Blueprint, request, jsonify, g, current_app
 from werkzeug.utils import secure_filename
 from db import get_db
@@ -7,6 +8,23 @@ from auth_middleware import project_app_required
 from utils import mailer
 
 bp = Blueprint("employees", __name__, url_prefix="/api/employees")
+
+
+def _validate_password_strength(password):
+    """Return an error message if password is weak, else None."""
+    pwd = str(password or "")
+    if len(pwd) < 8:
+        return "Password must be at least 8 characters long."
+    if not re.search(r"[A-Z]", pwd):
+        return "Password must include at least one uppercase letter."
+    if not re.search(r"[a-z]", pwd):
+        return "Password must include at least one lowercase letter."
+    if not re.search(r"\d", pwd):
+        return "Password must include at least one number."
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?`~]", pwd):
+        return "Password must include at least one special character."
+    return None
+
 
 # Role hierarchy: who can assign which roles (matches PHP employees.php)
 
@@ -220,6 +238,11 @@ def create_employee():
 
     if not full_name or not email or not password:
         return jsonify({"success": False, "message": "full_name, email, password required"}), 400
+
+    pwd_err = _validate_password_strength(password)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     # Vendor logic
     user_type_env = getattr(g, "user_type", "employee")
     if user_type_env == "vendor":
@@ -436,6 +459,9 @@ def update_employee(emp_id):
     # Password update (never returned back to frontend)
     password = data.get("password")
     if password is not None and str(password).strip():
+        pwd_err = _validate_password_strength(password)
+        if pwd_err:
+            return jsonify({"success": False, "message": pwd_err}), 400
         hashed = hashlib.md5(str(password).encode()).hexdigest()
         sets.append("`password` = %s")
         params.append(hashed)

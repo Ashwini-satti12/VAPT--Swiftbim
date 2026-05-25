@@ -8,6 +8,24 @@ import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
 
+const PASSWORD_MIN_LENGTH = 8;
+
+function getPasswordStrengthErrors(password: string): string[] {
+  const errors: string[] = [];
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    errors.push(`at least ${PASSWORD_MIN_LENGTH} characters`);
+  }
+  if (!/[A-Z]/.test(password)) errors.push('one uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('one lowercase letter');
+  if (!/\d/.test(password)) errors.push('one number');
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) errors.push('one special character');
+  return errors;
+}
+
+function isStrongPassword(password: string): boolean {
+  return getPasswordStrengthErrors(password).length === 0;
+}
+
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || '';
@@ -523,6 +541,14 @@ export default function EmployeesPM() {
       return;
     }
 
+    if (editForm.password) {
+      const passwordErrors = getPasswordStrengthErrors(editForm.password);
+      if (passwordErrors.length) {
+        alert(`Password must include ${passwordErrors.join(', ')}.`);
+        return;
+      }
+    }
+
     setEditSubmitting(true);
 
     // Build payload with all fields from redesign
@@ -623,6 +649,12 @@ export default function EmployeesPM() {
     setAddError('');
     if (!form.full_name.trim() || !form.email.trim() || !form.password) {
       setAddError('Name, email and password are required.');
+      return;
+    }
+
+    const passwordErrors = getPasswordStrengthErrors(form.password);
+    if (passwordErrors.length) {
+      setAddError(`Password must include ${passwordErrors.join(', ')}.`);
       return;
     }
 
@@ -1357,7 +1389,16 @@ export default function EmployeesPM() {
                       onChange={(e) => setForm((f: any) => ({ ...f, password: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
+                      minLength={PASSWORD_MIN_LENGTH}
                     />
+                    <p className="text-[12px] text-[#8B8B8B] mt-1">
+                      At least 8 characters with uppercase, lowercase, a number, and a special character.
+                    </p>
+                    {form.password && !isStrongPassword(form.password) && (
+                      <p className="text-[12px] text-red-600 mt-1">
+                        Missing: {getPasswordStrengthErrors(form.password).join(', ')}.
+                      </p>
+                    )}
                   </div>
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
