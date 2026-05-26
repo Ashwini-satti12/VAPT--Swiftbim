@@ -37,7 +37,7 @@ from blueprints.vendor import bp as vendor_bp
 from blueprints.workorder import bp as workorder_bp
 
 
-def create_app(config_class=Config): 
+def create_app(config_class=Config):
     app = Flask(__name__)
     app.url_map.strict_slashes = False
     app.config.from_object(config_class)

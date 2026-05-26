@@ -10,6 +10,24 @@ import { getPhoneLength } from '../../utils/countryCodes';
 import { PasswordStrengthHints } from '../../components/ProtectedRoute';
 import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
 
+const PASSWORD_MIN_LENGTH = 8;
+
+function getPasswordStrengthErrors(password: string): string[] {
+  const errors: string[] = [];
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    errors.push(`at least ${PASSWORD_MIN_LENGTH} characters`);
+  }
+  if (!/[A-Z]/.test(password)) errors.push('one uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('one lowercase letter');
+  if (!/\d/.test(password)) errors.push('one number');
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) errors.push('one special character');
+  return errors;
+}
+
+function isStrongPassword(password: string): boolean {
+  return getPasswordStrengthErrors(password).length === 0;
+}
+
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || '';
