@@ -1,12 +1,30 @@
 import hashlib
 import os
+import re
 from flask import Blueprint, request, jsonify, g, current_app
 from werkzeug.utils import secure_filename
+from upload_resolver import secure_save_upload
 from db import get_db
 from auth_middleware import project_app_required
 from utils import mailer
 
 bp = Blueprint("employees", __name__, url_prefix="/api/employees")
+
+
+def _validate_password_strength(password):
+    pwd = str(password or "")
+    if len(pwd) < 8:
+        return "Password must be at least 8 characters long."
+    if not re.search(r"[A-Z]", pwd):
+        return "Password must include at least one uppercase letter."
+    if not re.search(r"[a-z]", pwd):
+        return "Password must include at least one lowercase letter."
+    if not re.search(r"\d", pwd):
+        return "Password must include at least one number."
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?`~]", pwd):
+        return "Password must include at least one special character."
+    return None
+
 
 # Role hierarchy: who can assign which roles (matches PHP employees.php)
 
@@ -206,20 +224,30 @@ def create_employee():
             employee_dir = os.path.join(upload_root, "employee")
             os.makedirs(employee_dir, exist_ok=True)
             filename = secure_filename(file.filename)
-            # If filename already exists, add timestamp to make it unique
             save_path = os.path.join(employee_dir, filename)
             if os.path.exists(save_path):
                 name, ext = os.path.splitext(filename)
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"{name}_{timestamp}{ext}"
-                save_path = os.path.join(employee_dir, filename)
-            file.save(save_path)
-            # Store just the filename (frontend will add employee/ prefix)
-            profile_path = filename
+            saved, upload_err = secure_save_upload(
+                file,
+                employee_dir,
+                category="image",
+                filename=filename,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            profile_path = os.path.basename(saved or filename)
 
     if not full_name or not email or not password:
         return jsonify({"success": False, "message": "full_name, email, password required"}), 400
+
+    pwd_err = _validate_password_strength(password)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     # Vendor logic
     user_type_env = getattr(g, "user_type", "employee")
     if user_type_env == "vendor":
@@ -385,17 +413,22 @@ def update_employee(emp_id):
             employee_dir = os.path.join(upload_root, "employee")
             os.makedirs(employee_dir, exist_ok=True)
             filename = secure_filename(file.filename)
-            # If filename already exists, add timestamp to make it unique
             save_path = os.path.join(employee_dir, filename)
             if os.path.exists(save_path):
                 name, ext = os.path.splitext(filename)
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"{name}_{timestamp}{ext}"
-                save_path = os.path.join(employee_dir, filename)
-            file.save(save_path)
-            # Store just the filename (frontend will add employee/ prefix)
-            profile_path = filename
+            saved, upload_err = secure_save_upload(
+                file,
+                employee_dir,
+                category="image",
+                filename=filename,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            profile_path = os.path.basename(saved or filename)
     
     conn = get_db()
     # Use dict cursor when available (better compatibility across connectors)
@@ -436,6 +469,9 @@ def update_employee(emp_id):
     # Password update (never returned back to frontend)
     password = data.get("password")
     if password is not None and str(password).strip():
+        pwd_err = _validate_password_strength(password)
+        if pwd_err:
+            return jsonify({"success": False, "message": pwd_err}), 400
         hashed = hashlib.md5(str(password).encode()).hexdigest()
         sets.append("`password` = %s")
         params.append(hashed)

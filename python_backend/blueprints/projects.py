@@ -5,6 +5,7 @@ from utils import mailer
 import mysql.connector as mysql_connector
 import os
 from werkzeug.utils import secure_filename
+from upload_resolver import secure_save_upload
 import re
 import calendar
 import json
@@ -1275,9 +1276,16 @@ def create_project():
         for file in uploaded_files:
             if file and file.filename:
                 filename = secure_filename(file.filename)
-                # Prefix with project name or timestamp for uniqueness if needed, but keeping it simple for now
-                file.save(os.path.join(upload_folder, filename))
-                file_paths.append(f"/static/uploads/{filename}")
+                saved, upload_err = secure_save_upload(
+                    file,
+                    upload_folder,
+                    category="document",
+                    filename=filename,
+                    app_config=current_app.config,
+                )
+                if upload_err:
+                    return jsonify({"success": False, "message": upload_err}), 400
+                file_paths.append(f"/static/uploads/{os.path.basename(saved or filename)}")
 
     document_attachment = ",".join(file_paths) if file_paths else ""
 
@@ -1441,8 +1449,16 @@ def update_project(project_id):
         for file in uploaded_files:
             if file and file.filename:
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(upload_folder, filename))
-                file_paths.append(f"/static/uploads/{filename}")
+                saved, upload_err = secure_save_upload(
+                    file,
+                    upload_folder,
+                    category="document",
+                    filename=filename,
+                    app_config=current_app.config,
+                )
+                if upload_err:
+                    return jsonify({"success": False, "message": upload_err}), 400
+                file_paths.append(f"/static/uploads/{os.path.basename(saved or filename)}")
 
     # Combine existing (not removed) and newly uploaded files
     all_files = list(dict.fromkeys(existing_files + file_paths))

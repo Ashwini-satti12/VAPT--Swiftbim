@@ -6,6 +6,8 @@ import { FiGrid, FiMenu, FiX, FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import { COUNTRY_CODES, getPhoneLength } from "../../utils/countryCodes";
+import { PasswordStrengthHints } from "../../components/ProtectedRoute";
+import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from "../../utils/employeeActive";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import pmprofilebg from "../../assets/ProjectManager/consultant/pmprofilebg.jpg";
@@ -748,6 +750,15 @@ export default function ResourcesV() {
       );
       setEditSubmitting(false);
       return;
+    }
+
+    if (editForm.password) {
+      const pwdMsg = getPasswordStrengthMessage(editForm.password);
+      if (pwdMsg) {
+        setAddError(pwdMsg);
+        setEditSubmitting(false);
+        return;
+      }
     }
 
     api
@@ -1627,7 +1638,20 @@ export default function ResourcesV() {
                           className="w-full px-4 py-2 pr-10 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                           required={activeView === "add"}
                           disabled={activeView === "edit" && isVpmRoute}
+                          minLength={
+                            activeView === "add" || editForm.password
+                              ? PASSWORD_MIN_LENGTH
+                              : undefined
+                          }
                         />
+                        {!(activeView === "edit" && isVpmRoute) &&
+                        (activeView === "add" ? form.password : editForm.password) ? (
+                          <PasswordStrengthHints
+                            password={
+                              activeView === "add" ? form.password : editForm.password
+                            }
+                          />
+                        ) : null}
                         {!(activeView === "edit" && isVpmRoute) && (
                           <button
                             type="button"

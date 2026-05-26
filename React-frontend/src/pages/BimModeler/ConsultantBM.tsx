@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -318,6 +320,14 @@ export default function ConsultantBM() {
             }
         }
 
+        if (editForm.password) {
+            const editPwdMsg = getPasswordStrengthMessage(editForm.password);
+            if (editPwdMsg) {
+                alert(editPwdMsg);
+                return;
+            }
+        }
+
         // Build payload with all fields from redesign
         const payload = {
             full_name: editForm.full_name,
@@ -371,6 +381,12 @@ export default function ConsultantBM() {
         setAddError('');
         if (!form.full_name.trim() || !form.email.trim() || !form.password) {
             setAddError('Name, email and password are required.');
+            return;
+        }
+
+        const pwdMsg = getPasswordStrengthMessage(form.password);
+        if (pwdMsg) {
+            setAddError(pwdMsg);
             return;
         }
 
@@ -801,7 +817,9 @@ export default function ConsultantBM() {
                                             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                             required
+                                            minLength={PASSWORD_MIN_LENGTH}
                                         />
+                                        <PasswordStrengthHints password={form.password} />
                                     </div>
                                     <div className="relative">
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Role</label>
@@ -1144,6 +1162,7 @@ export default function ConsultantBM() {
                                             onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                         />
+                                        {editForm.password ? <PasswordStrengthHints password={editForm.password} /> : null}
                                     </div>
 
                                     <div className="relative">

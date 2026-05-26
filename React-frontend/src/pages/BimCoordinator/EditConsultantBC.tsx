@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
+import { getPasswordStrengthMessage } from '../../utils/employeeActive';
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
@@ -216,6 +217,15 @@ export default function EditConsultantBC() {
       setEditError(`Phone number must be exactly ${expectedLength} digits for ${countryCode}.`);
       setEditSubmitting(false);
       return;
+    }
+
+    if (form.password) {
+      const pwdMsg = getPasswordStrengthMessage(form.password);
+      if (pwdMsg) {
+        setEditError(pwdMsg);
+        setEditSubmitting(false);
+        return;
+      }
     }
 
     const formData = new FormData();

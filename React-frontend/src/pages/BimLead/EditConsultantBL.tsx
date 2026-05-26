@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
+import { getPasswordStrengthMessage } from '../../utils/employeeActive';
 
 const PANEL_ROLES = [
     'Management', 'Accounts',
@@ -228,6 +229,15 @@ export default function EditConsultantBL() {
             setEditError(`Phone number must be exactly ${expectedLength} digits for ${form.country_code}.`);
             return;
         }
+
+        if (form.password) {
+            const pwdMsg = getPasswordStrengthMessage(form.password);
+            if (pwdMsg) {
+                setEditError(pwdMsg);
+                return;
+            }
+        }
+
         setEditSubmitting(true);
 
         const hasNewFile = !!form.profile_picture;

@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
+import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
 
 const ROLE_OPTIONS: string[] = [
   "Bim Lead",
@@ -117,6 +119,12 @@ export default function AddConsultantBC() {
     if (!form.full_name.trim() || !form.email.trim() || !form.password || !form.phone_number) {
         setAddError('Name, email, password and phone number are required.');
         return;
+    }
+
+    const pwdMsg = getPasswordStrengthMessage(form.password);
+    if (pwdMsg) {
+      setAddError(pwdMsg);
+      return;
     }
 
     if (form.dob) {
@@ -294,7 +302,9 @@ export default function AddConsultantBC() {
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
+                  minLength={PASSWORD_MIN_LENGTH}
                 />
+                <PasswordStrengthHints password={form.password} />
               </div>
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>

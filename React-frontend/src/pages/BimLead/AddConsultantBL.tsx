@@ -5,6 +5,8 @@ import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
+import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
 
 const ROLE_OPTIONS: string[] = [
   "Bim Lead",
@@ -142,6 +144,12 @@ export default function AddConsultantBL() {
     setAddError('');
     if (!form.full_name.trim() || !form.email.trim() || !form.password) {
       setAddError('Name, email and password are required.');
+      return;
+    }
+
+    const pwdMsg = getPasswordStrengthMessage(form.password);
+    if (pwdMsg) {
+      setAddError(pwdMsg);
       return;
     }
 
@@ -297,7 +305,9 @@ export default function AddConsultantBL() {
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
+                  minLength={PASSWORD_MIN_LENGTH}
                 />
+                <PasswordStrengthHints password={form.password} />
               </div>
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
