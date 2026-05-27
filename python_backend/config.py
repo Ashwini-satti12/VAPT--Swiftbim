@@ -10,6 +10,13 @@ class Config:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY") or os.getenv("SECRET_KEY", "change-me-in-production")
     # Login session length in seconds (default 15 minutes)
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "900"))
+    # Refresh token lifetime in seconds (default 7 days)
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", str(7 * 24 * 60 * 60)))
+
+    # Auth cookies (to show tokens under DevTools → Application → Cookies)
+    # NOTE: SameSite=None requires Secure=true (HTTPS). For local HTTP dev, use Lax + Secure=false.
+    AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
+    AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")
 
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_USER = os.getenv("MYSQL_USER", "root")

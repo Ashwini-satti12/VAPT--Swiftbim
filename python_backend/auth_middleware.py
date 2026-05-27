@@ -1,14 +1,31 @@
 import jwt
 from functools import wraps
-from flask import request, g, jsonify
+from flask import request, g, jsonify, make_response
 from config import Config
+
+WWW_AUTHENTICATE_BEARER = 'Bearer realm="SwiftBIM", charset="UTF-8"'
+
+
+def unauthorized_response(message: str, *, code: str = "UNAUTHORIZED", status: int = 401):
+    """401 JSON with WWW-Authenticate so DevTools/network audits show Bearer auth."""
+    resp = make_response(
+        jsonify({"success": False, "message": message, "code": code}),
+        status,
+    )
+    resp.headers["WWW-Authenticate"] = WWW_AUTHENTICATE_BEARER
+    return resp
 
 
 def get_token():
     auth = request.headers.get("Authorization")
     if auth and auth.startswith("Bearer "):
         return auth[7:]
-    return request.cookies.get("token") or request.args.get("token")
+    # Prefer cookie tokens if present (DevTools shows access_token/refresh_token cookies).
+    return (
+        request.cookies.get("access_token")
+        or request.cookies.get("token")
+        or request.args.get("token")
+    )
 
 
 def decode_token(token):
@@ -46,6 +63,8 @@ def get_current_user():
     payload, _err = decode_token_status(token)
     if not payload:
         return None
+    if payload.get("token_type") == "refresh":
+        return None
     user_type = payload.get("user_type") or "employee"
     return payload.get("user_id"), payload.get("company_id"), payload.get("email"), user_type
 
@@ -55,6 +74,8 @@ def get_current_client():
     token = get_token()
     payload, _err = decode_token_status(token)
     if not payload:
+        return None
+    if payload.get("token_type") == "refresh":
         return None
     if payload.get("user_type") != "client":
         return None
@@ -100,11 +121,10 @@ def login_required(f):
         token = get_token()
         payload, token_err = decode_token_status(token)
         if not payload:
-            return jsonify({
-                "success": False,
-                "message": _unauthorized_message(token_err),
-                "code": "SESSION_EXPIRED" if token_err == "expired" else "UNAUTHORIZED",
-            }), 401
+            return unauthorized_response(
+                _unauthorized_message(token_err),
+                code="SESSION_EXPIRED" if token_err == "expired" else "UNAUTHORIZED",
+            )
         user_type = payload.get("user_type") or "employee"
         user = (
             payload.get("user_id"),
@@ -113,7 +133,7 @@ def login_required(f):
             user_type,
         )
         if not user[0]:
-            return jsonify({"success": False, "message": "Unauthorized"}), 401
+            return unauthorized_response("Unauthorized")
         g.user_id, g.company_id, g.user_email, g.user_type = user
         if g.user_type == "client":
             return jsonify({"success": False, "message": "Use the client portal."}), 403
@@ -129,18 +149,17 @@ def client_required(f):
         token = get_token()
         payload, token_err = decode_token_status(token)
         if not payload or payload.get("user_type") != "client":
-            return jsonify({
-                "success": False,
-                "message": _unauthorized_message(token_err),
-                "code": "SESSION_EXPIRED" if token_err == "expired" else "UNAUTHORIZED",
-            }), 401
+            return unauthorized_response(
+                _unauthorized_message(token_err),
+                code="SESSION_EXPIRED" if token_err == "expired" else "UNAUTHORIZED",
+            )
         client = (
             payload.get("user_id"),
             payload.get("company_id"),
             payload.get("email"),
         )
         if not client[0]:
-            return jsonify({"success": False, "message": "Unauthorized"}), 401
+            return unauthorized_response("Unauthorized")
         g.client_id, g.company_id, g.client_email = client
         return f(*args, **kwargs)
     return decorated

@@ -5,7 +5,11 @@ import { FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import { PasswordStrengthHints } from '../../components/ProtectedRoute';
-import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
+import {
+  PASSWORD_MIN_LENGTH,
+  getPasswordStrengthMessage,
+  accountNumberForDisplay,
+} from '../../utils/employeeActive';
 
 // Get API base URL for image URLs (same logic as other panels)
 const getApiBaseUrl = () => {
@@ -54,7 +58,8 @@ interface Employee {
   user_type?: string;
   profile_picture?: string;
   salary?: string;
-  accountnumber?: string;
+  accountnumber?: string | null;
+  has_accountnumber?: boolean;
   Allpannel?: string;
 }
 
@@ -1888,7 +1893,10 @@ export default function ConsultantBC() {
                   { label: "Department", value: selectedEmployee.department },
                   {
                     label: "Account Number",
-                    value: selectedEmployee.accountnumber,
+                    value: accountNumberForDisplay(
+                      selectedEmployee.accountnumber,
+                      selectedEmployee.has_accountnumber
+                    ),
                   },
                   { label: "Salary", value: selectedEmployee.salary },
                 ].map((item, idx) => (

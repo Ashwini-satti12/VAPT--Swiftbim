@@ -34,10 +34,45 @@ export function getJwtExpiryMs(token: string): number | null {
   }
 }
 
+const TOKEN_EXPIRES_AT_KEY = 'token_expires_at';
+
+/** Password-reset / forgot flows — never attach Bearer. */
+const PUBLIC_AUTH_PATHS = [
+  '/api/auth/forgot-password',
+  '/api/auth/verify-otp',
+  '/api/auth/reset-password',
+];
+
+export function isPublicAuthPath(url?: string): boolean {
+  if (!url) return false;
+  return PUBLIC_AUTH_PATHS.some((p) => url.includes(p));
+}
+
+/** Skip Bearer on credential POST (step 1); step 2 login confirm sends Authorization. */
+export const SKIP_AUTH_HEADER = 'X-Skip-Auth';
+
+export function setTokenExpiry(expiresAt?: string | null): void {
+  if (expiresAt) localStorage.setItem(TOKEN_EXPIRES_AT_KEY, expiresAt);
+  else localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
+}
+
+/** Session end time in ms — from JWT `exp`, with `expires_at` from login as fallback. */
+export function getSessionExpiryMs(token: string | null): number | null {
+  if (token) {
+    const fromJwt = getJwtExpiryMs(token);
+    if (fromJwt) return fromJwt;
+  }
+  const raw = localStorage.getItem(TOKEN_EXPIRES_AT_KEY);
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  return Number.isFinite(ms) ? ms : null;
+}
+
 export function clearAuthStorage(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   localStorage.removeItem('userProfilePicture');
+  localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
 }
 
 export function redirectToLogin(): void {
@@ -62,20 +97,56 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  const url = config.url || '';
+  const headers = config.headers ?? {};
+  const skipAuth =
+    headers[SKIP_AUTH_HEADER] === '1' || headers[SKIP_AUTH_HEADER] === true;
+
+  if (skipAuth || isPublicAuthPath(url)) {
+    delete headers[SKIP_AUTH_HEADER];
+    delete headers.Authorization;
+    config.headers = headers;
+    return config;
+  }
+
   const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  config.headers = headers;
   return config;
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const originalRequest = err.config;
+
     if (err.response?.status === 401) {
+      const url = err.config?.url || '';
       const isLoginRequest =
-        err.config?.url?.includes('/api/auth/login') ||
-        err.config?.url?.includes('/api/auth/client-login');
-      // Don't redirect on failed login — let the login page show the error message
-      if (!isLoginRequest) {
+        isPublicAuthPath(url) ||
+        url.includes('/api/auth/login') ||
+        url.includes('/api/auth/client-login');
+      const isLogoutRequest =
+        url.includes('/api/auth/logout') || url.includes('/api/auth/client-logout');
+      // Don't redirect on failed login/logout — login page shows errors; logout clears locally
+      if (!isLoginRequest && !isLogoutRequest) {
         clearAuthStorage();
         redirectToLogin();
       }

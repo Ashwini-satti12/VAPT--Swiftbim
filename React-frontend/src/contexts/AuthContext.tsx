@@ -1,6 +1,35 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { AuthState, User } from '../types';
-import api, { clearAuthStorage, getJwtExpiryMs, redirectToLogin } from '../lib/api';
+import api, {
+  clearAuthStorage,
+  getSessionExpiryMs,
+  redirectToLogin,
+  setTokenExpiry,
+  SKIP_AUTH_HEADER,
+} from '../lib/api';
+
+type LoginResponse = {
+  success: boolean;
+  message?: string;
+  token?: string;
+  expires_at?: string;
+  user?: User;
+};
+
+function tokenFromLoginResponse(
+  data: LoginResponse,
+  headers: Record<string, unknown> | undefined
+): string | undefined {
+  if (data.token) return data.token;
+  const raw = headers?.authorization ?? headers?.Authorization;
+  if (typeof raw !== 'string') return undefined;
+  return raw.replace(/^Bearer\s+/i, '').trim() || undefined;
+}
+
+/** Step 2: POST login with Authorization Bearer (visible in Network like project APIs). */
+async function confirmLoginWithBearer(loginPath: string) {
+  await api.post<LoginResponse>(loginPath, {});
+}
 
 const AuthContext = createContext<AuthState | null>(null);
 
@@ -14,12 +43,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   });
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('token'));
+  const [refreshToken, setRefreshTokenState] = useState<string | null>(() => localStorage.getItem('refreshToken'));
   const [loading, setLoading] = useState(true);
 
-  const setToken = useCallback((t: string | null) => {
+  const setToken = useCallback((t: string | null, expiresAt?: string | null) => {
     setTokenState(t);
-    if (t) localStorage.setItem('token', t);
-    else localStorage.removeItem('token');
+    if (t) {
+      localStorage.setItem('token', t);
+      setTokenExpiry(expiresAt);
+    } else {
+      localStorage.removeItem('token');
+      setTokenExpiry(null);
+    }
   }, []);
 
   const expireSession = useCallback(() => {
@@ -67,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (token) {
-      const expMs = getJwtExpiryMs(token);
+      const expMs = getSessionExpiryMs(token);
       if (expMs && expMs <= Date.now()) {
         expireSession();
         return;
@@ -83,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /** Auto-logout when JWT expires (default 15 minutes after login). */
   useEffect(() => {
     if (!token) return;
-    const expMs = getJwtExpiryMs(token);
+    const expMs = getSessionExpiryMs(token);
     if (!expMs) return;
     const remaining = expMs - Date.now();
     if (remaining <= 0) {
@@ -97,17 +132,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       try {
-        const { data } = await api.post<{
-          success: boolean;
-          message?: string;
-          token?: string;
-          user?: User;
-        }>('/api/auth/login', { email, password });
-        if (data.success && data.token && data.user) {
+        const res = await api.post<LoginResponse>(
+          '/api/auth/login',
+          { email, password },
+          { headers: { [SKIP_AUTH_HEADER]: '1' } }
+        );
+        const { data } = res;
+        const jwt = tokenFromLoginResponse(data, res.headers as Record<string, unknown>);
+        if (data.success && jwt && data.user) {
           const u = { ...data.user, user_type: data.user.user_type || 'employee' };
-          setToken(data.token);
+          setToken(jwt, data.expires_at);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
+          await confirmLoginWithBearer('/api/auth/login');
           return { success: true, user: u };
         }
         return { success: false, message: data.message || 'Login failed' };
@@ -124,17 +161,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clientLogin = useCallback(
     async (email: string, password: string) => {
       try {
-        const { data } = await api.post<{
-          success: boolean;
-          message?: string;
-          token?: string;
-          user?: User;
-        }>('/api/auth/client-login', { email, password });
-        if (data.success && data.token && data.user) {
+        const res = await api.post<LoginResponse>(
+          '/api/auth/client-login',
+          { email, password },
+          { headers: { [SKIP_AUTH_HEADER]: '1' } }
+        );
+        const { data } = res;
+        const jwt = tokenFromLoginResponse(data, res.headers as Record<string, unknown>);
+        if (data.success && jwt && data.user) {
           const u = { ...data.user, user_type: 'client' as const };
-          setToken(data.token);
+          setToken(jwt, data.expires_at);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
+          await confirmLoginWithBearer('/api/auth/client-login');
           return { success: true };
         }
         return { success: false, message: data.message || 'Login failed' };
@@ -149,14 +188,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    if (user?.user_type !== 'client') {
-      try {
-        await api.post('/api/auth/logout');
-      } catch {
-        /* ignore */
-      }
+    const logoutPath =
+      user?.user_type === 'client' ? '/api/auth/client-logout' : '/api/auth/logout';
+    try {
+      await api.post(logoutPath);
+    } catch {
+      /* ignore — local session is cleared below */
     }
     setToken(null);
+    setRefreshToken(null);
     setUser(null);
     clearAuthStorage();
   }, [setToken, user?.user_type]);
