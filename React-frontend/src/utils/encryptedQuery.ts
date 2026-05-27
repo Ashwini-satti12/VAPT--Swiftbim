@@ -101,12 +101,76 @@ export function encryptedPathFromPlainSearch(
   );
 }
 
-/** Encrypt `pathname?a=1&b=2` style paths (for navigate / Link). */
+/** Encrypt a path segment id (e.g. `123` → token for `/view/123`). */
+export function encryptPathId(id: string | number): string {
+  return encryptQueryString(String(id));
+}
+
+/** Decrypt a path segment; returns null if not a valid encrypted/plain id token. */
+export function decryptPathId(token: string): string | null {
+  if (!token) return null;
+  if (/^\d+$/.test(token)) return token;
+  return decryptQueryString(token);
+}
+
+const UUID_SEGMENT =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Numeric or UUID segments in the URL path (not route labels like `mytasks`). */
+export function shouldEncryptPathSegment(segment: string): boolean {
+  if (!segment) return false;
+  if (/^\d+$/.test(segment)) return true;
+  if (UUID_SEGMENT.test(segment)) return true;
+  const dec = decryptPathId(segment);
+  if (dec != null && (/^\d+$/.test(dec) || UUID_SEGMENT.test(dec))) return false;
+  return false;
+}
+
+/** Encrypt numeric/uuid segments in a pathname. */
+export function encryptPathname(pathname: string): string {
+  if (!shouldEncryptQueryForPath(pathname)) return pathname;
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return pathname;
+
+  const encrypted = parts.map((seg) =>
+    shouldEncryptPathSegment(seg) ? encryptPathId(seg) : seg
+  );
+  const next = `/${encrypted.join('/')}`;
+  return next;
+}
+
+/** `/td/mytasks/view/42` → `/td/mytasks/view/<token>` when needed. */
+export function encryptedPathFromPlainPath(pathname: string): string | null {
+  if (!shouldEncryptQueryForPath(pathname)) return null;
+  const enc = encryptPathname(pathname);
+  return enc !== pathname ? enc : null;
+}
+
+/** Upgrade pathname + search (query + path ids) in one step. */
+export function upgradePlainLocation(pathname: string, search: string): string | null {
+  if (!shouldEncryptQueryForPath(pathname)) return null;
+
+  const encPathname = encryptPathname(pathname);
+  let result = encPathname;
+
+  if (search) {
+    const encWithSearch = encryptedPathFromPlainSearch(encPathname, search);
+    result = encWithSearch ?? `${encPathname}${search}`;
+  }
+
+  const current = `${pathname}${search}`;
+  return result !== current ? result : null;
+}
+
+/** Encrypt `pathname?a=1` and path ids (for navigate / Link). */
 export function encryptPathWithSearch(pathWithOptionalSearch: string): string {
   const qIndex = pathWithOptionalSearch.indexOf('?');
-  if (qIndex === -1) return pathWithOptionalSearch;
+  const pathname =
+    qIndex === -1 ? pathWithOptionalSearch : pathWithOptionalSearch.slice(0, qIndex);
+  const search = qIndex === -1 ? '' : pathWithOptionalSearch.slice(qIndex);
 
-  const pathname = pathWithOptionalSearch.slice(0, qIndex);
-  const search = pathWithOptionalSearch.slice(qIndex);
-  return encryptedPathFromPlainSearch(pathname, search) ?? pathWithOptionalSearch;
+  const encPathname = encryptPathname(pathname);
+  if (!search) return encPathname;
+
+  return encryptedPathFromPlainSearch(encPathname, search) ?? `${encPathname}${search}`;
 }
