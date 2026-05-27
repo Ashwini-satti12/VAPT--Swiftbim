@@ -54,7 +54,13 @@ def create_app(config_class=Config):
     app.config["MAIL_FROM_NAME"] = os.environ.get("MAIL_FROM_NAME", "SwiftBIM")
     app.config["APP_LOGIN_URL"] = os.environ.get("APP_LOGIN_URL", "http://localhost:5173/login")
 
-    CORS(app, origins=["*"], supports_credentials=True)
+    CORS(
+        app,
+        origins=["*"],
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["WWW-Authenticate", "Authorization"],
+    )
 
     mysql.init_app(app)
 
@@ -122,6 +128,21 @@ def create_app(config_class=Config):
 
         upload_root = app.config["UPLOAD_FOLDER"]
         return send_from_directory(upload_root, os.path.basename(requested))
+
+    @app.after_request
+    def _api_auth_response_header(response):
+        """
+        Echo Authorization: Bearer <jwt> on API responses (visible in DevTools → Network),
+        same as priority-tasks and other authenticated endpoints.
+        """
+        if request.path.startswith("/api/"):
+            from auth_middleware import get_token
+            from flask import g
+
+            token = getattr(g, "auth_token", None) or get_token()
+            if token:
+                response.headers["Authorization"] = f"Bearer {token}"
+        return response
 
     @app.after_request
     def _upload_security_headers(response):

@@ -5,7 +5,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
-import { getPasswordStrengthMessage } from '../../utils/employeeActive';
+import {
+  getPasswordStrengthMessage,
+  accountNumberForEdit,
+  accountNumberOnFocus,
+  accountNumberPlaceholder,
+  shouldSubmitAccountNumber,
+} from '../../utils/employeeActive';
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
@@ -87,6 +93,7 @@ export default function EditConsultantBC() {
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [hasStoredAccount, setHasStoredAccount] = useState(false);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
@@ -168,6 +175,7 @@ export default function EditConsultantBC() {
               }
             }
             setCountryCode(code);
+            setHasStoredAccount(!!emp.has_accountnumber);
             setForm({
               full_name: emp.full_name || '',
               email: emp.email || '',
@@ -179,7 +187,7 @@ export default function EditConsultantBC() {
               user_type: emp.user_type || '',
               doj: emp.doj || '',
               salary: emp.salary || '',
-              accountnumber: emp.accountnumber || '',
+              accountnumber: accountNumberForEdit(emp.accountnumber, emp.has_accountnumber),
               profile_picture: null,
               active: emp.active === 'active' ? 'Active' : 'Deactivate',
               roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
@@ -239,7 +247,9 @@ export default function EditConsultantBC() {
     if (form.user_type) formData.append('user_type', form.user_type);
     if (form.doj) formData.append('doj', form.doj);
     if (form.salary) formData.append('salary', form.salary);
-    if (form.accountnumber) formData.append('accountnumber', form.accountnumber);
+    if (shouldSubmitAccountNumber(form.accountnumber)) {
+      formData.append('accountnumber', form.accountnumber.trim());
+    }
     formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.roles.length) formData.append('roles', form.roles.join(','));
     if (form.profile_picture) {
@@ -382,11 +392,17 @@ export default function EditConsultantBC() {
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
                 <input
                   type="text"
-                  placeholder="Enter Account Number"
+                  placeholder={accountNumberPlaceholder(hasStoredAccount)}
                   value={form.accountnumber}
+                  onFocus={() =>
+                    setForm((f) => ({
+                      ...f,
+                      accountnumber: accountNumberOnFocus(f.accountnumber, hasStoredAccount),
+                    }))
+                  }
                   onChange={(e) => setForm((f) => ({ ...f, accountnumber: e.target.value }))}
                   className="w-full px-4 py-2.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  required
+                  required={!hasStoredAccount}
                 />
               </div>
               <div className="space-y-2">

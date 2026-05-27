@@ -5,7 +5,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiGrid, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
-
+import {
+  accountNumberForDisplay,
+  accountNumberForEdit,
+  accountNumberOnFocus,
+  accountNumberPlaceholder,
+  shouldSubmitAccountNumber,
+} from '../../utils/employeeActive';
 
 // Get API base URL for image URLs
 const getApiBaseUrl = () => {
@@ -55,7 +61,8 @@ interface Employee {
   user_type?: string;
   profile_picture?: string;
   salary?: string;
-  accountnumber?: string;
+  accountnumber?: string | null;
+  has_accountnumber?: boolean;
   Allpannel?: string;
 }
 
@@ -497,7 +504,7 @@ export default function ConsultantTD() {
           user_type: emp.user_type || '',
           doj: emp.doj || '',
           salary: emp.salary || '',
-          accountnumber: emp.accountnumber || '',
+          accountnumber: accountNumberForEdit(emp.accountnumber, emp.has_accountnumber),
           profile_picture: null,
           roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
           active: emp.active === 'active' ? 'Active' : 'Deactivate',
@@ -634,7 +641,9 @@ export default function ConsultantTD() {
       if (editForm.dob) formData.append('dob', editForm.dob);
       if (editForm.doj) formData.append('doj', editForm.doj);
       if (editForm.salary) formData.append('salary', editForm.salary);
-      if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
+      if (shouldSubmitAccountNumber(editForm.accountnumber)) {
+        formData.append('accountnumber', editForm.accountnumber.trim());
+      }
       if (editForm.user_type) formData.append('user_type', editForm.user_type);
       if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
       // Password is disabled in edit mode - not sent to backend
@@ -663,7 +672,9 @@ export default function ConsultantTD() {
                   dob: editForm.dob,
                   doj: editForm.doj,
                   salary: editForm.salary,
-                  accountnumber: editForm.accountnumber,
+                  accountnumber: null,
+                  has_accountnumber:
+                    shouldSubmitAccountNumber(editForm.accountnumber) || e.has_accountnumber,
                   user_type: editForm.user_type,
                   Allpannel: editForm.roles.join(','),
                   // Backend returns 'inactive', but frontend displays as 'deactive'
@@ -695,7 +706,9 @@ export default function ConsultantTD() {
         dob: editForm.dob || undefined,
         doj: editForm.doj || undefined,
         salary: editForm.salary || undefined,
-        accountnumber: editForm.accountnumber || undefined,
+        ...(shouldSubmitAccountNumber(editForm.accountnumber)
+          ? { accountnumber: editForm.accountnumber.trim() }
+          : {}),
         user_type: editForm.user_type || undefined,
         Allpannel: editForm.roles.join(','),
         // Backend expects 'active' or 'inactive', not 'deactive'
@@ -719,7 +732,9 @@ export default function ConsultantTD() {
                   dob: editForm.dob,
                   doj: editForm.doj,
                   salary: editForm.salary,
-                  accountnumber: editForm.accountnumber,
+                  accountnumber: null,
+                  has_accountnumber:
+                    shouldSubmitAccountNumber(editForm.accountnumber) || e.has_accountnumber,
                   user_type: editForm.user_type,
                   Allpannel: payload.Allpannel,
                   // Backend returns 'inactive', but frontend displays as 'deactive'
@@ -760,7 +775,7 @@ export default function ConsultantTD() {
       user_type: emp.user_type || "",
       doj: emp.doj || "",
       salary: emp.salary || "",
-      accountnumber: emp.accountnumber || "",
+      accountnumber: accountNumberForEdit(emp.accountnumber, emp.has_accountnumber),
       profile_picture: null,
       roles: emp.Allpannel ? emp.Allpannel.split(",").map((r: string) => r.trim()) : [],
       active: emp.active === "active" ? "Active" : "Inactive",
@@ -1594,10 +1609,21 @@ export default function ConsultantTD() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="text"
-                      placeholder="Enter Account Number"
+                      placeholder={accountNumberPlaceholder(
+                        list.find((e) => e.id === editId)?.has_accountnumber
+                      )}
                       value={editForm.accountnumber}
+                      onFocus={() =>
+                        setEditForm((f) => ({
+                          ...f,
+                          accountnumber: accountNumberOnFocus(
+                            f.accountnumber,
+                            list.find((e) => e.id === editId)?.has_accountnumber
+                          ),
+                        }))
+                      }
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                      required
+                      required={!list.find((e) => e.id === editId)?.has_accountnumber}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
@@ -1948,7 +1974,13 @@ export default function ConsultantTD() {
                 { label: 'Joined Date', value: formatDate(selectedEmployee.doj) },
                 { label: 'Department', value: selectedEmployee.department },
                 { label: 'Salary', value: selectedEmployee.salary },
-                { label: 'Account Number', value: selectedEmployee.accountnumber },
+                {
+                  label: 'Account Number',
+                  value: accountNumberForDisplay(
+                    selectedEmployee.accountnumber,
+                    selectedEmployee.has_accountnumber
+                  ),
+                },
               ].map((item, idx) => (
                 <div
                   key={idx}

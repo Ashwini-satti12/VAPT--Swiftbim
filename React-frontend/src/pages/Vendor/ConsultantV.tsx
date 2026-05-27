@@ -6,7 +6,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
 import { PasswordStrengthHints } from '../../components/ProtectedRoute';
-import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
+import {
+  PASSWORD_MIN_LENGTH,
+  getPasswordStrengthMessage,
+  accountNumberForEdit,
+  accountNumberForDisplay,
+  accountNumberOnFocus,
+  accountNumberPlaceholder,
+  shouldSubmitAccountNumber,
+} from '../../utils/employeeActive';
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -29,7 +37,8 @@ interface Employee {
     user_type?: string;
     profile_picture?: string;
     salary?: string;
-    accountnumber?: string;
+    accountnumber?: string | null;
+    has_accountnumber?: boolean;
     Allpannel?: string;
 }
 
@@ -140,7 +149,7 @@ export default function ConsultantV() {
                     user_type: emp.user_type || '',
                     doj: emp.doj || '',
                     salary: emp.salary || '',
-                    accountnumber: emp.accountnumber || '',
+                    accountnumber: accountNumberForEdit(emp.accountnumber, emp.has_accountnumber),
                     profile_picture: null,
                     roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
                 });
@@ -241,7 +250,9 @@ export default function ConsultantV() {
             dob: editForm.dob || undefined,
             doj: editForm.doj || undefined,
             salary: editForm.salary || undefined,
-            accountnumber: editForm.accountnumber || undefined,
+            ...(shouldSubmitAccountNumber(editForm.accountnumber)
+              ? { accountnumber: editForm.accountnumber.trim() }
+              : {}),
             user_type: editForm.user_type || undefined,
             Allpannel: editForm.roles.join(','),
             ...(editForm.password ? { password: editForm.password } : {})
@@ -262,7 +273,10 @@ export default function ConsultantV() {
                             dob: editForm.dob,
                             doj: editForm.doj,
                             salary: editForm.salary,
-                            accountnumber: editForm.accountnumber,
+                            accountnumber: null,
+                            has_accountnumber:
+                              shouldSubmitAccountNumber(editForm.accountnumber) ||
+                              e.has_accountnumber,
                             user_type: editForm.user_type,
                             Allpannel: payload.Allpannel,
                         };
@@ -534,7 +548,7 @@ export default function ConsultantV() {
                                                             user_type: emp.user_type || '',
                                                             doj: emp.doj || '',
                                                             salary: emp.salary || '',
-                                                            accountnumber: emp.accountnumber || '',
+                                                            accountnumber: accountNumberForEdit(emp.accountnumber, emp.has_accountnumber),
                                                             profile_picture: null,
                                                             roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
                                                         });
@@ -1127,8 +1141,19 @@ export default function ConsultantV() {
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
                                         <input
                                             type="text"
-                                            placeholder="Enter Account Number"
+                                            placeholder={accountNumberPlaceholder(
+                                              list.find((e) => e.id === editId)?.has_accountnumber
+                                            )}
                                             value={editForm.accountnumber}
+                                            onFocus={() =>
+                                              setEditForm((f) => ({
+                                                ...f,
+                                                accountnumber: accountNumberOnFocus(
+                                                  f.accountnumber,
+                                                  list.find((e) => e.id === editId)?.has_accountnumber
+                                                ),
+                                              }))
+                                            }
                                             onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                         />

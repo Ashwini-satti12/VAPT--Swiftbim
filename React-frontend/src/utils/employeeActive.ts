@@ -44,3 +44,52 @@ export function getPasswordStrengthMessage(password: string): string | null {
 export function isStrongPassword(password: string): boolean {
   return getPasswordStrengthErrors(password).length === 0;
 }
+
+/** Shown after an account number is stored (never the real value). */
+export const ACCOUNT_NUMBER_MASK = "***";
+
+export function isAccountNumberMask(value?: string | null): boolean {
+  const v = String(value ?? "").trim();
+  if (!v) return false;
+  if (v === ACCOUNT_NUMBER_MASK || v === "••••••••") return true;
+  return /^[*•]{3,}$/.test(v);
+}
+
+export function accountNumberForDisplay(
+  _accountnumber?: string | null,
+  hasAccountNumber?: boolean
+): string {
+  if (hasAccountNumber) return ACCOUNT_NUMBER_MASK;
+  return "Not provided";
+}
+
+/** Edit/add forms: show mask when a number is already on file. */
+export function accountNumberForEdit(
+  _accountnumber?: string | null,
+  hasAccountNumber?: boolean
+): string {
+  if (hasAccountNumber) return ACCOUNT_NUMBER_MASK;
+  return "";
+}
+
+export function accountNumberPlaceholder(hasAccountNumber?: boolean): string {
+  if (hasAccountNumber) return "Enter new account number to update";
+  return "Enter Account Number";
+}
+
+/** Clear mask when user focuses the field to type a new number. */
+export function accountNumberOnFocus(
+  current: string,
+  hasStored?: boolean
+): string {
+  if (hasStored && isAccountNumberMask(current)) return "";
+  return current;
+}
+
+/** Only submit when user entered a new account number (not empty / not mask). */
+export function shouldSubmitAccountNumber(value?: string | null): boolean {
+  const v = String(value ?? "").trim();
+  if (!v) return false;
+  if (isAccountNumberMask(v)) return false;
+  return true;
+}

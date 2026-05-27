@@ -6,7 +6,11 @@ import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
 import { PasswordStrengthHints } from '../../components/ProtectedRoute';
-import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
+import {
+  PASSWORD_MIN_LENGTH,
+  getPasswordStrengthMessage,
+  shouldSubmitAccountNumber,
+} from '../../utils/employeeActive';
 
 const ROLE_OPTIONS: string[] = [
   "Bim Lead",
@@ -166,7 +170,9 @@ export default function AddConsultantBC() {
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.salary) formData.append('salary', form.salary);
-    if (form.accountnumber) formData.append('accountnumber', form.accountnumber);
+    if (shouldSubmitAccountNumber(form.accountnumber)) {
+      formData.append('accountnumber', form.accountnumber.trim());
+    }
     if (form.roles.length) formData.append('roles', form.roles.join(','));
     formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {

@@ -1,23 +1,210 @@
 import hashlib
+import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import jwt
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, make_response
 from db import get_db, query_one
-from auth_middleware import login_required
+from auth_middleware import login_required, client_required, get_token, decode_token_status
 from config import Config
 from blueprints.employees import _validate_password_strength
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
+def _create_access_token(*, user_id, company_id, email, user_type):
+    """Issue a JWT access token (same pattern as project APIs — Bearer + exp)."""
+    now = int(time.time())
+    expires_in = Config.JWT_ACCESS_TOKEN_EXPIRES
+    payload = {
+        "user_id": user_id,
+        "company_id": company_id,
+        "email": email,
+        "user_type": user_type,
+        "iat": now,
+        "exp": now + expires_in,
+    }
+    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
+    if hasattr(token, "decode"):
+        token = token.decode("utf-8")
+    expires_at = datetime.utcfromtimestamp(payload["exp"]).isoformat() + "Z"
+    return token, expires_in, expires_at
+
+
+def _create_refresh_token(*, user_id, company_id, email, user_type):
+    """Longer-lived refresh token (stored in cookie for browser session persistence)."""
+    now = int(time.time())
+    expires_in = Config.JWT_REFRESH_TOKEN_EXPIRES
+    payload = {
+        "user_id": user_id,
+        "company_id": company_id,
+        "email": email,
+        "user_type": user_type,
+        "iat": now,
+        "exp": now + expires_in,
+        "typ": "refresh",
+    }
+    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
+    if hasattr(token, "decode"):
+        token = token.decode("utf-8")
+    expires_at = datetime.utcfromtimestamp(payload["exp"]).isoformat() + "Z"
+    return token, expires_in, expires_at
+
+
+def _set_auth_cookies(resp, *, access_token: str, refresh_token: str | None = None):
+    """Set cookies so tokens show in DevTools → Application → Cookies."""
+    secure = bool(getattr(Config, "AUTH_COOKIE_SECURE", False))
+    samesite = str(getattr(Config, "AUTH_COOKIE_SAMESITE", "Lax") or "Lax")
+
+    resp.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+    # Back-compat cookie key used by older middleware paths.
+    resp.set_cookie(
+        "token",
+        access_token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+
+    if refresh_token:
+        resp.set_cookie(
+            "refresh_token",
+            refresh_token,
+            httponly=True,
+            secure=secure,
+            samesite=samesite,
+            path="/",
+        )
+
+
+def _clear_auth_cookies(resp):
+    resp.delete_cookie("access_token", path="/")
+    resp.delete_cookie("refresh_token", path="/")
+    resp.delete_cookie("token", path="/")
+    return resp
+
+
 def md5_hash(text):
     return hashlib.md5(text.encode()).hexdigest()
 
 
+def _login_json_response(*, token, expires_in, expires_at, user):
+    """Login payload + Authorization response header (visible in Network tab)."""
+    body = {
+        "success": True,
+        "message": "Login successful",
+        "token": token,
+        "token_type": "Bearer",
+        "expires_in": expires_in,
+        "expires_at": expires_at,
+        "user": user,
+    }
+    resp = make_response(jsonify(body))
+    g.auth_token = token
+    resp.headers["Authorization"] = f"Bearer {token}"
+    # Also set cookies so tokens appear in DevTools Application → Cookies.
+    refresh_token, _r_exp_in, _r_exp_at = _create_refresh_token(
+        user_id=user["id"],
+        company_id=user.get("company_id") or 0,
+        email=user["email"],
+        user_type=user.get("user_type") or "employee",
+    )
+    _set_auth_cookies(resp, access_token=token, refresh_token=refresh_token)
+    return resp
+
+
+def _session_confirm_from_bearer(*, allowed_user_types):
+    """
+  When POST /login is called with Authorization: Bearer <jwt> and no credentials in body,
+  confirm the session (same Bearer pattern as project APIs).
+    """
+    data = request.get_json(silent=True) or {}
+    if (data.get("email") or "").strip() or data.get("password"):
+        return None
+
+    raw_token = get_token()
+    if not raw_token:
+        return None
+
+    payload, err = decode_token_status(raw_token)
+    if not payload or err or payload.get("reset"):
+        return None
+
+    user_type = payload.get("user_type") or "employee"
+    if user_type not in allowed_user_types:
+        return None
+
+    user_id = payload.get("user_id")
+    email = (payload.get("email") or "").strip()
+    company_id = payload.get("company_id") or 0
+    if not user_id or not email:
+        return None
+
+    conn = get_db()
+    row = None
+    if user_type == "vendor":
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id, full_name, profile_picture, role AS user_role FROM vendor_employee WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+    elif user_type == "client":
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id, fullName AS full_name, email FROM clientinformation WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+    else:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id, full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
+                (user_id, company_id),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return None
+
+    token, expires_in, expires_at = _create_access_token(
+        user_id=user_id,
+        company_id=company_id,
+        email=email,
+        user_type=user_type,
+    )
+    user = {
+        "id": user_id,
+        "full_name": row.get("full_name") or "",
+        "email": email,
+        "company_id": company_id,
+        "profile_picture": row.get("profile_picture"),
+        "user_role": row.get("user_role"),
+        "user_type": user_type,
+    }
+    return _login_json_response(
+        token=token,
+        expires_in=expires_in,
+        expires_at=expires_at,
+        user=user,
+    )
+
+
 @bp.route("/login", methods=["POST"])
 def login():
+    confirmed = _session_confirm_from_bearer(allowed_user_types=("employee", "vendor"))
+    if confirmed is not None:
+        return confirmed
+
     data = request.get_json() or {}
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
@@ -128,40 +315,36 @@ def login():
                 (email, today, time_in, company_id),
             )
 
-    expires_at = datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
-    payload = {
-        "user_id": user_id,
-        "company_id": company_id,
-        "email": email,
-        "user_type": user_type,
-        "exp": expires_at,
-    }
-    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
-    if hasattr(token, "decode"):
-        token = token.decode("utf-8")
+    token, expires_in, expires_at = _create_access_token(
+        user_id=user_id,
+        company_id=company_id,
+        email=email,
+        user_type=user_type,
+    )
 
-    return jsonify({
-        "success": True,
-        "message": "Login successful",
-        "token": token,
-        "expires_in": Config.JWT_ACCESS_TOKEN_EXPIRES,
-        "expires_at": expires_at.isoformat() + "Z",
-        "user": {
+    return _login_json_response(
+        token=token,
+        expires_in=expires_in,
+        expires_at=expires_at,
+        user={
             "id": user_id,
             "full_name": full_name,
             "email": email,
             "company_id": company_id,
-            # Surface profile_picture and basic role data so frontend has it immediately after login.
             "profile_picture": row.get("profile_picture"),
             "user_role": row.get("user_role") or row.get("role"),
             "user_type": user_type,
         },
-    })
+    )
 
 
 @bp.route("/client-login", methods=["POST"])
 def client_login():
     """Login for clients (clientinformation table). Returns JWT with user_type=client."""
+    confirmed = _session_confirm_from_bearer(allowed_user_types=("client",))
+    if confirmed is not None:
+        return confirmed
+
     data = request.get_json() or {}
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
@@ -188,32 +371,25 @@ def client_login():
     full_name = row.get("fullName") or ""
     company_id = row.get("Company_id") or 0
 
-    expires_at = datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
-    payload = {
-        "user_id": user_id,
-        "company_id": company_id,
-        "email": email,
-        "user_type": "client",
-        "exp": expires_at,
-    }
-    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
-    if hasattr(token, "decode"):
-        token = token.decode("utf-8")
+    token, expires_in, expires_at = _create_access_token(
+        user_id=user_id,
+        company_id=company_id,
+        email=email,
+        user_type="client",
+    )
 
-    return jsonify({
-        "success": True,
-        "message": "Login successful",
-        "token": token,
-        "expires_in": Config.JWT_ACCESS_TOKEN_EXPIRES,
-        "expires_at": expires_at.isoformat() + "Z",
-        "user": {
+    return _login_json_response(
+        token=token,
+        expires_in=expires_in,
+        expires_at=expires_at,
+        user={
             "id": user_id,
             "full_name": full_name,
             "email": email,
             "company_id": company_id,
             "user_type": "client",
         },
-    })
+    )
 
 
 @bp.route("/logout", methods=["POST"])
@@ -306,7 +482,16 @@ def logout():
             except Exception:
                 # Don't block logout on attendance update problems
                 pass
-    return jsonify({"success": True, "message": "Logged out"})
+    resp = make_response(jsonify({"success": True, "message": "Logged out"}))
+    return _clear_auth_cookies(resp)
+
+
+@bp.route("/client-logout", methods=["POST"])
+@client_required
+def client_logout():
+    """Client portal logout — requires Bearer JWT (same as project APIs)."""
+    resp = make_response(jsonify({"success": True, "message": "Logged out"}))
+    return _clear_auth_cookies(resp)
 
 
 @bp.route("/forgot-password", methods=["POST"])

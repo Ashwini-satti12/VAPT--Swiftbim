@@ -1,7 +1,9 @@
+import base64
 import hashlib
 import os
 import re
 from flask import Blueprint, request, jsonify, g, current_app
+from config import Config
 from werkzeug.utils import secure_filename
 from upload_resolver import secure_save_upload
 from db import get_db
@@ -9,6 +11,45 @@ from auth_middleware import project_app_required
 from utils import mailer
 
 bp = Blueprint("employees", __name__, url_prefix="/api/employees")
+
+_ACCOUNT_ENC_PREFIX = "enc:v1:"
+
+
+def _account_fernet():
+    from cryptography.fernet import Fernet
+
+    raw = (
+        os.getenv("ACCOUNT_ENCRYPTION_KEY")
+        or Config.JWT_SECRET_KEY
+        or Config.SECRET_KEY
+        or ""
+    )
+    key = base64.urlsafe_b64encode(hashlib.sha256(str(raw).encode("utf-8")).digest())
+    return Fernet(key)
+
+
+def _encrypt_account_number(plain):
+    if plain is None:
+        return None
+    text = str(plain).strip()
+    if not text:
+        return None
+    if text.startswith(_ACCOUNT_ENC_PREFIX):
+        return text
+    token = _account_fernet().encrypt(text.encode("utf-8")).decode("ascii")
+    return f"{_ACCOUNT_ENC_PREFIX}{token}"
+
+
+def _account_number_is_set(value) -> bool:
+    return bool(value and str(value).strip())
+
+
+def _sanitize_account_for_api(row: dict) -> dict:
+    out = dict(row)
+    raw = out.get("accountnumber")
+    out["has_accountnumber"] = _account_number_is_set(raw)
+    out["accountnumber"] = None
+    return out
 
 
 def _validate_password_strength(password):
@@ -149,8 +190,8 @@ def list_employees():
         for k in ["doj", "dob"]:
             if d.get(k) and hasattr(d[k], "isoformat"):
                 d[k] = d[k].isoformat()
-        employees.append(d)
-        
+        employees.append(_sanitize_account_for_api(d))
+
     return jsonify({"employees": employees})
 
 
@@ -206,7 +247,7 @@ def create_employee():
     empid = data.get("empid") or ""
     # Optional numeric/financial fields
     salary = data.get("salary")
-    accountnumber = data.get("accountnumber")
+    accountnumber = _encrypt_account_number(data.get("accountnumber"))
     active = data.get("active") or "active"  # Default to 'active' if not provided
     roles = data.get("role") or data.get("roles") or []
     if isinstance(roles, str):
@@ -374,7 +415,8 @@ def get_employee(emp_id):
             d[k] = d[k].isoformat()
     if d.get("Allpannel"):
         d["roles"] = [x.strip() for x in d["Allpannel"].split(",") if x.strip()]
-    return jsonify(d)
+    d.pop("password", None)
+    return jsonify(_sanitize_account_for_api(d))
 
 
 @bp.route("/<int:emp_id>", methods=["PUT", "PATCH"])
@@ -463,6 +505,8 @@ def update_employee(emp_id):
                     pass
             if key == "department" and not value:
                 value = None
+            if key == "accountnumber":
+                value = _encrypt_account_number(value)
             sets.append(f"`{key}` = %s")
             params.append(value)
 
@@ -508,7 +552,7 @@ def update_employee(emp_id):
 
             def _mask_sensitive(label):
                 # Never include sensitive values in email
-                if label in ("Password",):
+                if label in ("Password", "Account Number"):
                     return "Updated"
                 return ""
 
@@ -561,7 +605,8 @@ def update_employee(emp_id):
                 if _same(new_val, old_val):
                     continue
 
-                updated_items.append((lbl, new_val if new_val else "Updated"))
+                masked = _mask_sensitive(lbl)
+                updated_items.append((lbl, masked if masked else (new_val if new_val else "Updated")))
             if profile_path is not None or ("profile_picture" in data and data.get("profile_picture") is not None):
                 # Only include if it changed
                 old_pic = _norm_before(before.get("profile_picture"))
