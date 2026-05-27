@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { FiGrid, FiMenu, FiX, FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
+import { parseUrlId } from "../../utils/urlIdCrypto";
 import { COUNTRY_CODES, getPhoneLength } from "../../utils/countryCodes";
 import { PasswordStrengthHints } from "../../components/ProtectedRoute";
 import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from "../../utils/employeeActive";
@@ -541,9 +542,9 @@ export default function ResourcesV() {
   const editParam = searchParams.get("edit");
   useEffect(() => {
     if (editParam && list.length) {
-      const id = parseInt(editParam, 10);
-      const emp = list.find((e) => e.id === id);
-      if (emp) {
+      const id = parseUrlId(editParam);
+      const emp = id != null ? list.find((e) => e.id === id) : undefined;
+      if (emp && id != null) {
         setEditId(id);
         setActiveView("edit");
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useUrlIdParam } from "../../hooks/useUrlIdParam";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api, { appApiBase } from "../../lib/api";
@@ -195,7 +196,7 @@ const SCROLLBAR_STYLE = `
 `;
 
 export default function MytaskViewV() {
-  const { id } = useParams<{ id: string }>();
+  const id = useUrlIdParam("id");
   const location = useLocation();
   const state = location.state as { task?: Task; from?: string } | null;
   const initialTask = state?.task;
@@ -402,7 +403,7 @@ export default function MytaskViewV() {
   }, []);
 
   const refreshTaskFromApi = (taskId?: number) => {
-    const tid = taskId || task?.id || Number(id);
+    const tid = taskId || task?.id || id;
     if (!tid) return;
 
     if (fromTeamTask) {
@@ -475,8 +476,8 @@ export default function MytaskViewV() {
   useEffect(() => {
     if (initialTask) {
       refreshTaskFromApi(initialTask.id);
-    } else if (id) {
-      refreshTaskFromApi(Number(id));
+    } else if (id != null) {
+      refreshTaskFromApi(id);
     }
   }, [id, initialTask?.id]);
 

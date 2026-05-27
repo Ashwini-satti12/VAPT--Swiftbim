@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import api from "../../../lib/api";
+import { vendorProjectIdQuery } from "../../../utils/urlIdCrypto";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { RiDeleteBin5Fill } from "react-icons/ri";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
@@ -2347,7 +2348,7 @@ export default function VendorBimLeadProjects() {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
                                     navigate(
-                                      `/v/milestones?project_id=${p.id}`,
+                                      `/v/milestones?${vendorProjectIdQuery(p.id)}`,
                                     );
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"

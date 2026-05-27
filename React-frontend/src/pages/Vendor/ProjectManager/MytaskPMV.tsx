@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../../lib/api";
+import { encodeUrlId } from "../../../utils/urlIdCrypto";
 import toast from "react-hot-toast";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
@@ -1003,7 +1004,7 @@ quarterAgo.setMonth(now.getMonth() - 3);
     }).catch(() => toast.error("Failed to delete task")).finally(() => setDeleteTaskId(null));
   };
   const openEditTask = (task: Task) => navigate("/vpm/mytasks/edit", { state: { task } });
-  const openViewTask = (task: Task) => navigate(`/vpm/mytasks/view/${task.id}`, { state: { task } });
+  const openViewTask = (task: Task) => navigate(`/vpm/mytasks/view/${encodeUrlId(task.id)}`, { state: { task } });
 
   const employeeOptions = ["Select Employee", "Show All", ...employees.map(e => e.full_name).filter(Boolean)];
   const projectOptions = ["Select Project", "Show All", ...projects.map(p => p.project_name).filter(Boolean)];

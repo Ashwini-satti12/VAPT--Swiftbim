@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import api from "../../../lib/api";
+import { encodeUrlId } from "../../../utils/urlIdCrypto";
 import { toast } from "react-hot-toast";
 import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
@@ -497,7 +498,7 @@ export default function VendorBimLeadTasks() {
 
   const handleViewAction = (task: Task) => {
     setOpenMenuTaskId(null);
-    navigate(`/vendor-bim-lead/tasks/view/${task.id}`, { state: { task } });
+    navigate(`/vendor-bim-lead/tasks/view/${encodeUrlId(task.id)}`, { state: { task } });
   };
 
   const SHOW_OPTIONS = [

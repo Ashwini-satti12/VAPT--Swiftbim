@@ -462,9 +462,12 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       if (!passwordUpdateFailed) {
         setIsEditingActual(false);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Profile update error:", err);
-      alert("Failed to update profile. Please try again.");
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to update profile. Please try again.";
+      alert(msg);
     } finally {
       setIsLoading(false);
     }

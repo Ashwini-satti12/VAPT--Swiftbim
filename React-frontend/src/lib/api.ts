@@ -39,6 +39,7 @@ const TOKEN_EXPIRES_AT_KEY = 'token_expires_at';
 /** Password-reset / forgot flows — never attach Bearer. */
 const PUBLIC_AUTH_PATHS = [
   '/api/auth/forgot-password',
+  '/api/auth/resend-otp',
   '/api/auth/verify-otp',
   '/api/auth/reset-password',
 ];
