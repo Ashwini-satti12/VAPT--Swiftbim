@@ -93,7 +93,7 @@ def load_user_context():
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, full_name, role AS user_role, 'Vendor' AS Allpannel, status AS active FROM vendor_employee WHERE id = %s",
+            "SELECT id, full_name, role AS user_role, 'Vendor' AS Allpannel, active FROM vendor_employee WHERE id = %s",
             (g.user_id,),
         )
     else:
