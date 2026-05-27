@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import EncryptedQueryRedirect from "./components/EncryptedQueryRedirect";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -195,6 +196,7 @@ function App() {
         }}
       />
       <BrowserRouter>
+        <EncryptedQueryRedirect />
         <Routes>
           {/* <Route path="/" element={<Login />} /> */}
           <Route path="/" element={<Navigate to="/login" />} />
