@@ -214,3 +214,24 @@ def send_employee_profile_updated_email(email, full_name, updated_fields=None, u
     )
 
     return _send_mail(email, subject, "\n".join(body_lines))
+
+def send_new_device_alert(email, full_name, ip_address, device_info, time_str):
+    """Notify user of a login from a new device/IP."""
+    subject = "Security Alert: New Device Login"
+    body_lines = [
+        f"Dear {full_name or 'User'},",
+        "",
+        "We detected a new login to your account from a device we haven't seen before.",
+        "",
+        "Login Details:",
+        f"- Time: {time_str}",
+        f"- IP Address: {ip_address}",
+        f"- Device: {device_info}",
+        "",
+        "If this was you, you can safely ignore this email.",
+        "If you did not authorize this login, please reset your password immediately.",
+        "",
+        "Best regards,",
+        "SwiftBIM Security Team"
+    ]
+    return _send_mail(email, subject, "\n".join(body_lines))

@@ -209,12 +209,13 @@ def change_password():
     cur = conn.cursor(dictionary=True)
     user_type = getattr(g, "user_type", "employee")
     table = "vendor_employee" if user_type == "vendor" else "employee"
-    
+    hist_user_type = "vendor" if user_type == "vendor" else "employee"
+
     cur.execute(f"SELECT password FROM {table} WHERE id = %s", (g.user_id,))
     row = cur.fetchone()
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
-    
+
     stored = (row.get("password") or "").strip()
     # Verify current password (supports werkzeug hash, md5, and legacy plain-text)
     is_valid = False
@@ -223,22 +224,60 @@ def change_password():
     else:
         current_md5 = hashlib.md5(current.encode()).hexdigest()
         is_valid = (current_md5 == stored) or (current == stored)
-        
+
     if not is_valid:
         return jsonify({"success": False, "message": "Current password is incorrect"}), 401
-    
+
     # Store md5 hash for compatibility with legacy schema/data.
     # (Other auth paths already support md5 and this avoids column-length issues.)
-    hashed = hashlib.md5(new_password.encode()).hexdigest()
-    
-    # Update both tables to ensure no duplicate email records cause login confusion
+    new_hashed = hashlib.md5(new_password.encode()).hexdigest()
+
     email = getattr(g, "user_email", None)
+
+    # --- Password reuse prevention ---
+    # Normalise stored hash to md5 for history comparison
+    stored_md5 = stored if not (stored.startswith("scrypt:") or stored.startswith("pbkdf2:")) else None
+
     if email:
-        cur.execute("UPDATE employee SET password = %s WHERE email = %s", (hashed, email))
-        cur.execute("UPDATE vendor_employee SET password = %s WHERE email = %s", (hashed, email))
+        # Load full history for this user
+        cur.execute(
+            "SELECT password_hash FROM password_history WHERE email = %s AND user_type = %s ORDER BY created_at DESC",
+            (email, hist_user_type),
+        )
+        history = cur.fetchall()
+        history_hashes = {h["password_hash"] for h in history}
+
+        # Check new password against history
+        if new_hashed in history_hashes:
+            return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
+
+        # Also check new password is not the same as current (covers werkzeug hashes too)
+        if stored.startswith("scrypt:") or stored.startswith("pbkdf2:"):
+            if check_password_hash(stored, new_password):
+                return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
+        else:
+            if new_hashed == stored_md5:
+                return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
+
+        # Save current password to history (if not already recorded) to prevent X->Y->X cycling
+        if stored_md5 and stored_md5 not in history_hashes:
+            cur.execute(
+                "INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, %s, %s)",
+                (email, hist_user_type, stored_md5),
+            )
+
+    # Apply the new password across all tables sharing the same email
+    if email:
+        cur.execute("UPDATE employee SET password = %s WHERE email = %s", (new_hashed, email))
+        cur.execute("UPDATE vendor_employee SET password = %s WHERE email = %s", (new_hashed, email))
+        # Record new password in history
+        cur.execute(
+            "INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, %s, %s)",
+            (email, hist_user_type, new_hashed),
+        )
     else:
         # Fallback to ID-based update if email is somehow missing from context
-        cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (hashed, g.user_id))
-        
+        cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (new_hashed, g.user_id))
+
     conn.commit()
     return jsonify({"success": True, "message": "Password updated successfully"})

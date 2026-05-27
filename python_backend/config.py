@@ -9,7 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key-change-in-production")
     MYSQL_HOST = os.environ.get("MYSQL_HOST", "localhost")
     MYSQL_USER = os.environ.get("MYSQL_USER", "root")
-    MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
+    MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "root@123")
     MYSQL_DB = os.environ.get("MYSQL_DB", "snh6_swiftproject")
     MYSQL_PORT = int(os.environ.get("MYSQL_PORT", "3306"))
     MYSQL_CURSORCLASS = "DictCursor"
@@ -18,7 +18,8 @@ class Config:
         "JWT_SECRET_KEY",
         os.environ.get("SECRET_KEY", "your-secret-key-change-in-production"),
     )
-    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRES", str(86400 * 30)))
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRES", str(900)))
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.environ.get("JWT_REFRESH_TOKEN_EXPIRES", str(86400 * 30)))
     UPLOAD_FOLDER = os.environ.get(
         "UPLOAD_FOLDER",
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads"),

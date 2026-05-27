@@ -28,6 +28,8 @@ def get_current_user():
     payload = decode_token(token)
     if not payload:
         return None
+    if payload.get("token_type") == "refresh":
+        return None
     user_type = payload.get("user_type") or "employee"
     return payload.get("user_id"), payload.get("company_id"), payload.get("email"), user_type
 
@@ -39,6 +41,8 @@ def get_current_client():
         return None
     payload = decode_token(token)
     if not payload:
+        return None
+    if payload.get("token_type") == "refresh":
         return None
     if payload.get("user_type") != "client":
         return None

@@ -14,12 +14,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   });
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('token'));
+  const [refreshToken, setRefreshTokenState] = useState<string | null>(() => localStorage.getItem('refreshToken'));
   const [loading, setLoading] = useState(true);
 
   const setToken = useCallback((t: string | null) => {
     setTokenState(t);
     if (t) localStorage.setItem('token', t);
     else localStorage.removeItem('token');
+  }, []);
+
+  const setRefreshToken = useCallback((t: string | null) => {
+    setRefreshTokenState(t);
+    if (t) localStorage.setItem('refreshToken', t);
+    else localStorage.removeItem('refreshToken');
   }, []);
 
   const fetchMe = useCallback(async () => {
@@ -75,11 +82,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           success: boolean;
           message?: string;
           token?: string;
+          refresh_token?: string;
           user?: User;
         }>('/api/auth/login', { email, password });
         if (data.success && data.token && data.user) {
           const u = { ...data.user, user_type: data.user.user_type || 'employee' };
           setToken(data.token);
+          if (data.refresh_token) setRefreshToken(data.refresh_token);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
           return { success: true, user: u };
@@ -102,11 +111,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           success: boolean;
           message?: string;
           token?: string;
+          refresh_token?: string;
           user?: User;
         }>('/api/auth/client-login', { email, password });
         if (data.success && data.token && data.user) {
           const u = { ...data.user, user_type: 'client' as const };
           setToken(data.token);
+          if (data.refresh_token) setRefreshToken(data.refresh_token);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
           return { success: true };
@@ -131,11 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setToken(null);
+    setRefreshToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('userProfilePicture');
-  }, [setToken, user?.user_type]);
+  }, [setToken, setRefreshToken, user?.user_type]);
 
   const value: AuthState = {
     user,
