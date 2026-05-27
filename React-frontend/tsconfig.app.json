@@ -16,6 +16,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    "paths": {
+      "react-router-dom": ["./src/lib/react-router-dom.tsx"],
+      "react-router-dom-original": ["./node_modules/react-router-dom"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": false,
