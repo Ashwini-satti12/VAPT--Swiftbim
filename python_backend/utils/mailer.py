@@ -1,64 +1,101 @@
 import smtplib
 import ssl
-from email.mime.text import MIMEText
+from email.message import EmailMessage
+from email.utils import formataddr
 from flask import current_app
 
-def _send_mail(to_email, subject, body):
-    """Internal helper to send email using configured SMTP settings."""
+
+def _send_mail(to_email, subject, body, html_body=None):
+    """Send email with headers aligned to the authenticated Gmail account (reduces spam)."""
     mail_server = current_app.config.get("MAIL_SERVER") or ""
     mail_port = int(current_app.config.get("MAIL_PORT") or 587)
     mail_use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
-    mail_username = current_app.config.get("MAIL_USERNAME") or ""
-    mail_password = current_app.config.get("MAIL_PASSWORD") or ""
-    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or mail_username
+    mail_username = (current_app.config.get("MAIL_USERNAME") or "").strip()
+    mail_password = (current_app.config.get("MAIL_PASSWORD") or "").replace(" ", "")
+    from_name = (current_app.config.get("MAIL_FROM_NAME") or "SwiftBIM").strip()
 
-    if not (mail_server and sender):
+    if not (mail_server and mail_username):
         current_app.logger.warning("Email NOT sent: SMTP not configured.")
         return False
 
-    msg = MIMEText(body, "plain", "utf-8")
+    to_email = (to_email or "").strip()
+    if not to_email:
+        return False
+
+    msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = sender
+    msg["From"] = formataddr((from_name, mail_username))
     msg["To"] = to_email
+    msg["Reply-To"] = mail_username
+    msg.set_content(body)
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
 
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(mail_server, mail_port, timeout=10) as server:
+        with smtplib.SMTP(mail_server, mail_port, timeout=15) as server:
             if mail_use_tls:
                 server.starttls(context=context)
-            if mail_username and mail_password:
+            if mail_password:
                 server.login(mail_username, mail_password)
-            server.sendmail(sender, [to_email], msg.as_string())
+            server.send_message(msg, from_addr=mail_username, to_addrs=[to_email])
         return True
     except Exception as e:
         current_app.logger.error(f"Failed to send email to {to_email}: {e}")
         return False
 
 def send_welcome_email(email, full_name, user_role, password=None):
-    """Send a welcome email when a consultant is successfully added."""
-    subject = "Welcome to Our Platform"
-    
+    """Send a welcome email when a consultant/employee is added."""
+    to_email = (email or "").strip()
+    login_url = (current_app.config.get("APP_LOGIN_URL") or "http://localhost:5173/login").strip()
+    role_label = user_role or "team member"
+    name = full_name or "there"
+
+    subject = f"SwiftBIM account created — {name}"
+
     body_lines = [
-        f"Dear {full_name},",
+        f"Hello {name},",
         "",
-        f"We are pleased to inform you that you have been successfully added as a {user_role} to our platform.",
+        f"Your SwiftBIM account has been created as {role_label}.",
         "",
-        "You can now access your account and start collaborating with the team. Please use your registered email to log in and explore your assigned tasks and responsibilities.",
+        f"Sign in here: {login_url}",
+        f"Email: {to_email}",
     ]
-    
     if password:
+        body_lines.append(f"Temporary password: {password}")
         body_lines.append("")
-        body_lines.append("Your login credentials are:")
-        body_lines.append(f"Email: {email}")
-        body_lines.append(f"Password: {password}")
-    
-    body_lines.append("")
-    body_lines.append("If you have any questions or need assistance, feel free to reach out to us.")
-    body_lines.append("")
-    body_lines.append("Best regards,")
-    body_lines.append("SwiftBIM Team")
-    
-    return _send_mail(email, subject, "\n".join(body_lines))
+        body_lines.append("Please change your password after your first login.")
+    body_lines.extend(
+        [
+            "",
+            "If you did not expect this message, contact your administrator.",
+            "",
+            "Regards,",
+            "SwiftBIM Team",
+        ]
+    )
+    body = "\n".join(body_lines)
+
+    pwd_block = (
+        f"<p><strong>Temporary password:</strong> {password}</p>"
+        "<p><em>Please change your password after your first login.</em></p>"
+        if password
+        else ""
+    )
+    html = f"""<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;color:#222;line-height:1.5;">
+<p>Hello {name},</p>
+<p>Your <strong>SwiftBIM</strong> account has been created as <strong>{role_label}</strong>.</p>
+<p><a href="{login_url}">Sign in to SwiftBIM</a></p>
+<ul>
+  <li><strong>Email:</strong> {to_email}</li>
+</ul>
+{pwd_block}
+<p>If you did not expect this message, contact your administrator.</p>
+<p>Regards,<br>SwiftBIM Team</p>
+</body></html>"""
+
+    return _send_mail(to_email, subject, body, html_body=html)
 
 def send_project_creation_email(full_name, email, project_name, start_date, due_date):
     """Send an email notification about a new project assignment."""
@@ -213,4 +250,25 @@ def send_employee_profile_updated_email(email, full_name, updated_fields=None, u
         ]
     )
 
+    return _send_mail(email, subject, "\n".join(body_lines))
+
+def send_new_device_alert(email, full_name, ip_address, device_info, time_str):
+    """Notify user of a login from a new device/IP."""
+    subject = "Security Alert: New Device Login"
+    body_lines = [
+        f"Dear {full_name or 'User'},",
+        "",
+        "We detected a new login to your account from a device we haven't seen before.",
+        "",
+        "Login Details:",
+        f"- Time: {time_str}",
+        f"- IP Address: {ip_address}",
+        f"- Device: {device_info}",
+        "",
+        "If this was you, you can safely ignore this email.",
+        "If you did not authorize this login, please reset your password immediately.",
+        "",
+        "Best regards,",
+        "SwiftBIM Security Team"
+    ]
     return _send_mail(email, subject, "\n".join(body_lines))

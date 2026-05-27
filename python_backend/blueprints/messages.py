@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import uuid
 import json
+from upload_resolver import secure_save_upload
 
 bp = Blueprint("messages", __name__, url_prefix="/api/messages")
 chat_bp = Blueprint("chat", __name__, url_prefix="/api/chat")
@@ -735,13 +736,21 @@ def send_message():
                     continue
                 ext = os.path.splitext(f.filename)[1].lower()
                 filename = f"{uuid.uuid4().hex}{ext}"
-                filepath = os.path.join(chat_upload_dir, filename)
-                f.save(filepath)
+                saved, upload_err = secure_save_upload(
+                    f,
+                    chat_upload_dir,
+                    category="chat",
+                    filename=filename,
+                    app_config=current_app.config,
+                )
+                if upload_err:
+                    return jsonify({"success": False, "message": upload_err}), 400
+                filepath = saved
                 # Derive MIME type category for rendering on frontend
                 mime = (f.content_type or "").lower()
                 att_type = "image" if mime.startswith("image/") else "file"
                 uploaded_files.append({
-                    "url": filename,
+                    "url": os.path.basename(filepath or filename),
                     "name": f.filename,
                     "type": att_type,
                 })

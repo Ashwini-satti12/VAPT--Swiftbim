@@ -5,6 +5,13 @@ import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
+import {
+  getPasswordStrengthMessage,
+  accountNumberForEdit,
+  accountNumberOnFocus,
+  accountNumberPlaceholder,
+  shouldSubmitAccountNumber,
+} from '../../utils/employeeActive';
 
 const PANEL_ROLES = [
     'Management', 'Accounts',
@@ -41,7 +48,8 @@ interface EmployeeEdit {
     doj?: string;
     user_type?: string;
     salary?: string;
-    accountnumber?: string;
+    accountnumber?: string | null;
+    has_accountnumber?: boolean;
     active?: string;
     Allpannel?: string;
 }
@@ -106,6 +114,7 @@ export default function EditConsultantBL() {
     const [loading, setLoading] = useState(true);
     const [editError, setEditError] = useState('');
     const [editSubmitting, setEditSubmitting] = useState(false);
+    const [hasStoredAccount, setHasStoredAccount] = useState(false);
     const [roles, setRoles] = useState<string[]>([]);
 
     useEffect(() => {
@@ -163,6 +172,7 @@ export default function EditConsultantBL() {
         }
         api.get<EmployeeEdit>(`/api/employees/${employeeId}`)
             .then(({ data }) => {
+                setHasStoredAccount(!!data.has_accountnumber);
                 setForm({
                     full_name: data.full_name ?? '',
                     email: data.email ?? '',
@@ -180,7 +190,7 @@ export default function EditConsultantBL() {
                     user_type: data.user_type ?? '',
                     doj: data.doj ?? '',
                     salary: data.salary ?? '',
-                    accountnumber: data.accountnumber ?? '',
+                    accountnumber: accountNumberForEdit(data.accountnumber, data.has_accountnumber),
                     profile_picture: null,
                     roles: data.Allpannel ? data.Allpannel.split(',').map((r) => r.trim()).filter(Boolean) : [],
                     active: (data.active || '').toLowerCase() === 'active' ? 'Active' : 'Deactivate',
@@ -228,6 +238,15 @@ export default function EditConsultantBL() {
             setEditError(`Phone number must be exactly ${expectedLength} digits for ${form.country_code}.`);
             return;
         }
+
+        if (form.password) {
+            const pwdMsg = getPasswordStrengthMessage(form.password);
+            if (pwdMsg) {
+                setEditError(pwdMsg);
+                return;
+            }
+        }
+
         setEditSubmitting(true);
 
         const hasNewFile = !!form.profile_picture;
@@ -242,7 +261,9 @@ export default function EditConsultantBL() {
             formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
             if (form.doj) formData.append('doj', form.doj);
             if (form.salary) formData.append('salary', form.salary);
-            if (form.accountnumber) formData.append('accountnumber', form.accountnumber);
+            if (shouldSubmitAccountNumber(form.accountnumber)) {
+              formData.append('accountnumber', form.accountnumber.trim());
+            }
             if (form.user_type) formData.append('user_type', form.user_type);
             if (form.roles.length) formData.append('roles', form.roles.join(','));
             if (form.password) formData.append('password', form.password);
@@ -270,7 +291,9 @@ export default function EditConsultantBL() {
                 doj: form.doj || undefined,
                 active: form.active === 'Active' ? 'active' : 'inactive',
                 salary: form.salary || undefined,
-                accountnumber: form.accountnumber || undefined,
+                ...(shouldSubmitAccountNumber(form.accountnumber)
+                  ? { accountnumber: form.accountnumber.trim() }
+                  : {}),
                 user_type: form.user_type || undefined,
                 Allpannel: form.roles.join(','),
                 ...(form.password ? { password: form.password } : {}),
@@ -397,8 +420,17 @@ export default function EditConsultantBL() {
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
                                 <input
                                     type="text"
-                                    placeholder="Enter Account Number"
+                                    placeholder={accountNumberPlaceholder(hasStoredAccount)}
                                     value={form.accountnumber}
+                                    onFocus={() =>
+                                      setForm((f) => ({
+                                        ...f,
+                                        accountnumber: accountNumberOnFocus(
+                                          f.accountnumber,
+                                          hasStoredAccount
+                                        ),
+                                      }))
+                                    }
                                     onChange={(e) => setForm((f) => ({ ...f, accountnumber: e.target.value }))}
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />

@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify, g, current_app
 from auth_middleware import login_required
 from db import get_db
 from phase1_project_enrichment import enrich_project_from_phase1, fetch_phase1_chain
+from upload_resolver import secure_save_upload
 import hashlib
 import random
 import smtplib
@@ -4295,11 +4296,15 @@ def add_vendor_resource_profile():
         if not os.path.exists(upload_dir):
             os.makedirs(upload_dir)
         filename = secure_filename(file.filename)
-        # Avoid empty filename
         if not filename:
-             filename = f"res_{uuid.uuid4().hex}"
-        file.save(os.path.join(upload_dir, filename))
-        cert_path = filename # Store the original filename
+             filename = f"res_{uuid.uuid4().hex}.pdf"
+        saved, upload_err = secure_save_upload(
+            file, upload_dir, category="document", filename=filename,
+            app_config=current_app.config,
+        )
+        if upload_err:
+            return jsonify({"success": False, "message": upload_err}), 400
+        cert_path = os.path.basename(saved or filename)
 
     cur = vendor_cursor()
     cur.execute(
@@ -4356,10 +4361,16 @@ def update_vendor_resource_profile(resource_id):
             os.makedirs(upload_dir)
         filename = secure_filename(file.filename)
         if not filename:
-            filename = f"res_{uuid.uuid4().hex}"
-        file.save(os.path.join(upload_dir, filename))
+            filename = f"res_{uuid.uuid4().hex}.pdf"
+        saved, upload_err = secure_save_upload(
+            file, upload_dir, category="document", filename=filename,
+            app_config=current_app.config,
+        )
+        if upload_err:
+            return jsonify({"success": False, "message": upload_err}), 400
+        cert_path = os.path.basename(saved or filename)
         sets.append("`certifications` = %s")
-        params.append(filename) # Store the original filename
+        params.append(cert_path)
 
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
@@ -4563,6 +4574,12 @@ def assign_resource_login(resource_id):
     # Optional explicit password from frontend (e.g. ResourcesV edit form)
     # If blank, we will keep the existing password for existing logins.
     raw_password = (data.get("password") or "").strip()
+    if raw_password:
+        from blueprints.employees import _validate_password_strength
+
+        pwd_err = _validate_password_strength(raw_password)
+        if pwd_err:
+            return jsonify({"success": False, "message": pwd_err}), 400
     full_name = (data.get("full_name") or "").strip()
     phone_number = (data.get("phone_number") or "").strip()
     address = (data.get("address") or "").strip()
@@ -4677,9 +4694,14 @@ def add_vendor_portfolio_project():
             os.makedirs(upload_dir)
         filename = secure_filename(file.filename)
         if not filename:
-             filename = f"port_{uuid.uuid4().hex}"
-        file.save(os.path.join(upload_dir, filename))
-        project_files_path = filename # Store the original filename
+             filename = f"port_{uuid.uuid4().hex}.pdf"
+        saved, upload_err = secure_save_upload(
+            file, upload_dir, category="document", filename=filename,
+            app_config=current_app.config,
+        )
+        if upload_err:
+            return jsonify({"success": False, "message": upload_err}), 400
+        project_files_path = os.path.basename(saved or filename)
 
     cur = vendor_cursor()
     cur.execute(
@@ -4736,10 +4758,15 @@ def update_vendor_portfolio_project(project_id):
             os.makedirs(upload_dir)
         filename = secure_filename(file.filename)
         if not filename:
-            filename = f"port_{uuid.uuid4().hex}"
-        file.save(os.path.join(upload_dir, filename))
+            filename = f"port_{uuid.uuid4().hex}.pdf"
+        saved, upload_err = secure_save_upload(
+            file, upload_dir, category="document", filename=filename,
+            app_config=current_app.config,
+        )
+        if upload_err:
+            return jsonify({"success": False, "message": upload_err}), 400
         sets.append("`project_files` = %s")
-        params.append(filename) # Store the original filename
+        params.append(os.path.basename(saved or filename))
 
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
@@ -4793,9 +4820,14 @@ def upload_vendor_document():
     os.makedirs(upload_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = os.path.join(upload_dir, filename)
-    file.save(filepath)
-    # Keep stored URLs compatible with existing frontend expectations
+    saved, upload_err = secure_save_upload(
+        file, upload_dir, category="document", filename=filename,
+        app_config=current_app.config,
+    )
+    if upload_err:
+        return jsonify({"success": False, "message": upload_err}), 400
+    filepath = saved
+    filename = os.path.basename(filepath or filename)
     file_url = f"/static/uploads/vendor_docs/{filename}"
 
     cur.execute(
@@ -4915,8 +4947,13 @@ def submit_vendor_invoice(milestone_id):
     os.makedirs(upload_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4().hex}{ext}"
-    filepath = os.path.join(upload_dir, filename)
-    file.save(filepath)
+    saved, upload_err = secure_save_upload(
+        file, upload_dir, category="document", filename=filename,
+        app_config=current_app.config,
+    )
+    if upload_err:
+        return jsonify({"success": False, "message": upload_err}), 400
+    filename = os.path.basename(saved or filename)
     file_url = f"/static/uploads/vendor_invoices/{filename}"
 
     conn = get_db()
@@ -5086,8 +5123,13 @@ def send_thread_message(thread_id):
             os.makedirs(upload_dir, exist_ok=True)
             ext = os.path.splitext(file.filename)[1]
             filename = f"{uuid.uuid4().hex}{ext}"
-            filepath = os.path.join(upload_dir, filename)
-            file.save(filepath)
+            saved, upload_err = secure_save_upload(
+                file, upload_dir, category="chat", filename=filename,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            filename = os.path.basename(saved or filename)
             attachment_url = f"/static/uploads/vendor_comm/{filename}"
     else:
         data = request.get_json(silent=True) or {}
@@ -6534,9 +6576,13 @@ def upload_vendor_task_output_files(task_id):
             name = str(uuid.uuid4()) + "_" + "".join(
                 c for c in f.filename if c.isalnum() or c in "._-"
             )
-            path = os.path.join(upload_dir, name)
-            f.save(path)
-            names.append(name)
+            saved, upload_err = secure_save_upload(
+                f, upload_dir, category="task_output", filename=name,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            names.append(os.path.basename(saved or name))
 
     if not names:
         return jsonify({"success": False, "message": "No valid files"}), 400
@@ -7851,8 +7897,13 @@ def update_vendor_project(project_id):
             if file and file.filename:
                 filename = secure_filename(file.filename)
                 unique_filename = f"{uuid.uuid4().hex}_{filename}"
-                file.save(os.path.join(vendor_docs_dir, unique_filename))
-                new_file_paths.append(unique_filename)
+                saved, upload_err = secure_save_upload(
+                    file, vendor_docs_dir, category="document", filename=unique_filename,
+                    app_config=current_app.config,
+                )
+                if upload_err:
+                    return jsonify({"success": False, "message": upload_err}), 400
+                new_file_paths.append(os.path.basename(saved or unique_filename))
 
     # Combine: JSON may send an explicit team file list; multipart adds vendor_docs uploads.
     if (
@@ -8048,8 +8099,14 @@ def upload_vendor_project_document(project_id):
         if not os.path.exists(vendor_docs_dir):
             os.makedirs(vendor_docs_dir)
             
-        file_path = os.path.join(vendor_docs_dir, unique_filename)
-        file.save(file_path)
+        saved, upload_err = secure_save_upload(
+            file, vendor_docs_dir, category="document", filename=unique_filename,
+            app_config=current_app.config,
+        )
+        if upload_err:
+            return jsonify({"success": False, "message": upload_err}), 400
+        file_path = saved
+        unique_filename = os.path.basename(file_path or unique_filename)
         
         # Save to database (append for multi-file support)
         conn = get_db()

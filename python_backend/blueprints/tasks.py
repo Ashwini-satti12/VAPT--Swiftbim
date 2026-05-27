@@ -3,6 +3,7 @@ from decimal import Decimal
 from flask import Blueprint, request, jsonify, g
 from db import get_db
 from auth_middleware import project_app_required
+from upload_resolver import secure_save_upload
 
 bp = Blueprint("tasks", __name__, url_prefix="/api/tasks")
 
@@ -783,9 +784,16 @@ def upload_output_files(task_id):
         if f.filename:
             ext = os.path.splitext(f.filename)[1]
             name = str(uuid.uuid4()) + "_" + "".join(c for c in f.filename if c.isalnum() or c in "._-")
-            path = os.path.join(upload_dir, name)
-            f.save(path)
-            names.append(name)
+            saved, upload_err = secure_save_upload(
+                f,
+                upload_dir,
+                category="task_output",
+                filename=name,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            names.append(os.path.basename(saved or name))
     new_path = (existing + "," + ",".join(names)) if existing else ",".join(names)
     cur.execute("UPDATE tasks SET outputfilepath = %s WHERE id = %s AND Company_id = %s", (new_path, task_id, g.company_id))
     conn.commit()

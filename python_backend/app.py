@@ -3,7 +3,7 @@ Flask backend for Swifterz Project Management.
 All PHP API endpoints have been converted to Flask blueprints.
 """
 import os
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request
 from flask_cors import CORS
 from config import Config
 from db import mysql
@@ -42,13 +42,25 @@ def create_app(config_class=Config):
     app.url_map.strict_slashes = False
     app.config.from_object(config_class)
 
-    # Mail credentials from environment only (set in .env or OS env vars)
-    app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
-    app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
-    if not app.config.get("MAIL_DEFAULT_SENDER"):
-        app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER") or app.config["MAIL_USERNAME"]
+    app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", "587"))
+    app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+    app.config["MAIL_USERNAME"] = (os.environ.get("MAIL_USERNAME") or "").strip() or None
+    _mail_pass = os.environ.get("MAIL_PASSWORD") or ""
+    app.config["MAIL_PASSWORD"] = _mail_pass.replace(" ", "") if _mail_pass else None
+    app.config["MAIL_DEFAULT_SENDER"] = (
+        os.environ.get("MAIL_DEFAULT_SENDER") or app.config["MAIL_USERNAME"] or ""
+    )
+    app.config["MAIL_FROM_NAME"] = os.environ.get("MAIL_FROM_NAME", "SwiftBIM")
+    app.config["APP_LOGIN_URL"] = os.environ.get("APP_LOGIN_URL", "http://localhost:5173/login")
 
-    CORS(app, origins=["*"], supports_credentials=True)
+    CORS(
+        app,
+        origins=["*"],
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["WWW-Authenticate", "Authorization"],
+    )
 
     mysql.init_app(app)
 
@@ -117,10 +129,45 @@ def create_app(config_class=Config):
         upload_root = app.config["UPLOAD_FOLDER"]
         return send_from_directory(upload_root, os.path.basename(requested))
 
+    @app.after_request
+    def _api_auth_response_header(response):
+        """
+        Echo Authorization: Bearer <jwt> on API responses (visible in DevTools → Network),
+        same as priority-tasks and other authenticated endpoints.
+        """
+        if request.path.startswith("/api/"):
+            from auth_middleware import get_token
+            from flask import g
+
+            token = getattr(g, "auth_token", None) or get_token()
+            if token:
+                response.headers["Authorization"] = f"Bearer {token}"
+        return response
+
+    @app.after_request
+    def _upload_security_headers(response):
+        """VAPT: prevent MIME sniffing on served uploads."""
+        if request.path.startswith(("/uploads/", "/static/uploads/")):
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["Content-Security-Policy"] = "default-src 'none'"
+        return response
+
     # Serve uploaded files (e.g., employee profile pictures)
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+        from werkzeug.utils import safe_join
+        from upload_resolver import DANGEROUS_EXTENSIONS
+
+        rel = (filename or "").strip().replace("\\", "/")
+        if not rel or ".." in rel.split("/"):
+            return {"error": "Invalid path"}, 400
+        ext = os.path.splitext(rel)[1].lower()
+        if ext in DANGEROUS_EXTENSIONS:
+            return {"error": "File type not allowed"}, 403
+        root = app.config["UPLOAD_FOLDER"]
+        directory = safe_join(root, os.path.dirname(rel)) or root
+        name = os.path.basename(rel)
+        return send_from_directory(directory, name)
 
     # Backward-compatible routes used by older frontend links / stored URLs
     @app.route("/static/uploads/vendor_docs/<path:filename>")

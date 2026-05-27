@@ -7,24 +7,17 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
-
-const PASSWORD_MIN_LENGTH = 8;
-
-function getPasswordStrengthErrors(password: string): string[] {
-  const errors: string[] = [];
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    errors.push(`at least ${PASSWORD_MIN_LENGTH} characters`);
-  }
-  if (!/[A-Z]/.test(password)) errors.push('one uppercase letter');
-  if (!/[a-z]/.test(password)) errors.push('one lowercase letter');
-  if (!/\d/.test(password)) errors.push('one number');
-  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) errors.push('one special character');
-  return errors;
-}
-
-function isStrongPassword(password: string): boolean {
-  return getPasswordStrengthErrors(password).length === 0;
-}
+import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import {
+  PASSWORD_MIN_LENGTH,
+  getPasswordStrengthMessage,
+  accountNumberForDisplay,
+  accountNumberForEdit,
+  accountNumberOnFocus,
+  accountNumberPlaceholder,
+  isAccountNumberMask,
+  shouldSubmitAccountNumber,
+} from '../../utils/employeeActive';
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -73,7 +66,8 @@ interface Employee {
   user_type?: string;
   profile_picture?: string;
   salary?: string;
-  accountnumber?: string;
+  accountnumber?: string | null;
+  has_accountnumber?: boolean;
   Allpannel?: string;
 }
 
@@ -542,9 +536,9 @@ export default function EmployeesPM() {
     }
 
     if (editForm.password) {
-      const passwordErrors = getPasswordStrengthErrors(editForm.password);
-      if (passwordErrors.length) {
-        alert(`Password must include ${passwordErrors.join(', ')}.`);
+      const editPwdMsg = getPasswordStrengthMessage(editForm.password);
+      if (editPwdMsg) {
+        alert(editPwdMsg);
         return;
       }
     }
@@ -564,7 +558,9 @@ export default function EmployeesPM() {
       dob: editForm.dob || undefined,
       doj: editForm.doj || undefined,
       salary: editForm.salary || undefined,
-      accountnumber: editForm.accountnumber || undefined,
+      ...(shouldSubmitAccountNumber(editForm.accountnumber)
+        ? { accountnumber: editForm.accountnumber.trim() }
+        : {}),
       user_type: editForm.user_type || undefined,
       Allpannel: editForm.roles.join(','),
       active: editForm.active === 'Active' ? 'active' : 'inactive',
@@ -586,7 +582,9 @@ export default function EmployeesPM() {
               dob: editForm.dob,
               doj: editForm.doj,
               salary: editForm.salary,
-              accountnumber: editForm.accountnumber,
+              accountnumber: null,
+              has_accountnumber:
+                shouldSubmitAccountNumber(editForm.accountnumber) || e.has_accountnumber,
               user_type: editForm.user_type,
               Allpannel: payload.Allpannel,
               active: editForm.active === 'Active' ? 'active' : 'inactive',
@@ -637,7 +635,7 @@ export default function EmployeesPM() {
       user_type: emp.user_type || '',
       doj: emp.doj || '',
       salary: emp.salary || '',
-      accountnumber: emp.accountnumber || '',
+      accountnumber: accountNumberForEdit(emp.accountnumber, emp.has_accountnumber),
       profile_picture: null,
       roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
       active: emp.active === 'active' ? 'Active' : 'Inactive',
@@ -652,9 +650,9 @@ export default function EmployeesPM() {
       return;
     }
 
-    const passwordErrors = getPasswordStrengthErrors(form.password);
-    if (passwordErrors.length) {
-      setAddError(`Password must include ${passwordErrors.join(', ')}.`);
+    const pwdMsg = getPasswordStrengthMessage(form.password);
+    if (pwdMsg) {
+      setAddError(pwdMsg);
       return;
     }
 
@@ -693,7 +691,9 @@ export default function EmployeesPM() {
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.salary.trim()) formData.append('salary', form.salary.trim());
-    if (form.accountnumber.trim()) formData.append('accountnumber', form.accountnumber.trim());
+    if (shouldSubmitAccountNumber(form.accountnumber)) {
+      formData.append('accountnumber', form.accountnumber.trim());
+    }
     if (form.roles.length) formData.append('roles', form.roles.join(','));
     if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {
@@ -739,7 +739,8 @@ export default function EmployeesPM() {
               doj: form.joining_date,
               address: form.address,
               salary: form.salary,
-              accountnumber: form.accountnumber,
+              accountnumber: null,
+              has_accountnumber: shouldSubmitAccountNumber(form.accountnumber),
               Allpannel: form.roles.join(','),
               profile_picture: data.profile_picture || undefined,
             },
@@ -1391,14 +1392,7 @@ export default function EmployeesPM() {
                       required
                       minLength={PASSWORD_MIN_LENGTH}
                     />
-                    <p className="text-[12px] text-[#8B8B8B] mt-1">
-                      At least 8 characters with uppercase, lowercase, a number, and a special character.
-                    </p>
-                    {form.password && !isStrongPassword(form.password) && (
-                      <p className="text-[12px] text-red-600 mt-1">
-                        Missing: {getPasswordStrengthErrors(form.password).join(', ')}.
-                      </p>
-                    )}
+                    <PasswordStrengthHints password={form.password} />
                   </div>
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
@@ -1625,11 +1619,29 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
                     <input
                       type="text"
-                      placeholder="Enter Account Number"
+                      placeholder={accountNumberPlaceholder(
+                        list.find((e) => e.id === editId)?.has_accountnumber
+                      )}
                       value={editForm.accountnumber}
+                      onFocus={() =>
+                        setEditForm((f: any) => ({
+                          ...f,
+                          accountnumber: accountNumberOnFocus(
+                            f.accountnumber,
+                            list.find((e) => e.id === editId)?.has_accountnumber
+                          ),
+                        }))
+                      }
                       onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
+                      autoComplete="off"
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
+                    {list.find((e) => e.id === editId)?.has_accountnumber &&
+                    isAccountNumberMask(editForm.accountnumber) ? (
+                      <p className="text-[12px] text-[#8B8B8B] mt-1 font-Gantari">
+                        Account number is stored securely. Click the field to enter a new one.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
@@ -2008,7 +2020,13 @@ export default function EmployeesPM() {
                 { label: 'Joined Date', value: selectedEmployee.doj },
                 { label: 'Salary', value: selectedEmployee.salary },
                 { label: 'Department', value: selectedEmployee.department },
-                { label: 'Account Number', value: selectedEmployee.accountnumber },
+                {
+                  label: 'Account Number',
+                  value: accountNumberForDisplay(
+                    selectedEmployee.accountnumber,
+                    selectedEmployee.has_accountnumber
+                  ),
+                },
               ].map((item, idx) => (
                 <div
                   key={idx}

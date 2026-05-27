@@ -1,22 +1,214 @@
 import hashlib
+import time
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import jwt
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, make_response
 from db import get_db, query_one
-from auth_middleware import login_required
+from auth_middleware import login_required, client_required, get_token, decode_token_status
 from config import Config
+from blueprints.employees import _validate_password_strength
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+
+LOGIN_LOCK_MAX_ATTEMPTS = 7
+LOGIN_LOCK_DURATION = timedelta(minutes=15)
+LOGIN_LOCK_MESSAGE = "Too many attempts. Please try again after 15 minutes."
+
+
+def _create_access_token(*, user_id, company_id, email, user_type):
+    """Issue a JWT access token (same pattern as project APIs — Bearer + exp)."""
+    now = int(time.time())
+    expires_in = Config.JWT_ACCESS_TOKEN_EXPIRES
+    payload = {
+        "user_id": user_id,
+        "company_id": company_id,
+        "email": email,
+        "user_type": user_type,
+        "iat": now,
+        "exp": now + expires_in,
+    }
+    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
+    if hasattr(token, "decode"):
+        token = token.decode("utf-8")
+    expires_at = datetime.utcfromtimestamp(payload["exp"]).isoformat() + "Z"
+    return token, expires_in, expires_at
+
+
+def _create_refresh_token(*, user_id, company_id, email, user_type):
+    """Longer-lived refresh token (stored in cookie for browser session persistence)."""
+    now = int(time.time())
+    expires_in = Config.JWT_REFRESH_TOKEN_EXPIRES
+    payload = {
+        "user_id": user_id,
+        "company_id": company_id,
+        "email": email,
+        "user_type": user_type,
+        "iat": now,
+        "exp": now + expires_in,
+        "typ": "refresh",
+    }
+    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
+    if hasattr(token, "decode"):
+        token = token.decode("utf-8")
+    expires_at = datetime.utcfromtimestamp(payload["exp"]).isoformat() + "Z"
+    return token, expires_in, expires_at
+
+
+def _set_auth_cookies(resp, *, access_token: str, refresh_token: str | None = None):
+    """Set cookies so tokens show in DevTools → Application → Cookies."""
+    secure = bool(getattr(Config, "AUTH_COOKIE_SECURE", False))
+    samesite = str(getattr(Config, "AUTH_COOKIE_SAMESITE", "Lax") or "Lax")
+
+    resp.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+    # Back-compat cookie key used by older middleware paths.
+    resp.set_cookie(
+        "token",
+        access_token,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+
+    if refresh_token:
+        resp.set_cookie(
+            "refresh_token",
+            refresh_token,
+            httponly=True,
+            secure=secure,
+            samesite=samesite,
+            path="/",
+        )
+
+
+def _clear_auth_cookies(resp):
+    resp.delete_cookie("access_token", path="/")
+    resp.delete_cookie("refresh_token", path="/")
+    resp.delete_cookie("token", path="/")
+    return resp
 
 
 def md5_hash(text):
     return hashlib.md5(text.encode()).hexdigest()
 
 
+def _login_json_response(*, token, expires_in, expires_at, user):
+    """Login payload + Authorization response header (visible in Network tab)."""
+    body = {
+        "success": True,
+        "message": "Login successful",
+        "token": token,
+        "token_type": "Bearer",
+        "expires_in": expires_in,
+        "expires_at": expires_at,
+        "user": user,
+    }
+    resp = make_response(jsonify(body))
+    g.auth_token = token
+    resp.headers["Authorization"] = f"Bearer {token}"
+    # Also set cookies so tokens appear in DevTools Application → Cookies.
+    refresh_token, _r_exp_in, _r_exp_at = _create_refresh_token(
+        user_id=user["id"],
+        company_id=user.get("company_id") or 0,
+        email=user["email"],
+        user_type=user.get("user_type") or "employee",
+    )
+    _set_auth_cookies(resp, access_token=token, refresh_token=refresh_token)
+    return resp
+
+
+def _session_confirm_from_bearer(*, allowed_user_types):
+    """
+  When POST /login is called with Authorization: Bearer <jwt> and no credentials in body,
+  confirm the session (same Bearer pattern as project APIs).
+    """
+    data = request.get_json(silent=True) or {}
+    if (data.get("email") or "").strip() or data.get("password"):
+        return None
+
+    raw_token = get_token()
+    if not raw_token:
+        return None
+
+    payload, err = decode_token_status(raw_token)
+    if not payload or err or payload.get("reset"):
+        return None
+
+    user_type = payload.get("user_type") or "employee"
+    if user_type not in allowed_user_types:
+        return None
+
+    user_id = payload.get("user_id")
+    email = (payload.get("email") or "").strip()
+    company_id = payload.get("company_id") or 0
+    if not user_id or not email:
+        return None
+
+    conn = get_db()
+    row = None
+    if user_type == "vendor":
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id, full_name, profile_picture, role AS user_role FROM vendor_employee WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+    elif user_type == "client":
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id, fullName AS full_name, email FROM clientinformation WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+    else:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT id, full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
+                (user_id, company_id),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return None
+
+    token, expires_in, expires_at = _create_access_token(
+        user_id=user_id,
+        company_id=company_id,
+        email=email,
+        user_type=user_type,
+    )
+    user = {
+        "id": user_id,
+        "full_name": row.get("full_name") or "",
+        "email": email,
+        "company_id": company_id,
+        "profile_picture": row.get("profile_picture"),
+        "user_role": row.get("user_role"),
+        "user_type": user_type,
+    }
+    return _login_json_response(
+        token=token,
+        expires_in=expires_in,
+        expires_at=expires_at,
+        user=user,
+    )
+
+
 @bp.route("/login", methods=["POST"])
 def login():
+    confirmed = _session_confirm_from_bearer(allowed_user_types=("employee", "vendor"))
+    if confirmed is not None:
+        return confirmed
+
     data = request.get_json() or {}
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
@@ -34,6 +226,18 @@ def login():
     conn = get_db()
     target_row = None
     user_type = None
+    
+    # Pre-check locking
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute("SELECT account_locked_until FROM employee WHERE email = %s", (email,))
+        lock_row = cur.fetchone()
+        if not lock_row:
+            cur.execute("SELECT account_locked_until FROM vendor_employee WHERE email = %s", (email,))
+            lock_row = cur.fetchone()
+        
+        if lock_row and lock_row.get("account_locked_until"):
+            if lock_row["account_locked_until"] > datetime.now():
+                return jsonify({"success": False, "message": LOGIN_LOCK_MESSAGE}), 429
     
     # 1. Try Employee table
     with conn.cursor(dictionary=True) as cur:
@@ -57,15 +261,34 @@ def login():
     if not target_row:
         # If neither matches the password, check if email exists to return proper message
         with conn.cursor(dictionary=True) as cur:
-            cur.execute("SELECT id FROM employee WHERE email = %s", (email,))
+            cur.execute("SELECT id, failed_login_attempts FROM employee WHERE email = %s", (email,))
             e_match = cur.fetchone()
-            cur.execute("SELECT id FROM vendor_employee WHERE email = %s", (email,))
-            v_match = cur.fetchone()
+            if e_match:
+                table = "employee"
+                match = e_match
+            else:
+                cur.execute("SELECT id, failed_login_attempts FROM vendor_employee WHERE email = %s", (email,))
+                v_match = cur.fetchone()
+                if v_match:
+                    table = "vendor_employee"
+                    match = v_match
+                else:
+                    table = None
+                    match = None
             
-            if not e_match and not v_match:
+            if not match:
                 return jsonify({"success": False, "message": "The email ID is not available."}), 401
             else:
-                return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
+                fails = (match.get("failed_login_attempts") or 0) + 1
+                if fails >= LOGIN_LOCK_MAX_ATTEMPTS:
+                    lock_time = datetime.now() + LOGIN_LOCK_DURATION
+                    cur.execute(f"UPDATE {table} SET failed_login_attempts = %s, account_locked_until = %s WHERE email = %s", (fails, lock_time, email))
+                    conn.commit()
+                    return jsonify({"success": False, "message": LOGIN_LOCK_MESSAGE}), 429
+                else:
+                    cur.execute(f"UPDATE {table} SET failed_login_attempts = %s WHERE email = %s", (fails, email))
+                    conn.commit()
+                    return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
 
     row = target_row
 
@@ -108,10 +331,26 @@ def login():
         except Exception:
             pass
 
-    # Update status to Online
+    # Update status to Online and clear lock
     table_to_update = "vendor_employee" if user_type == "vendor" else "employee"
     with conn.cursor() as cur:
-        cur.execute(f"UPDATE {table_to_update} SET status = 'Online' WHERE email = %s", (email,))
+        cur.execute(f"UPDATE {table_to_update} SET status = 'Online', failed_login_attempts = 0, account_locked_until = NULL WHERE email = %s", (email,))
+
+        # Track device
+        ip_addr = request.remote_addr or ""
+        device_info = request.user_agent.string or ""
+        
+        cur.execute("SELECT id FROM user_devices WHERE email = %s AND user_type = %s AND ip_address = %s AND device_info = %s", (email, user_type, ip_addr, device_info))
+        if not cur.fetchone():
+            cur.execute("INSERT INTO user_devices (email, user_type, ip_address, device_info) VALUES (%s, %s, %s, %s)", (email, user_type, ip_addr, device_info))
+            try:
+                from utils.mailer import send_new_device_alert
+                send_new_device_alert(email, full_name, ip_addr, device_info, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            except Exception:
+                pass
+        else:
+            cur.execute("UPDATE user_devices SET last_login = %s WHERE email = %s AND user_type = %s AND ip_address = %s AND device_info = %s", (datetime.now(), email, user_type, ip_addr, device_info))
+        conn.commit()
 
     # Record attendance if not exists (date format d-m-Y as in PHP)
     today = datetime.now().strftime("%d-%m-%Y")
@@ -127,38 +366,36 @@ def login():
                 (email, today, time_in, company_id),
             )
 
-    # JWT token
-    payload = {
-        "user_id": user_id,
-        "company_id": company_id,
-        "email": email,
-        "user_type": user_type,
-        "exp": datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
-    }
-    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
-    if hasattr(token, "decode"):
-        token = token.decode("utf-8")
+    token, expires_in, expires_at = _create_access_token(
+        user_id=user_id,
+        company_id=company_id,
+        email=email,
+        user_type=user_type,
+    )
 
-    return jsonify({
-        "success": True,
-        "message": "Login successful",
-        "token": token,
-        "user": {
+    return _login_json_response(
+        token=token,
+        expires_in=expires_in,
+        expires_at=expires_at,
+        user={
             "id": user_id,
             "full_name": full_name,
             "email": email,
             "company_id": company_id,
-            # Surface profile_picture and basic role data so frontend has it immediately after login.
             "profile_picture": row.get("profile_picture"),
             "user_role": row.get("user_role") or row.get("role"),
             "user_type": user_type,
         },
-    })
+    )
 
 
 @bp.route("/client-login", methods=["POST"])
 def client_login():
     """Login for clients (clientinformation table). Returns JWT with user_type=client."""
+    confirmed = _session_confirm_from_bearer(allowed_user_types=("client",))
+    if confirmed is not None:
+        return confirmed
+
     data = request.get_json() or {}
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
@@ -167,47 +404,53 @@ def client_login():
         return jsonify({"success": False, "message": "Email and password are required"}), 400
 
     conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("SELECT id, fullName, email, password, Company_id FROM clientinformation WHERE email = %s", (email,))
+    with conn.cursor(dictionary=True) as cur:
+        cur.execute("SELECT id, fullName, email, password, Company_id, account_locked_until, failed_login_attempts FROM clientinformation WHERE email = %s", (email,))
         row = cur.fetchone()
 
     if not row:
         return jsonify({"success": False, "message": "The email ID is not available."}), 401
 
+    if row.get("account_locked_until") and row["account_locked_until"] > datetime.now():
+        return jsonify({"success": False, "message": LOGIN_LOCK_MESSAGE}), 429
+
     stored_password = (row.get("password") or "").strip()
-    if not stored_password:
-        return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
-    # Support both plain and MD5 (PHP sometimes stores plain)
-    if password != stored_password and md5_hash(password) != stored_password:
-        return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
+    if not stored_password or (password != stored_password and md5_hash(password) != stored_password):
+        fails = (row.get("failed_login_attempts") or 0) + 1
+        with conn.cursor() as cur:
+            if fails >= LOGIN_LOCK_MAX_ATTEMPTS:
+                lock_time = datetime.now() + LOGIN_LOCK_DURATION
+                cur.execute("UPDATE clientinformation SET failed_login_attempts = %s, account_locked_until = %s WHERE email = %s", (fails, lock_time, email))
+                conn.commit()
+                return jsonify({"success": False, "message": LOGIN_LOCK_MESSAGE}), 429
+            else:
+                cur.execute("UPDATE clientinformation SET failed_login_attempts = %s WHERE email = %s", (fails, email))
+                conn.commit()
+                return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
 
     user_id = row["id"]
     full_name = row.get("fullName") or ""
     company_id = row.get("Company_id") or 0
 
-    payload = {
-        "user_id": user_id,
-        "company_id": company_id,
-        "email": email,
-        "user_type": "client",
-        "exp": datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
-    }
-    token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
-    if hasattr(token, "decode"):
-        token = token.decode("utf-8")
+    token, expires_in, expires_at = _create_access_token(
+        user_id=user_id,
+        company_id=company_id,
+        email=email,
+        user_type="client",
+    )
 
-    return jsonify({
-        "success": True,
-        "message": "Login successful",
-        "token": token,
-        "user": {
+    return _login_json_response(
+        token=token,
+        expires_in=expires_in,
+        expires_at=expires_at,
+        user={
             "id": user_id,
             "full_name": full_name,
             "email": email,
             "company_id": company_id,
             "user_type": "client",
         },
-    })
+    )
 
 
 @bp.route("/logout", methods=["POST"])
@@ -300,7 +543,16 @@ def logout():
             except Exception:
                 # Don't block logout on attendance update problems
                 pass
-    return jsonify({"success": True, "message": "Logged out"})
+    resp = make_response(jsonify({"success": True, "message": "Logged out"}))
+    return _clear_auth_cookies(resp)
+
+
+@bp.route("/client-logout", methods=["POST"])
+@client_required
+def client_logout():
+    """Client portal logout — requires Bearer JWT (same as project APIs)."""
+    resp = make_response(jsonify({"success": True, "message": "Logged out"}))
+    return _clear_auth_cookies(resp)
 
 
 @bp.route("/forgot-password", methods=["POST"])
@@ -318,7 +570,7 @@ def forgot_password():
     if not row:
         return jsonify({"success": False, "message": "No employee found with this email address."}), 404
 
-    otp = str(random.randint(1000, 99999))
+    otp = str(random.randint(1000, 9999))
     with conn.cursor() as cur:
         cur.execute("UPDATE employee SET OTP = %s WHERE email = %s", (otp, email))
 
@@ -374,6 +626,10 @@ def reset_password():
     if password1 != password2:
         return jsonify({"success": False, "message": "Passwords do not match. Please try again."}), 400
 
+    pwd_err = _validate_password_strength(password1)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     try:
         payload = jwt.decode(reset_token, Config.JWT_SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -385,10 +641,41 @@ def reset_password():
         return jsonify({"success": False, "message": "Invalid reset token"}), 401
 
     email = payload["email"]
-    hashed = md5_hash(password1)
+    new_hashed = md5_hash(password1)
     conn = get_db()
+
+    with conn.cursor(dictionary=True) as cur:
+        # Fetch current password so we can add it to history too (prevents X→Y→X cycling)
+        cur.execute("SELECT password FROM employee WHERE email = %s", (email,))
+        emp_row = cur.fetchone() or {}
+        current_stored = (emp_row.get("password") or "").strip()
+        current_md5 = current_stored if not (current_stored.startswith("scrypt:") or current_stored.startswith("pbkdf2:")) else None
+
+        # Check password history (assume employee since forgot password flow targets employee)
+        cur.execute("SELECT password_hash FROM password_history WHERE email = %s AND user_type = 'employee' ORDER BY created_at DESC", (email,))
+        history = cur.fetchall()
+        history_hashes = {h["password_hash"] for h in history}
+
+        # Block reuse against history
+        if new_hashed in history_hashes:
+            return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
+
+        # Also block reuse against current password (covers werkzeug hashes too)
+        if current_stored.startswith("scrypt:") or current_stored.startswith("pbkdf2:"):
+            from werkzeug.security import check_password_hash as _chk
+            if _chk(current_stored, password1):
+                return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
+        else:
+            if new_hashed == current_md5:
+                return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
+
     with conn.cursor() as cur:
-        cur.execute("UPDATE employee SET password = %s WHERE email = %s", (hashed, email))
+        # Save the current (outgoing) password to history before replacing it
+        if current_md5 and current_md5 not in history_hashes:
+            cur.execute("INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, 'employee', %s)", (email, current_md5))
+        cur.execute("UPDATE employee SET password = %s WHERE email = %s", (new_hashed, email))
+        cur.execute("INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, 'employee', %s)", (email, new_hashed))
+        conn.commit()
     return jsonify({"success": True, "message": "Password updated successfully. You can now log in with your new password."})
 
 
@@ -456,9 +743,67 @@ def admin_reset_password():
     new_password = data.get("new_password")
     if not user_id or not new_password:
         return jsonify({"success": False, "message": "user_id and new_password required"}), 400
-    # Optional: check g.user_id is admin (e.g. id == 1 or role)
+
+    pwd_err = _validate_password_strength(new_password)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     conn = get_db()
     hashed = md5_hash(new_password)
+    
+    with conn.cursor(dictionary=True) as cur:
+        # Check password history
+        cur.execute("SELECT email FROM employee WHERE id = %s AND Company_id = %s", (user_id, g.company_id))
+        emp_row = cur.fetchone()
+        if emp_row:
+            email = emp_row["email"]
+            cur.execute("SELECT password_hash FROM password_history WHERE email = %s AND user_type = 'employee' ORDER BY created_at DESC", (email,))
+            history = cur.fetchall()
+            for h in history:
+                if h["password_hash"] == hashed:
+                    return jsonify({"success": False, "message": "You cannot reuse a previous password for this user."}), 400
+                    
     with conn.cursor() as cur:
         cur.execute("UPDATE employee SET password = %s WHERE id = %s AND Company_id = %s", (hashed, user_id, g.company_id))
+        if emp_row:
+            cur.execute("INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, 'employee', %s)", (email, hashed))
+        conn.commit()
     return jsonify({"success": True, "message": "Password reset successfully"})
+
+@bp.route("/refresh", methods=["POST"])
+def refresh():
+    data = request.get_json() or {}
+    refresh_token = data.get("refresh_token")
+
+    if not refresh_token:
+        return jsonify({"success": False, "message": "Refresh token missing"}), 400
+
+    try:
+        payload = jwt.decode(refresh_token, Config.JWT_SECRET_KEY, algorithms=["HS256"])
+        if payload.get("token_type") != "refresh":
+            return jsonify({"success": False, "message": "Invalid token type"}), 401
+            
+        user_id = payload.get("user_id")
+        company_id = payload.get("company_id")
+        email = payload.get("email")
+        user_type = payload.get("user_type")
+
+        new_payload = {
+            "user_id": user_id,
+            "company_id": company_id,
+            "email": email,
+            "user_type": user_type,
+            "exp": datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
+        }
+        new_token = jwt.encode(new_payload, Config.JWT_SECRET_KEY, algorithm="HS256")
+        if hasattr(new_token, "decode"):
+            new_token = new_token.decode("utf-8")
+            
+        return jsonify({
+            "success": True,
+            "token": new_token
+        })
+    except jwt.ExpiredSignatureError:
+        return jsonify({"success": False, "message": "Refresh token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"success": False, "message": "Invalid refresh token"}), 401

@@ -5,6 +5,7 @@ import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
+import { accountNumberForDisplay } from "../../utils/employeeActive";
 
 // Get API base URL for image URLs
 const getApiBaseUrl = () => {
@@ -55,7 +56,8 @@ interface Employee {
   user_type?: string;
   profile_picture?: string;
   salary?: string;
-  accountnumber?: string;
+  accountnumber?: string | null;
+  has_accountnumber?: boolean;
   Allpannel?: string;
 }
 
@@ -1626,7 +1628,10 @@ export default function ConsultantBL() {
                     { label: "Joined Date", value: emp.doj },
                     { label: "Department", value: emp.department },
                     { label: "Salary", value: emp.salary },
-                    { label: "Account Number", value: emp.accountnumber },
+                    {
+                      label: "Account Number",
+                      value: accountNumberForDisplay(emp.accountnumber, emp.has_accountnumber),
+                    },
                   ].map((item, idx) => (
                     <div
                       key={idx}

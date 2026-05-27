@@ -1,32 +1,69 @@
 import jwt
 from functools import wraps
-from flask import request, g, jsonify
+from flask import request, g, jsonify, make_response
 from config import Config
+
+WWW_AUTHENTICATE_BEARER = 'Bearer realm="SwiftBIM", charset="UTF-8"'
+
+
+def unauthorized_response(message: str, *, code: str = "UNAUTHORIZED", status: int = 401):
+    """401 JSON with WWW-Authenticate so DevTools/network audits show Bearer auth."""
+    resp = make_response(
+        jsonify({"success": False, "message": message, "code": code}),
+        status,
+    )
+    resp.headers["WWW-Authenticate"] = WWW_AUTHENTICATE_BEARER
+    return resp
 
 
 def get_token():
     auth = request.headers.get("Authorization")
     if auth and auth.startswith("Bearer "):
         return auth[7:]
-    return request.cookies.get("token") or request.args.get("token")
+    # Prefer cookie tokens if present (DevTools shows access_token/refresh_token cookies).
+    return (
+        request.cookies.get("access_token")
+        or request.cookies.get("token")
+        or request.args.get("token")
+    )
 
 
 def decode_token(token):
+    """Return JWT payload dict, or None if missing/invalid/expired."""
     try:
-        payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=["HS256"])
-        return payload
+        return jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
         return None
 
 
+def decode_token_status(token):
+    """Return (payload, error_code) where error_code is None, 'expired', or 'invalid'."""
+    if not token:
+        return None, "missing"
+    try:
+        return jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=["HS256"]), None
+    except jwt.ExpiredSignatureError:
+        return None, "expired"
+    except jwt.InvalidTokenError:
+        return None, "invalid"
+
+
+def _unauthorized_message(token_error: str | None) -> str:
+    if token_error == "expired":
+        return "Session expired. Please log in again."
+    if token_error == "missing":
+        return "Unauthorized"
+    return "Invalid or expired token"
+
+
 def get_current_user():
     token = get_token()
-    if not token:
-        return None
-    payload = decode_token(token)
+    payload, _err = decode_token_status(token)
     if not payload:
+        return None
+    if payload.get("token_type") == "refresh":
         return None
     user_type = payload.get("user_type") or "employee"
     return payload.get("user_id"), payload.get("company_id"), payload.get("email"), user_type
@@ -35,10 +72,10 @@ def get_current_user():
 def get_current_client():
     """Like get_current_user but returns (client_id, company_id, email) only when user_type is 'client'."""
     token = get_token()
-    if not token:
-        return None
-    payload = decode_token(token)
+    payload, _err = decode_token_status(token)
     if not payload:
+        return None
+    if payload.get("token_type") == "refresh":
         return None
     if payload.get("user_type") != "client":
         return None
@@ -81,9 +118,22 @@ def load_user_context():
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        user = get_current_user()
-        if not user:
-            return jsonify({"success": False, "message": "Unauthorized"}), 401
+        token = get_token()
+        payload, token_err = decode_token_status(token)
+        if not payload:
+            return unauthorized_response(
+                _unauthorized_message(token_err),
+                code="SESSION_EXPIRED" if token_err == "expired" else "UNAUTHORIZED",
+            )
+        user_type = payload.get("user_type") or "employee"
+        user = (
+            payload.get("user_id"),
+            payload.get("company_id"),
+            payload.get("email"),
+            user_type,
+        )
+        if not user[0]:
+            return unauthorized_response("Unauthorized")
         g.user_id, g.company_id, g.user_email, g.user_type = user
         if g.user_type == "client":
             return jsonify({"success": False, "message": "Use the client portal."}), 403
@@ -96,9 +146,20 @@ def client_required(f):
     """Require a valid JWT with user_type=client (from client login). Sets g.client_id, g.company_id, g.client_email."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        client = get_current_client()
-        if not client:
-            return jsonify({"success": False, "message": "Unauthorized"}), 401
+        token = get_token()
+        payload, token_err = decode_token_status(token)
+        if not payload or payload.get("user_type") != "client":
+            return unauthorized_response(
+                _unauthorized_message(token_err),
+                code="SESSION_EXPIRED" if token_err == "expired" else "UNAUTHORIZED",
+            )
+        client = (
+            payload.get("user_id"),
+            payload.get("company_id"),
+            payload.get("email"),
+        )
+        if not client[0]:
+            return unauthorized_response("Unauthorized")
         g.client_id, g.company_id, g.client_email = client
         return f(*args, **kwargs)
     return decorated
