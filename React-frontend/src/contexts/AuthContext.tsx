@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   });
   const [token, setTokenState] = useState<string | null>(() => localStorage.getItem('token'));
+  const [refreshToken, setRefreshTokenState] = useState<string | null>(() => localStorage.getItem('refreshToken'));
   const [loading, setLoading] = useState(true);
 
   const setToken = useCallback((t: string | null, expiresAt?: string | null) => {
@@ -195,6 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       /* ignore — local session is cleared below */
     }
     setToken(null);
+    setRefreshToken(null);
     setUser(null);
     clearAuthStorage();
   }, [setToken, user?.user_type]);
