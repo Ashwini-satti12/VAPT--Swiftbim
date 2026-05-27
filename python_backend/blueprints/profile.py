@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
+from blueprints.employees import _validate_password_strength
 from werkzeug.utils import secure_filename
+from upload_resolver import secure_save_upload
 from werkzeug.security import check_password_hash
 import hashlib
 import os
@@ -116,10 +118,16 @@ def update_profile():
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{name}_{timestamp}{ext}"
-            save_path = os.path.join(employee_dir, filename)
-            file.save(save_path)
-            # Store relative path so it is always under uploads/employee
-            profile_path = f"employee/{filename}"
+            saved, upload_err = secure_save_upload(
+                file,
+                employee_dir,
+                category="image",
+                filename=filename,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            profile_path = f"employee/{os.path.basename(saved or filename)}"
 
     conn = get_db()
     cur = conn.cursor()
@@ -205,6 +213,11 @@ def change_password():
     new_password = data.get("new_password")
     if not current or not new_password:
         return jsonify({"success": False, "message": "current_password and new_password required"}), 400
+
+    pwd_err = _validate_password_strength(new_password)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     user_type = getattr(g, "user_type", "employee")

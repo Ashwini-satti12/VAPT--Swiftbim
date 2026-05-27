@@ -7,24 +7,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
-
-const PASSWORD_MIN_LENGTH = 8;
-
-function getPasswordStrengthErrors(password: string): string[] {
-  const errors: string[] = [];
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    errors.push(`at least ${PASSWORD_MIN_LENGTH} characters`);
-  }
-  if (!/[A-Z]/.test(password)) errors.push('one uppercase letter');
-  if (!/[a-z]/.test(password)) errors.push('one lowercase letter');
-  if (!/\d/.test(password)) errors.push('one number');
-  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password)) errors.push('one special character');
-  return errors;
-}
-
-function isStrongPassword(password: string): boolean {
-  return getPasswordStrengthErrors(password).length === 0;
-}
+import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -542,9 +526,9 @@ export default function EmployeesPM() {
     }
 
     if (editForm.password) {
-      const passwordErrors = getPasswordStrengthErrors(editForm.password);
-      if (passwordErrors.length) {
-        alert(`Password must include ${passwordErrors.join(', ')}.`);
+      const editPwdMsg = getPasswordStrengthMessage(editForm.password);
+      if (editPwdMsg) {
+        alert(editPwdMsg);
         return;
       }
     }
@@ -652,9 +636,9 @@ export default function EmployeesPM() {
       return;
     }
 
-    const passwordErrors = getPasswordStrengthErrors(form.password);
-    if (passwordErrors.length) {
-      setAddError(`Password must include ${passwordErrors.join(', ')}.`);
+    const pwdMsg = getPasswordStrengthMessage(form.password);
+    if (pwdMsg) {
+      setAddError(pwdMsg);
       return;
     }
 
@@ -1391,14 +1375,7 @@ export default function EmployeesPM() {
                       required
                       minLength={PASSWORD_MIN_LENGTH}
                     />
-                    <p className="text-[12px] text-[#8B8B8B] mt-1">
-                      At least 8 characters with uppercase, lowercase, a number, and a special character.
-                    </p>
-                    {form.password && !isStrongPassword(form.password) && (
-                      <p className="text-[12px] text-red-600 mt-1">
-                        Missing: {getPasswordStrengthErrors(form.password).join(', ')}.
-                      </p>
-                    )}
+                    <PasswordStrengthHints password={form.password} />
                   </div>
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>

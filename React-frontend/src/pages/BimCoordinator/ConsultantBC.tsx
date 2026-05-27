@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
+import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import { PASSWORD_MIN_LENGTH, getPasswordStrengthMessage } from '../../utils/employeeActive';
 
 // Get API base URL for image URLs (same logic as other panels)
 const getApiBaseUrl = () => {
@@ -539,6 +541,12 @@ export default function ConsultantBC() {
     setAddError("");
     if (!form.full_name.trim() || !form.email.trim() || !form.password) {
       setAddError("Name, email and password are required.");
+      return;
+    }
+
+    const pwdMsg = getPasswordStrengthMessage(form.password);
+    if (pwdMsg) {
+      setAddError(pwdMsg);
       return;
     }
 
@@ -1391,7 +1399,9 @@ export default function ConsultantBC() {
                         }
                         className="w-full px-4 py-2.5 bg-[#F2F3F4] border-none rounded-md  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                         required
+                        minLength={PASSWORD_MIN_LENGTH}
                       />
+                      <PasswordStrengthHints password={form.password} />
                     </div>
                     <div className="relative">
                       <label className="block text-[16px] font-medium text-[#000000] mb-1.5 font-Gantari">

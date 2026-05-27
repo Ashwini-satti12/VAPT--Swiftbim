@@ -4,6 +4,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
+import { getPasswordStrengthMessage } from "../../utils/employeeActive";
+import { PasswordStrengthHints } from "../ProtectedRoute";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import BellIcon from "../../assets/ProductNavbarIcons/bell-notification.svg";
@@ -393,8 +395,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         setPasswordError("Please enter current password to change to a new one.");
         return;
       }
-      if (newPass.length < 6) {
-        setPasswordError("New password must be at least 6 characters.");
+      const pwdMsg = getPasswordStrengthMessage(newPass);
+      if (pwdMsg) {
+        setPasswordError(pwdMsg);
         return;
       }
     }
@@ -844,11 +847,17 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                       <input
                         type="password"
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
+                        onChange={(e) => {
+                          setNewPassword(e.target.value);
+                          if (passwordError) setPasswordError("");
+                        }}
                         placeholder="New password"
                         autoComplete="new-password"
                         className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
                       />
+                      {newPassword ? (
+                        <PasswordStrengthHints password={newPassword} />
+                      ) : null}
                       {passwordError && (
                         <p className="text-[10px] text-red-500">
                           {passwordError}

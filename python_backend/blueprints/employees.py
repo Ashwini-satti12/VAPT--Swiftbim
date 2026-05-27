@@ -3,6 +3,7 @@ import os
 import re
 from flask import Blueprint, request, jsonify, g, current_app
 from werkzeug.utils import secure_filename
+from upload_resolver import secure_save_upload
 from db import get_db
 from auth_middleware import project_app_required
 from utils import mailer
@@ -11,7 +12,6 @@ bp = Blueprint("employees", __name__, url_prefix="/api/employees")
 
 
 def _validate_password_strength(password):
-    """Return an error message if password is weak, else None."""
     pwd = str(password or "")
     if len(pwd) < 8:
         return "Password must be at least 8 characters long."
@@ -224,17 +224,22 @@ def create_employee():
             employee_dir = os.path.join(upload_root, "employee")
             os.makedirs(employee_dir, exist_ok=True)
             filename = secure_filename(file.filename)
-            # If filename already exists, add timestamp to make it unique
             save_path = os.path.join(employee_dir, filename)
             if os.path.exists(save_path):
                 name, ext = os.path.splitext(filename)
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"{name}_{timestamp}{ext}"
-                save_path = os.path.join(employee_dir, filename)
-            file.save(save_path)
-            # Store just the filename (frontend will add employee/ prefix)
-            profile_path = filename
+            saved, upload_err = secure_save_upload(
+                file,
+                employee_dir,
+                category="image",
+                filename=filename,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            profile_path = os.path.basename(saved or filename)
 
     if not full_name or not email or not password:
         return jsonify({"success": False, "message": "full_name, email, password required"}), 400
@@ -408,17 +413,22 @@ def update_employee(emp_id):
             employee_dir = os.path.join(upload_root, "employee")
             os.makedirs(employee_dir, exist_ok=True)
             filename = secure_filename(file.filename)
-            # If filename already exists, add timestamp to make it unique
             save_path = os.path.join(employee_dir, filename)
             if os.path.exists(save_path):
                 name, ext = os.path.splitext(filename)
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"{name}_{timestamp}{ext}"
-                save_path = os.path.join(employee_dir, filename)
-            file.save(save_path)
-            # Store just the filename (frontend will add employee/ prefix)
-            profile_path = filename
+            saved, upload_err = secure_save_upload(
+                file,
+                employee_dir,
+                category="image",
+                filename=filename,
+                app_config=current_app.config,
+            )
+            if upload_err:
+                return jsonify({"success": False, "message": upload_err}), 400
+            profile_path = os.path.basename(saved or filename)
     
     conn = get_db()
     # Use dict cursor when available (better compatibility across connectors)

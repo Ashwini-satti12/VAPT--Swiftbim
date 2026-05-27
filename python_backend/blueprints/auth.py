@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, g
 from db import get_db, query_one
 from auth_middleware import login_required
 from config import Config
+from blueprints.employees import _validate_password_strength
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -178,13 +179,13 @@ def login():
                 (email, today, time_in, company_id),
             )
 
-    # JWT token
+    expires_at = datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
     payload = {
         "user_id": user_id,
         "company_id": company_id,
         "email": email,
         "user_type": user_type,
-        "exp": datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
+        "exp": expires_at,
     }
     token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
     if hasattr(token, "decode"):
@@ -206,7 +207,8 @@ def login():
         "success": True,
         "message": "Login successful",
         "token": token,
-        "refresh_token": refresh_token,
+        "expires_in": Config.JWT_ACCESS_TOKEN_EXPIRES,
+        "expires_at": expires_at.isoformat() + "Z",
         "user": {
             "id": user_id,
             "full_name": full_name,
@@ -283,7 +285,7 @@ def client_login():
         "company_id": company_id,
         "email": email,
         "user_type": "client",
-        "exp": datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
+        "exp": expires_at,
     }
     token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
     if hasattr(token, "decode"):
@@ -305,7 +307,8 @@ def client_login():
         "success": True,
         "message": "Login successful",
         "token": token,
-        "refresh_token": refresh_token,
+        "expires_in": Config.JWT_ACCESS_TOKEN_EXPIRES,
+        "expires_at": expires_at.isoformat() + "Z",
         "user": {
             "id": user_id,
             "full_name": full_name,
@@ -480,6 +483,10 @@ def reset_password():
     if password1 != password2:
         return jsonify({"success": False, "message": "Passwords do not match. Please try again."}), 400
 
+    pwd_err = _validate_password_strength(password1)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     try:
         payload = jwt.decode(reset_token, Config.JWT_SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -593,7 +600,11 @@ def admin_reset_password():
     new_password = data.get("new_password")
     if not user_id or not new_password:
         return jsonify({"success": False, "message": "user_id and new_password required"}), 400
-    # Optional: check g.user_id is admin (e.g. id == 1 or role)
+
+    pwd_err = _validate_password_strength(new_password)
+    if pwd_err:
+        return jsonify({"success": False, "message": pwd_err}), 400
+
     conn = get_db()
     hashed = md5_hash(new_password)
     

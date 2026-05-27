@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { AuthState, User } from '../types';
-import api from '../lib/api';
+import api, { clearAuthStorage, getJwtExpiryMs, redirectToLogin } from '../lib/api';
 
 const AuthContext = createContext<AuthState | null>(null);
 
@@ -23,10 +23,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else localStorage.removeItem('token');
   }, []);
 
-  const setRefreshToken = useCallback((t: string | null) => {
-    setRefreshTokenState(t);
-    if (t) localStorage.setItem('refreshToken', t);
-    else localStorage.removeItem('refreshToken');
+  const expireSession = useCallback(() => {
+    setTokenState(null);
+    setUser(null);
+    clearAuthStorage();
+    redirectToLogin();
   }, []);
 
   const fetchMe = useCallback(async () => {
@@ -67,13 +68,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (token) {
+      const expMs = getJwtExpiryMs(token);
+      if (expMs && expMs <= Date.now()) {
+        expireSession();
+        return;
+      }
       setLoading(true);
       fetchMe();
     } else {
       setUser(null);
       setLoading(false);
     }
-  }, [token, fetchMe]);
+  }, [token, fetchMe, expireSession]);
+
+  /** Auto-logout when JWT expires (default 15 minutes after login). */
+  useEffect(() => {
+    if (!token) return;
+    const expMs = getJwtExpiryMs(token);
+    if (!expMs) return;
+    const remaining = expMs - Date.now();
+    if (remaining <= 0) {
+      expireSession();
+      return;
+    }
+    const timerId = window.setTimeout(() => expireSession(), remaining);
+    return () => window.clearTimeout(timerId);
+  }, [token, expireSession]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -144,11 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setRefreshToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userProfilePicture');
-  }, [setToken, setRefreshToken, user?.user_type]);
+    clearAuthStorage();
+  }, [setToken, user?.user_type]);
 
   const value: AuthState = {
     user,

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
+import { getPasswordStrengthMessage } from "../../utils/employeeActive";
+import { PasswordStrengthHints } from "../../components/ProtectedRoute";
 import loginBackground from "../../assets/login_bg.png";
 
 type Step = "login" | "forgot" | "otp" | "reset";
@@ -96,6 +98,11 @@ export default function Login() {
     e.preventDefault();
     if (password1 !== password2) {
       setError("Passwords do not match.");
+      return;
+    }
+    const pwdMsg = getPasswordStrengthMessage(password1);
+    if (pwdMsg) {
+      setError(pwdMsg);
       return;
     }
     setError("");
@@ -401,6 +408,7 @@ export default function Login() {
                 >
                   {showPassword1 ? "🙈" : "👁"}
                 </button>
+                {password1 ? <PasswordStrengthHints password={password1} /> : null}
               </div>
               <div className="relative">
                 <label
