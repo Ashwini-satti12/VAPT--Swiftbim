@@ -18,6 +18,7 @@ import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
 import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 import { VendorUploadPreviewModal } from "../../components/VendorUploadPreviewModal";
 import { sanitizeVendorVendorsFilename } from "../../lib/vendorUploads";
+import { openGmailCompose } from "../../utils/encryptedQuery";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
@@ -426,12 +427,7 @@ export default function ResourcesV() {
       );
       return;
     }
-    const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(mail)}`;
-    const popup = window.open(gmailComposeUrl, "_blank", "noopener,noreferrer");
-    // If popup is blocked or Gmail cannot open, fall back to default mail app.
-    if (!popup) {
-      window.location.href = `mailto:${mail}`;
-    }
+    openGmailCompose(mail);
   };
 
   const openDialer = (phone?: string) => {

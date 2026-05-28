@@ -202,6 +202,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/client-login" element={<ClientLogin />} />
+          <Route path="/redirect/gmail" element={<EncryptedQueryRedirect gmail />} />
           <Route path="/welcome" element={<WelcomePM />} />
           <Route
             element={

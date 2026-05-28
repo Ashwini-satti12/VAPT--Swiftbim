@@ -174,3 +174,24 @@ export function encryptPathWithSearch(pathWithOptionalSearch: string): string {
 
   return encryptedPathFromPlainSearch(encPathname, search) ?? `${encPathname}${search}`;
 }
+
+export const GMAIL_REDIRECT_PATH = '/redirect/gmail';
+
+/** Plain Gmail compose URL (Google requires plain `to=` on mail.google.com). */
+export function buildGmailComposeUrl(email: string): string {
+  const mail = email.trim();
+  return `https://mail.google.com/mail/u/0/?fs=1&to=${encodeURIComponent(mail)}&tf=cm`;
+}
+
+/** In-app redirect with encrypted `to` → `/redirect/gmail?e=...` */
+export function buildGmailComposeRedirectPath(email: string): string {
+  return buildEncryptedSearchPath(GMAIL_REDIRECT_PATH, { to: email.trim() });
+}
+
+/** Open Gmail via encrypted app URL first, then redirect to mail.google.com. */
+export function openGmailCompose(email: string): void {
+  const mail = email.trim();
+  if (!mail) return;
+  const popup = window.open(buildGmailComposeRedirectPath(mail), '_blank', 'noopener,noreferrer');
+  if (!popup) window.location.href = `mailto:${mail}`;
+}
