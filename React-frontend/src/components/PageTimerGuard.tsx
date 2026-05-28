@@ -5,7 +5,7 @@ import { clearAuthStorage, redirectToLogin } from "../lib/api";
 
 export default function PageTimerGuard() {
   const location = useLocation();
-  const [secondsLeft, setSecondsLeft] = useState(10); // 30 minutes = 1800 seconds
+  const [secondsLeft, setSecondsLeft] = useState(1800); // 30 minutes = 1800 seconds
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if current page is public auth page
@@ -13,7 +13,7 @@ export default function PageTimerGuard() {
 
   // Reset timer helper
   const resetTimer = () => {
-    setSecondsLeft(10);
+    setSecondsLeft(1800);
   };
 
   // Reset timer on route change or user activity
@@ -67,7 +67,7 @@ export default function PageTimerGuard() {
   // Notify user with a toast warning when 30 seconds are left
   useEffect(() => {
     if (isAuthPage) return;
-    if (secondsLeft === 3) {
+    if (secondsLeft === 30) {
       toast.error("Your session will automatically expire in 30 seconds due to inactivity!", {
         duration: 5000,
         position: "top-center",
