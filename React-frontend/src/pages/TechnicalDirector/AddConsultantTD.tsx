@@ -31,6 +31,15 @@ function openAttachmentInNewTab(file: File) {
   window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
 }
 
+function isImageFile(file: File): boolean {
+  // Prefer MIME type when available; fall back to extension for edge cases.
+  // Block SVG explicitly: many security tools flag SVG as dangerous content.
+  if (file.type) return file.type.startsWith("image/") && file.type !== "image/svg+xml";
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  // Backend allows only these raster image types.
+  return !!ext && ["jpg", "jpeg", "png", "webp", "gif", "bmp"].includes(ext);
+}
+
 const ROLE_OPTIONS: string[] = [
   "Bim Lead",
   "Project Manager",
@@ -356,14 +365,27 @@ export default function AddConsultantTD() {
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
                 <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                   <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
-                    {form.profile_picture ? "1 file(s) attached" : "Choose file (JPEG or JPG only)"}
+                    {form.profile_picture ? "1 file(s) attached" : "Choose file (Any image)"}
                   </div>
                   <input
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    accept=".jpg,.jpeg"
-                    onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/avif,image/heic,image/heif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      if (!file) {
+                        setForm((f) => ({ ...f, profile_picture: null }));
+                        return;
+                      }
+                      if (!isImageFile(file)) {
+                        toast.error("Please select a valid image file (SVG not allowed).");
+                        setForm((f) => ({ ...f, profile_picture: null }));
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                        return;
+                      }
+                      setForm((f) => ({ ...f, profile_picture: file }));
+                    }}
                   />
                   <button
                     type="button"

@@ -285,6 +285,11 @@ def create_app(config_class=Config):
                     "path_checked": file_path
                 }), 404
 
+            # Block SVG explicitly. SVG is often flagged as dangerous content by browsers/security tools.
+            # Returning 415 avoids Chrome/AV security banners caused by rendering SVG as an "image".
+            if str(file_path).lower().endswith(".svg"):
+                return jsonify({"error": "SVG profile pictures are not allowed"}), 415
+
             # Force correct mimetype so images render in browser
             mime_type, _ = mimetypes.guess_type(file_path)
             if not mime_type:
@@ -292,6 +297,7 @@ def create_app(config_class=Config):
 
             resp = send_file(file_path, mimetype=mime_type, as_attachment=False)
             resp.headers["Content-Disposition"] = f'inline; filename="{profile_picture}"'
+            resp.headers["X-Content-Type-Options"] = "nosniff"
             return resp
 
         except Exception as e:

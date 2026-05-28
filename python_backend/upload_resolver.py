@@ -27,7 +27,7 @@ DANGEROUS_EXTENSIONS = frozenset({
 })
 
 ALLOWED_BY_CATEGORY: dict[str, frozenset[str]] = {
-    "image": frozenset({".jpg", ".jpeg", ".png", ".gif", ".webp"}),
+    "image": frozenset({".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}),
     "document": frozenset({
         ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
         ".csv", ".txt", ".rtf",
@@ -51,6 +51,7 @@ _MAGIC_CHECKS: list[tuple[bytes, int, str]] = [
     (b"\x89PNG\r\n\x1a\n", 0, "png"),
     (b"GIF87a", 0, "gif"),
     (b"GIF89a", 0, "gif"),
+    (b"BM", 0, "bmp"),
     (b"%PDF", 0, "pdf"),
     (b"PK\x03\x04", 0, "zip"),
     (b"PK\x05\x06", 0, "zip"),
@@ -60,14 +61,17 @@ _MAGIC_CHECKS: list[tuple[bytes, int, str]] = [
 ]
 
 _EXECUTABLE_SIGNATURES: list[tuple[bytes, int]] = [
-    (b"MZ", 0),
-    (b"\x7fELF", 0),
-    (b"#!/", 0),
-    (b"<?php", 0),
-    (b"<?=", 0),
-    (b"<script", 0),
-    (b"\x4d\x5a", 0),
+    # These are only meaningful as file-header signatures.
+    (b"MZ", 0),          # Windows PE/EXE/DLL
+    (b"\x7fELF", 0),     # Linux ELF
+    (b"#!/", 0),         # Script shebang
 ]
+
+_TEXTUAL_DANGEROUS_PREFIXES: tuple[bytes, ...] = (
+    b"<?php",
+    b"<?=",
+    b"<script",
+)
 
 _EICAR = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
 
@@ -104,6 +108,8 @@ def _detect_magic_label(header: bytes, ext: str) -> str | None:
         return "png"
     if ext == ".gif" and (header.startswith(b"GIF87a") or header.startswith(b"GIF89a")):
         return "gif"
+    if ext == ".bmp" and header.startswith(b"BM"):
+        return "bmp"
     if ext == ".webp" and len(header) >= 12 and header[:4] == b"RIFF" and header[8:12] == b"WEBP":
         return "webp"
     if ext == ".pdf" and header.startswith(b"%PDF"):
@@ -140,6 +146,8 @@ def _magic_matches_extension(header: bytes, ext: str) -> bool:
         return True
     if ext == ".gif" and label == "gif":
         return True
+    if ext == ".bmp" and label == "bmp":
+        return True
     if ext == ".webp" and label == "webp":
         return True
     if ext == ".pdf" and label == "pdf":
@@ -160,11 +168,19 @@ def _magic_matches_extension(header: bytes, ext: str) -> bool:
 def _contains_blocked_content(data: bytes) -> bool:
     if not data:
         return False
-    lower = data[:65536].lower()
+    # EICAR can appear anywhere.
     if _EICAR in data:
         return True
-    for sig, _ in _EXECUTABLE_SIGNATURES:
-        if sig.lower() in lower or sig in data[:512]:
+    head = data[:512]
+    # Only treat these as *header* signatures (avoid random byte false-positives).
+    for sig, off in _EXECUTABLE_SIGNATURES:
+        if len(head) >= off + len(sig) and head[off : off + len(sig)] == sig:
+            return True
+
+    # Textual payloads that start with script/code. Check after leading whitespace.
+    trimmed = head.lstrip().lower()
+    for prefix in _TEXTUAL_DANGEROUS_PREFIXES:
+        if trimmed.startswith(prefix):
             return True
     return False
 
