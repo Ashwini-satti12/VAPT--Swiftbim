@@ -44,6 +44,7 @@ function CustomDropdown({
     alignMenu = "right",
     menuMaxHeightClass = "max-h-[220px]",
     direction = "down",
+    searchable = false,
 }: {
     options: string[];
     value: string;
@@ -54,8 +55,10 @@ function CustomDropdown({
     alignMenu?: "left" | "right";
     menuMaxHeightClass?: string;
     direction?: "up" | "down";
+    searchable?: boolean;
 }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
@@ -99,7 +102,17 @@ function CustomDropdown({
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchQuery("");
+        }
+    }, [isOpen]);
+
     const isPlaceholder = !value || value === placeholder;
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filteredOptions = searchable && normalizedQuery
+        ? options.filter((option) => option.toLowerCase().includes(normalizedQuery))
+        : options;
 
     const menuContent = (
         <div
@@ -115,6 +128,18 @@ function CustomDropdown({
             }}
         >
             <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+                {searchable && (
+                    <div className="px-3 pt-3 pb-2 sticky top-0 bg-white z-[1] border-b border-[#F0F0F0]">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={`Search ${placeholder.toLowerCase()}...`}
+                            className="w-full h-[32px] px-3 text-[13px] font-gantari text-[#353535] bg-[#F5F5F5] rounded-md outline-none border border-transparent focus:border-[#AEACAC52] placeholder:text-[#8B8B8B]"
+                            autoFocus
+                        />
+                    </div>
+                )}
                 <button
                     type="button"
                     onClick={() => {
@@ -128,7 +153,7 @@ function CustomDropdown({
                 >
                     All {placeholder}
                 </button>
-                {options.map((option) => {
+                {filteredOptions.map((option) => {
                     const isChosen = value === option;
                     return (
                         <button
@@ -163,6 +188,11 @@ function CustomDropdown({
                         </button>
                     );
                 })}
+                {filteredOptions.length === 0 && (
+                    <div className="px-4 py-3 text-[13px] text-[#8B8B8B] font-gantari">
+                        No results found
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -199,11 +229,60 @@ function CustomDropdown({
 }
 
 export default function PartnerBL() {
+    const DEFAULT_SERVICE_CATEGORIES = [
+        "CAD-Based Services",
+        "BIM & Digital Services",
+        "Geospatial Services",
+        "Software Development",
+        "Consulting",
+        "Project Management",
+        "Other",
+    ] as const;
+
+    const DEFAULT_SOFTWARE_TOOLS = [
+        "Navisworks",
+        "Bexel",
+        "ACCA",
+        "Revizto",
+        "Revit",
+        "AutoCAD",
+        "Tekla",
+        "Civil 3D",
+        "MicroStation",
+        "Other",
+    ] as const;
+
+    const parseFieldValues = (value: unknown): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+            return value.map((v) => String(v).trim()).filter(Boolean);
+        }
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (!trimmed) return [];
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((v) => String(v).trim()).filter(Boolean);
+                }
+            } catch {
+                // Not JSON; continue as comma-separated/plain string
+            }
+            return trimmed
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean);
+        }
+        return [];
+    };
+
     const navigate = useNavigate();
     const [list, setList] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedVendor, setSelectedVendor] = useState("");
     const [selectedCompany, setSelectedCompany] = useState("");
+    const [selectedServiceCategory, setSelectedServiceCategory] = useState("");
+    const [selectedSoftwareTool, setSelectedSoftwareTool] = useState("");
 
     useEffect(() => {
         const styleTag = document.createElement("style");
@@ -238,6 +317,22 @@ export default function PartnerBL() {
         return Array.from(new Set(names)).sort();
     }, [list]);
 
+    const serviceCategoryOptions = useMemo(() => {
+        const dynamic = list.flatMap((v) => [
+            ...parseFieldValues(v.service_categories),
+            ...parseFieldValues(v.other_service),
+        ]);
+        return Array.from(new Set([...DEFAULT_SERVICE_CATEGORIES, ...dynamic])).sort((a, b) => a.localeCompare(b));
+    }, [list]);
+
+    const softwareToolOptions = useMemo(() => {
+        const dynamic = list.flatMap((v) => [
+            ...parseFieldValues(v.software_tools),
+            ...parseFieldValues(v.other_software),
+        ]);
+        return Array.from(new Set([...DEFAULT_SOFTWARE_TOOLS, ...dynamic])).sort((a, b) => a.localeCompare(b));
+    }, [list]);
+
     const filteredList = useMemo(() => {
         const q = searchParams.get("q")?.toLowerCase() || "";
         return list.filter((v) => {
@@ -250,10 +345,20 @@ export default function PartnerBL() {
 
             const matchesVendor = !selectedVendor || v.contact_name === selectedVendor;
             const matchesCompany = !selectedCompany || v.company_name === selectedCompany;
+            const vendorServices = [
+                ...parseFieldValues(v.service_categories),
+                ...parseFieldValues(v.other_service),
+            ];
+            const vendorSoftwares = [
+                ...parseFieldValues(v.software_tools),
+                ...parseFieldValues(v.other_software),
+            ];
+            const matchesServiceCategory = !selectedServiceCategory || vendorServices.includes(selectedServiceCategory);
+            const matchesSoftwareTool = !selectedSoftwareTool || vendorSoftwares.includes(selectedSoftwareTool);
 
-            return matchesSearch && matchesVendor && matchesCompany;
+            return matchesSearch && matchesVendor && matchesCompany && matchesServiceCategory && matchesSoftwareTool;
         });
-    }, [list, searchParams, selectedVendor, selectedCompany]);
+    }, [list, searchParams, selectedVendor, selectedCompany, selectedServiceCategory, selectedSoftwareTool]);
 
     const displayName = (v: Vendor) => v.company_name || v.partner_name || "-";
 
@@ -288,6 +393,25 @@ export default function PartnerBL() {
                         placeholder="Company Name"
                         styleType="header"
                         className="w-[180px]"
+                        searchable
+                    />
+                    <CustomDropdown
+                        options={serviceCategoryOptions}
+                        value={selectedServiceCategory}
+                        onChange={setSelectedServiceCategory}
+                        placeholder="Service Categories"
+                        styleType="header"
+                        className="w-[200px]"
+                        searchable
+                    />
+                    <CustomDropdown
+                        options={softwareToolOptions}
+                        value={selectedSoftwareTool}
+                        onChange={setSelectedSoftwareTool}
+                        placeholder="Software Tools"
+                        styleType="header"
+                        className="w-[180px]"
+                        searchable
                     />
                 </div>
             </div>
