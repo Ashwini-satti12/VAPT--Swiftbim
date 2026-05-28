@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
+import { openGmailCompose } from "../../utils/encryptedQuery";
 import { PasswordStrengthHints } from '../../components/ProtectedRoute';
 import {
   PASSWORD_MIN_LENGTH,
@@ -954,12 +955,7 @@ export default function ConsultantBC() {
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          window.open(
-                            `https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`,
-                            "_blank",
-                          )
-                        }
+                        onClick={() => openGmailCompose(emp.email || '')}
                         className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={mailIcon} alt="Mail" className="w-4 h-4" />{" "}
@@ -1145,12 +1141,7 @@ export default function ConsultantBC() {
                               <div className="flex items-center justify-center gap-3">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    window.open(
-                                      `https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openGmailCompose(emp.email || '')}
                                   className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                 >
                                   <img

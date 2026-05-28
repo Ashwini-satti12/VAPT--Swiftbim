@@ -5,6 +5,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiGrid, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import { openGmailCompose } from '../../utils/encryptedQuery';
 import {
   accountNumberForDisplay,
   accountNumberForEdit,
@@ -1206,7 +1207,7 @@ export default function ConsultantTD() {
                         {/* Contact Buttons */}
                         <div className="flex flex-wrap items-center gap-2">
                           <button
-                            onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                            onClick={() => openGmailCompose(emp.email || '')}
                             className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
@@ -1330,7 +1331,7 @@ export default function ConsultantTD() {
                                 <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
                                   <div className="flex items-center justify-center gap-3">
                                     <button
-                                      onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                      onClick={() => openGmailCompose(emp.email || '')}
                                       className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                     >
                                       <img src={mailIcon} className="w-5 h-5" alt="Mail" />
