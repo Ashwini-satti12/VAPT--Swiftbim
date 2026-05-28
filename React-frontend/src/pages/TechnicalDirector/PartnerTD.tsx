@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
@@ -40,6 +40,7 @@ function CustomDropdown({
     styleType = "form",
     menuMaxHeightClass = "max-h-[220px]",
     direction = "down",
+    searchable = false,
 }: {
     options: string[];
     value: string;
@@ -51,8 +52,10 @@ function CustomDropdown({
     menuMaxHeightClass?: string;
     /** Direction to open the dropdown menu */
     direction?: "up" | "down";
+    searchable?: boolean;
 }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
@@ -96,8 +99,18 @@ function CustomDropdown({
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchQuery("");
+        }
+    }, [isOpen]);
+
     // Determine if we should show placeholder color or prefix
     const isPlaceholder = !value || value === placeholder;
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filteredOptions = searchable && normalizedQuery
+        ? options.filter((option) => option.toLowerCase().includes(normalizedQuery))
+        : options;
 
     const menuContent = (
         <div
@@ -113,6 +126,18 @@ function CustomDropdown({
             }}
         >
             <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+                {searchable && (
+                    <div className="px-3 pt-3 pb-2 sticky top-0 bg-white z-[1] border-b border-[#F0F0F0]">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={`Search ${placeholder.toLowerCase()}...`}
+                            className="w-full h-[32px] px-3 text-[13px] font-gantari text-[#353535] bg-[#F5F5F5] rounded-md outline-none border border-transparent focus:border-[#AEACAC52] placeholder:text-[#8B8B8B]"
+                            autoFocus
+                        />
+                    </div>
+                )}
                 {(styleType === "header" || styleType === "form") && (
                     <button
                         type="button"
@@ -128,7 +153,7 @@ function CustomDropdown({
                         {`All ${placeholder}`}
                     </button>
                 )}
-                {options.map((option) => {
+                {filteredOptions.map((option) => {
                     const isChosen = value === option;
                     return (
                         <button
@@ -163,6 +188,11 @@ function CustomDropdown({
                         </button>
                     );
                 })}
+                {filteredOptions.length === 0 && (
+                    <div className="px-4 py-3 text-[13px] text-[#8B8B8B] font-gantari">
+                        No results found
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -210,11 +240,60 @@ function CustomDropdown({
 
 
 export default function PartnerTD() {
+    const DEFAULT_SERVICE_CATEGORIES = [
+        "CAD-Based Services",
+        "BIM & Digital Services",
+        "Geospatial Services",
+        "Software Development",
+        "Consulting",
+        "Project Management",
+        "Other",
+    ] as const;
+
+    const DEFAULT_SOFTWARE_TOOLS = [
+        "Navisworks",
+        "Bexel",
+        "ACCA",
+        "Revizto",
+        "Revit",
+        "AutoCAD",
+        "Tekla",
+        "Civil 3D",
+        "MicroStation",
+        "Other",
+    ] as const;
+
+    const parseFieldValues = (value: unknown): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+            return value.map((v) => String(v).trim()).filter(Boolean);
+        }
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (!trimmed) return [];
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((v) => String(v).trim()).filter(Boolean);
+                }
+            } catch {
+                // Not JSON; continue as comma-separated/plain string
+            }
+            return trimmed
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean);
+        }
+        return [];
+    };
+
     const [allList, setAllList] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchParams] = useSearchParams();
     const [selectedVendor, setSelectedVendor] = useState('');
     const [selectedCompany, setSelectedCompany] = useState('');
+    const [selectedServiceCategory, setSelectedServiceCategory] = useState('');
+    const [selectedSoftwareTool, setSelectedSoftwareTool] = useState('');
 
     useEffect(() => {
         const styleTag = document.createElement('style');
@@ -235,6 +314,28 @@ export default function PartnerTD() {
     }, []);
 
     const displayName = (v: Vendor) => v.company_name || v.partner_name || '-';
+    const vendorOptions = useMemo(
+        () => Array.from(new Set(allList.map(v => v.contact_name).filter(Boolean) as string[])).sort(),
+        [allList],
+    );
+    const companyOptions = useMemo(
+        () => Array.from(new Set(allList.map(v => v.company_name).filter(Boolean) as string[])).sort(),
+        [allList],
+    );
+    const serviceCategoryOptions = useMemo(() => {
+        const dynamic = allList.flatMap((v) => [
+            ...parseFieldValues(v.service_categories),
+            ...parseFieldValues(v.other_service),
+        ]);
+        return Array.from(new Set([...DEFAULT_SERVICE_CATEGORIES, ...dynamic])).sort((a, b) => a.localeCompare(b));
+    }, [allList]);
+    const softwareToolOptions = useMemo(() => {
+        const dynamic = allList.flatMap((v) => [
+            ...parseFieldValues(v.software_tools),
+            ...parseFieldValues(v.other_software),
+        ]);
+        return Array.from(new Set([...DEFAULT_SOFTWARE_TOOLS, ...dynamic])).sort((a, b) => a.localeCompare(b));
+    }, [allList]);
 
     if (loading) {
         return (
@@ -255,20 +356,40 @@ export default function PartnerTD() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 min-w-0">
                     <div className="flex items-center justify-end gap-2 shrink-0">
                         <CustomDropdown
-                            options={Array.from(new Set(allList.map(v => v.contact_name).filter(Boolean).sort())) as string[]}
+                            options={vendorOptions}
                             value={selectedVendor}
                             onChange={(val) => setSelectedVendor(val)}
                             placeholder="Vendor Name"
                             className="w-[140px] sm:w-[160px]"
                             styleType="header"
+                            searchable
                         />
                         <CustomDropdown
-                            options={Array.from(new Set(allList.map(v => v.company_name).filter(Boolean).sort())) as string[]}
+                            options={companyOptions}
                             value={selectedCompany}
                             onChange={(val) => setSelectedCompany(val)}
                             placeholder="Company Name"
                             className="w-[140px] sm:w-[160px]"
                             styleType="header"
+                            searchable
+                        />
+                        <CustomDropdown
+                            options={serviceCategoryOptions}
+                            value={selectedServiceCategory}
+                            onChange={(val) => setSelectedServiceCategory(val)}
+                            placeholder="Service Categories"
+                            className="w-[170px] sm:w-[190px]"
+                            styleType="header"
+                            searchable
+                        />
+                        <CustomDropdown
+                            options={softwareToolOptions}
+                            value={selectedSoftwareTool}
+                            onChange={(val) => setSelectedSoftwareTool(val)}
+                            placeholder="Software Tools"
+                            className="w-[150px] sm:w-[170px]"
+                            styleType="header"
+                            searchable
                         />
                     </div>
                 </div>
@@ -290,6 +411,16 @@ export default function PartnerTD() {
 
                             if (selectedVendor && v.contact_name !== selectedVendor) return false;
                             if (selectedCompany && v.company_name !== selectedCompany) return false;
+                            const vendorServices = [
+                                ...parseFieldValues(v.service_categories),
+                                ...parseFieldValues(v.other_service),
+                            ];
+                            const vendorSoftwares = [
+                                ...parseFieldValues(v.software_tools),
+                                ...parseFieldValues(v.other_software),
+                            ];
+                            if (selectedServiceCategory && !vendorServices.includes(selectedServiceCategory)) return false;
+                            if (selectedSoftwareTool && !vendorSoftwares.includes(selectedSoftwareTool)) return false;
 
                             return true;
                         });

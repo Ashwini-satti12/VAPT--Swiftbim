@@ -8,6 +8,7 @@ import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
 import { PasswordStrengthHints } from '../../components/ProtectedRoute';
+import { openGmailCompose } from '../../utils/encryptedQuery';
 import {
   PASSWORD_MIN_LENGTH,
   getPasswordStrengthMessage,
@@ -1054,7 +1055,7 @@ export default function EmployeesPM() {
                         {/* Contact Buttons */}
                         <div className="flex flex-wrap items-center gap-3">
                           <button
-                            onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                            onClick={() => openGmailCompose(emp.email || '')}
                             className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
@@ -1175,7 +1176,7 @@ export default function EmployeesPM() {
                                   <td className="px-6 py-5 text-center">
                                     <div className="flex items-center justify-center gap-3">
                                       <button
-                                        onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                        onClick={() => openGmailCompose(emp.email || '')}
                                         className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                                       >
                                         <img src={mailIcon} className="w-5 h-5" alt="Mail" />
