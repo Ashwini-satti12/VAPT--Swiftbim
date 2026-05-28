@@ -102,11 +102,15 @@ def md5_hash(text):
 
 
 def _is_account_active(row, user_type: str) -> bool:
-    """employee.active vs vendor_employee.status both mean 'can log in'."""
+    """Account enablement uses `active`; `status` on vendor_employee is Online/Offline presence only."""
     if user_type == "vendor":
-        status = str(row.get("status") or row.get("active") or "").lower()
-    else:
-        status = str(row.get("active") or row.get("status") or "").lower()
+        active = str(row.get("active") or "").strip().lower()
+        if active:
+            return active in ("active", "1", "yes", "online")
+        # Legacy rows without `active` column populated
+        status = str(row.get("status") or "").strip().lower()
+        return status in ("active", "1", "online")
+    status = str(row.get("active") or row.get("status") or "").strip().lower()
     return status in ("active", "1", "online")
 
 
@@ -405,24 +409,34 @@ def login():
             if lock_row["account_locked_until"] > datetime.now():
                 return jsonify({"success": False, "message": LOGIN_LOCK_MESSAGE}), 429
     
-    # 1. Try Employee table
+    # Same email can exist in employee and vendor_employee (password reset syncs both).
+    # Prefer vendor_employee when both match so vendor admins are not sent to the internal /dashboard.
+    employee_match = None
+    vendor_match = None
     with conn.cursor(dictionary=True) as cur:
         cur.execute("SELECT * FROM employee WHERE email = %s", (email,))
         for row in cur.fetchall():
             if check_password(row.get("password") or "", password):
-                user_type = "employee"
-                target_row = row
+                employee_match = row
+                break
+        cur.execute("SELECT * FROM vendor_employee WHERE email = %s", (email,))
+        for row in cur.fetchall():
+            if check_password(row.get("password") or "", password):
+                vendor_match = row
                 break
 
-    # 2. Try Vendor table if no match yet
-    if not target_row:
-        with conn.cursor(dictionary=True) as cur:
-            cur.execute("SELECT * FROM vendor_employee WHERE email = %s", (email,))
-            for row in cur.fetchall():
-                if check_password(row.get("password") or "", password):
-                    user_type = "vendor"
-                    target_row = row
-                    break
+    if employee_match and vendor_match:
+        user_type = "vendor"
+        target_row = vendor_match
+    elif vendor_match:
+        user_type = "vendor"
+        target_row = vendor_match
+    elif employee_match:
+        user_type = "employee"
+        target_row = employee_match
+    else:
+        target_row = None
+        user_type = None
 
     if not target_row:
         # If neither matches the password, check if email exists to return proper message
@@ -859,33 +873,38 @@ def me():
     """Return current user info including panels and role (for frontend RBAC / menu visibility)."""
     from db import get_db
     conn = get_db()
-    cur = conn.cursor()
-    
     user_type = getattr(g, "user_type", "employee")
-    if user_type == "vendor":
-        # Vendor employees can also have profile pictures; fetch them from vendor_employee.
-        cur.execute(
-            "SELECT full_name, profile_picture FROM vendor_employee WHERE id = %s",
-            (g.user_id,),
-        )
-    else:
-        cur.execute(
-            "SELECT full_name, profile_picture FROM employee WHERE id = %s",
-            (g.user_id,),
-        )
-        
-    row = cur.fetchone()
+    with conn.cursor(dictionary=True) as cur:
+        if user_type == "vendor":
+            cur.execute(
+                "SELECT full_name, profile_picture, role AS user_role FROM vendor_employee WHERE id = %s",
+                (g.user_id,),
+            )
+        else:
+            cur.execute(
+                "SELECT full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+        row = cur.fetchone()
+
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
+
     # Panel type: 1 = management (PM/CEO/BIM etc), 2 = team leader, 3 = employee
-    user_role = (getattr(g, "user_role", None) or "").strip()
-    management_roles = ("Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead", "Vendor PM", "Vendor Bim Lead")
-    is_management = user_role in management_roles
-    cur.execute(
-        "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
-        (g.user_id, g.company_id),
+    user_role = (row.get("user_role") or getattr(g, "user_role", None) or "").strip()
+    management_roles = (
+        "Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead",
+        "Vendor PM", "Vendor Bim Lead", "Vendor BIM Lead", "Vendor", "Vendor Admin",
     )
-    is_team_leader = cur.fetchone() is not None
+    is_management = user_role in management_roles
+    is_team_leader = False
+    if user_type != "vendor":
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
+                (g.user_id, g.company_id),
+            )
+            is_team_leader = cur.fetchone() is not None
     if is_management:
         panel_type = 1
     elif is_team_leader:

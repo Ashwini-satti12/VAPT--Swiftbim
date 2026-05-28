@@ -5,6 +5,7 @@ import api from "../../lib/api";
 import { getPasswordStrengthMessage } from "../../utils/employeeActive";
 import { PasswordStrengthHints } from "../../components/ProtectedRoute";
 import loginBackground from "../../assets/login_bg.png";
+import { homePathForUser } from "../../utils/authRoutes";
 
 type Step = "login" | "forgot" | "otp" | "reset";
 
@@ -52,17 +53,7 @@ export default function Login() {
     setSubmitting(false);
 
     if (result.success && result.user) {
-      const { user_role } = result.user;
-
-      if (user_role === 'Technical Director') navigate("/td/dashboard", { replace: true });
-      else if (user_role === 'BIM Lead') navigate("/bl/dashboard", { replace: true });
-      else if (user_role === 'BIM Coordinator') navigate("/bc/dashboard", { replace: true });
-      else if (user_role === 'Vendor PM') navigate("/vpm/dashboard", { replace: true });
-      else if (user_role === 'Vendor BIM Lead' || user_role === 'Vendor Bim Lead') navigate("/vendor-bim-lead/dashboard", { replace: true });
-      else if (user_role === 'Vendor Employee') navigate("/ve/dashboard", { replace: true });
-      else if (user_role === 'Vendor' || user_role === 'Vendor Admin') navigate("/v/dashboard", { replace: true });
-      else if (user_role === 'BIM Modeler') navigate("/bm/dashboard", { replace: true });
-      else navigate("/dashboard", { replace: true });
+      navigate(homePathForUser(result.user), { replace: true });
     } else {
       setError(result.message || "Login failed");
     }
