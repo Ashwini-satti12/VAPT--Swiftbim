@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
+import { encodeUrlId } from '../../utils/urlIdCrypto';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
@@ -518,7 +519,7 @@ export default function ProposalsV() {
 
                                                         <button
                                                             onClick={() =>
-                                                                bid.proposal_exists && navigate(`/v/view-proposal?proposalId=${bid.proposal_id}&source=vendor_submitted`, {
+                                                                bid.proposal_exists && bid.proposal_id != null && navigate(`/v/view-proposal?proposalId=${encodeUrlId(bid.proposal_id)}&source=vendor_submitted`, {
                                                                     state: {
                                                                         proposalId: bid.proposal_id,
                                                                         bid,

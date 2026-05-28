@@ -101,6 +101,168 @@ def md5_hash(text):
     return hashlib.md5(text.encode()).hexdigest()
 
 
+def _is_account_active(row, user_type: str) -> bool:
+    """Account enablement uses `active`; `status` on vendor_employee is Online/Offline presence only."""
+    if user_type == "vendor":
+        active = str(row.get("active") or "").strip().lower()
+        if active:
+            return active in ("active", "1", "yes", "online")
+        # Legacy rows without `active` column populated
+        status = str(row.get("status") or "").strip().lower()
+        return status in ("active", "1", "online")
+    status = str(row.get("active") or row.get("status") or "").strip().lower()
+    return status in ("active", "1", "online")
+
+
+OTP_EXPIRES_MINUTES = 10
+OTP_RESEND_COOLDOWN_SECONDS = 60
+# In-process resend throttle (per email); fine for single-app-server deployments.
+_otp_last_sent_at: dict[str, datetime] = {}
+
+
+def _generate_otp() -> str:
+    return f"{random.randint(0, 9999):04d}"
+
+
+def _ensure_vendor_otp_column(cur) -> None:
+    cur.execute("SHOW COLUMNS FROM vendor_employee LIKE 'OTP'")
+    if not cur.fetchone():
+        cur.execute("ALTER TABLE vendor_employee ADD COLUMN OTP VARCHAR(255) DEFAULT NULL")
+
+
+def _lookup_reset_account(cur, email: str):
+    """Return (user_type, row) for employee or vendor_employee, else None."""
+    cur.execute(
+        "SELECT id, full_name, profile_picture, email FROM employee WHERE email = %s LIMIT 1",
+        (email,),
+    )
+    row = cur.fetchone()
+    if row:
+        return "employee", row
+
+    cur.execute(
+        "SELECT id, full_name, profile_picture, email FROM vendor_employee WHERE email = %s LIMIT 1",
+        (email,),
+    )
+    row = cur.fetchone()
+    if row:
+        return "vendor", row
+    return None, None
+
+
+def _store_otp(cur, email: str, user_type: str, otp: str) -> None:
+    if user_type == "employee":
+        cur.execute("UPDATE employee SET OTP = %s WHERE email = %s", (otp, email))
+    else:
+        _ensure_vendor_otp_column(cur)
+        cur.execute("UPDATE vendor_employee SET OTP = %s WHERE email = %s", (otp, email))
+
+
+def _otp_is_expired(email: str) -> bool:
+    sent = _otp_last_sent_at.get((email or "").lower())
+    if not sent:
+        return False
+    return (datetime.now() - sent).total_seconds() > OTP_EXPIRES_MINUTES * 60
+
+
+def _verify_stored_otp(cur, email: str, otp: str):
+    """Return (user_type, user_id) if OTP matches, else (None, None)."""
+    if _otp_is_expired(email):
+        return None, None
+    cur.execute(
+        "SELECT id FROM employee WHERE email = %s AND OTP = %s LIMIT 1",
+        (email, otp),
+    )
+    row = cur.fetchone()
+    if row:
+        return "employee", row["id"]
+
+    cur.execute("SHOW COLUMNS FROM vendor_employee LIKE 'OTP'")
+    if cur.fetchone():
+        cur.execute(
+            "SELECT id FROM vendor_employee WHERE email = %s AND OTP = %s LIMIT 1",
+            (email, otp),
+        )
+        row = cur.fetchone()
+        if row:
+            return "vendor", row["id"]
+    return None, None
+
+
+def _clear_otp(cur, email: str, user_type: str) -> None:
+    if user_type == "employee":
+        cur.execute("UPDATE employee SET OTP = NULL WHERE email = %s", (email,))
+    else:
+        cur.execute("UPDATE vendor_employee SET OTP = NULL WHERE email = %s", (email,))
+
+
+def _issue_and_email_reset_otp(email: str, *, is_resend: bool = False):
+    from utils.mailer import send_password_reset_otp_email
+
+    email = (email or "").strip()
+    if not email:
+        return None, (jsonify({"success": False, "message": "Email is required"}), 400)
+
+    now = datetime.now()
+    last_sent = _otp_last_sent_at.get(email.lower())
+    if last_sent:
+        elapsed = (now - last_sent).total_seconds()
+        if elapsed < OTP_RESEND_COOLDOWN_SECONDS:
+            wait = int(OTP_RESEND_COOLDOWN_SECONDS - elapsed)
+            return None, (
+                jsonify({
+                    "success": False,
+                    "message": f"Please wait {wait} seconds before requesting another code.",
+                    "retry_after_seconds": wait,
+                }),
+                429,
+            )
+
+    conn = get_db()
+    with conn.cursor() as cur:
+        user_type, row = _lookup_reset_account(cur, email)
+
+    if not row:
+        return None, (
+            jsonify({"success": False, "message": "No account found with this email address."}),
+            404,
+        )
+
+    otp = _generate_otp()
+    with conn.cursor() as cur:
+        _store_otp(cur, email, user_type, otp)
+        conn.commit()
+
+    sent = send_password_reset_otp_email(
+        email,
+        row.get("full_name"),
+        otp,
+        expires_minutes=OTP_EXPIRES_MINUTES,
+    )
+    if not sent:
+        return None, (
+            jsonify({
+                "success": False,
+                "message": "Unable to send verification email. Please contact support or try again later.",
+            }),
+            503,
+        )
+
+    _otp_last_sent_at[email.lower()] = now
+    msg = (
+        "A new verification code has been sent to your email."
+        if is_resend
+        else "OTP sent successfully!"
+    )
+    return {
+        "success": True,
+        "message": msg,
+        "email": email,
+        "full_name": row.get("full_name"),
+        "profile_path": row.get("profile_picture"),
+    }, None
+
+
 def _login_json_response(*, token, expires_in, expires_at, user):
     """Login payload + Authorization response header (visible in Network tab)."""
     body = {
@@ -132,7 +294,9 @@ def _session_confirm_from_bearer(*, allowed_user_types):
   confirm the session (same Bearer pattern as project APIs).
     """
     data = request.get_json(silent=True) or {}
-    if (data.get("email") or "").strip() or data.get("password"):
+    email_in_body = (data.get("email") or "").strip()
+    password_in_body = data.get("password")
+    if email_in_body or (password_in_body is not None and str(password_in_body).strip()):
         return None
 
     raw_token = get_token()
@@ -171,10 +335,16 @@ def _session_confirm_from_bearer(*, allowed_user_types):
             row = cur.fetchone()
     else:
         with conn.cursor(dictionary=True) as cur:
-            cur.execute(
-                "SELECT id, full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
-                (user_id, company_id),
-            )
+            if company_id:
+                cur.execute(
+                    "SELECT id, full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
+                    (user_id, company_id),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, full_name, profile_picture, user_role FROM employee WHERE id = %s",
+                    (user_id,),
+                )
             row = cur.fetchone()
 
     if not row:
@@ -239,24 +409,34 @@ def login():
             if lock_row["account_locked_until"] > datetime.now():
                 return jsonify({"success": False, "message": LOGIN_LOCK_MESSAGE}), 429
     
-    # 1. Try Employee table
+    # Same email can exist in employee and vendor_employee (password reset syncs both).
+    # Prefer vendor_employee when both match so vendor admins are not sent to the internal /dashboard.
+    employee_match = None
+    vendor_match = None
     with conn.cursor(dictionary=True) as cur:
         cur.execute("SELECT * FROM employee WHERE email = %s", (email,))
         for row in cur.fetchall():
             if check_password(row.get("password") or "", password):
-                user_type = "employee"
-                target_row = row
+                employee_match = row
+                break
+        cur.execute("SELECT * FROM vendor_employee WHERE email = %s", (email,))
+        for row in cur.fetchall():
+            if check_password(row.get("password") or "", password):
+                vendor_match = row
                 break
 
-    # 2. Try Vendor table if no match yet
-    if not target_row:
-        with conn.cursor(dictionary=True) as cur:
-            cur.execute("SELECT * FROM vendor_employee WHERE email = %s", (email,))
-            for row in cur.fetchall():
-                if check_password(row.get("password") or "", password):
-                    user_type = "vendor"
-                    target_row = row
-                    break
+    if employee_match and vendor_match:
+        user_type = "vendor"
+        target_row = vendor_match
+    elif vendor_match:
+        user_type = "vendor"
+        target_row = vendor_match
+    elif employee_match:
+        user_type = "employee"
+        target_row = employee_match
+    else:
+        target_row = None
+        user_type = None
 
     if not target_row:
         # If neither matches the password, check if email exists to return proper message
@@ -301,9 +481,7 @@ def login():
     else:
         company_id = row.get("Company_id") or 0
         
-    # vendor_employee uses 'status', employee uses 'active'
-    active_status = str(row.get("active", "")).lower()
-    if active_status not in ["active", "1"]:
+    if not _is_account_active(row, user_type):
         return jsonify({
             "success": False,
             "message": "Account is inactive."
@@ -559,30 +737,20 @@ def client_logout():
 def forgot_password():
     data = request.get_json() or {}
     email = (data.get("email") or "").strip()
-    if not email:
-        return jsonify({"success": False, "message": "Email is required"}), 400
+    payload, err = _issue_and_email_reset_otp(email, is_resend=False)
+    if err:
+        return err
+    return jsonify(payload)
 
-    conn = get_db()
-    with conn.cursor() as cur:
-        cur.execute("SELECT id, full_name, profile_picture, email FROM employee WHERE email = %s", (email,))
-        row = cur.fetchone()
 
-    if not row:
-        return jsonify({"success": False, "message": "No employee found with this email address."}), 404
-
-    otp = str(random.randint(1000, 9999))
-    with conn.cursor() as cur:
-        cur.execute("UPDATE employee SET OTP = %s WHERE email = %s", (otp, email))
-
-    # TODO: Send email with OTP (Flask-Mail or similar). For now return OTP in dev only.
-    return jsonify({
-        "success": True,
-        "message": "OTP sent successfully!",
-        "email": email,
-        "full_name": row.get("full_name"),
-        "profile_path": row.get("profile_picture"),
-        # "otp": otp,  # Only in development
-    })
+@bp.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip()
+    payload, err = _issue_and_email_reset_otp(email, is_resend=True)
+    if err:
+        return err
+    return jsonify(payload)
 
 
 @bp.route("/verify-otp", methods=["POST"])
@@ -592,21 +760,31 @@ def verify_otp():
     otp = (data.get("otp") or "").strip()
     if not email or not otp:
         return jsonify({"success": False, "message": "Email and OTP are required"}), 400
+    if not otp.isdigit() or len(otp) != 4:
+        return jsonify({"success": False, "message": "Please enter the 4-digit verification code."}), 400
 
     conn = get_db()
     with conn.cursor() as cur:
-        cur.execute("SELECT id FROM employee WHERE email = %s AND OTP = %s", (email, otp))
-        row = cur.fetchone()
+        user_type, user_id = _verify_stored_otp(cur, email, otp)
 
-    if not row:
+    if not user_id:
+        if _otp_is_expired(email):
+            return jsonify({
+                "success": False,
+                "message": f"Verification code expired. Codes are valid for {OTP_EXPIRES_MINUTES} minutes. Please request a new code.",
+            }), 401
         return jsonify({"success": False, "message": "Invalid OTP. Please try again."}), 401
 
-    # Return a short-lived token to allow reset-password (or use same JWT with short expiry)
+    with conn.cursor() as cur:
+        _clear_otp(cur, email, user_type)
+        conn.commit()
+
     payload = {
-        "user_id": row["id"],
+        "user_id": user_id,
         "email": email,
+        "user_type": user_type,
         "reset": True,
-        "exp": datetime.utcnow() + timedelta(minutes=15),
+        "exp": datetime.utcnow() + timedelta(minutes=OTP_EXPIRES_MINUTES),
     }
     token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
     if hasattr(token, "decode"):
@@ -641,26 +819,29 @@ def reset_password():
         return jsonify({"success": False, "message": "Invalid reset token"}), 401
 
     email = payload["email"]
+    user_type = payload.get("user_type") or "employee"
+    hist_user_type = "vendor" if user_type == "vendor" else "employee"
+    password_table = "vendor_employee" if user_type == "vendor" else "employee"
     new_hashed = md5_hash(password1)
     conn = get_db()
 
     with conn.cursor(dictionary=True) as cur:
-        # Fetch current password so we can add it to history too (prevents X→Y→X cycling)
-        cur.execute("SELECT password FROM employee WHERE email = %s", (email,))
+        cur.execute(f"SELECT password FROM {password_table} WHERE email = %s", (email,))
         emp_row = cur.fetchone() or {}
         current_stored = (emp_row.get("password") or "").strip()
         current_md5 = current_stored if not (current_stored.startswith("scrypt:") or current_stored.startswith("pbkdf2:")) else None
 
-        # Check password history (assume employee since forgot password flow targets employee)
-        cur.execute("SELECT password_hash FROM password_history WHERE email = %s AND user_type = 'employee' ORDER BY created_at DESC", (email,))
+        cur.execute(
+            "SELECT password_hash FROM password_history WHERE email = %s AND user_type = %s ORDER BY created_at DESC",
+            (email, hist_user_type),
+        )
         history = cur.fetchall()
-        history_hashes = {h["password_hash"] for h in history}
+        all_history_hashes = {h["password_hash"] for h in history}
+        recent_blocked_hashes = {h["password_hash"] for h in history[:2]}
 
-        # Block reuse against history
-        if new_hashed in history_hashes:
+        if new_hashed in recent_blocked_hashes:
             return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
 
-        # Also block reuse against current password (covers werkzeug hashes too)
         if current_stored.startswith("scrypt:") or current_stored.startswith("pbkdf2:"):
             from werkzeug.security import check_password_hash as _chk
             if _chk(current_stored, password1):
@@ -670,11 +851,18 @@ def reset_password():
                 return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
 
     with conn.cursor() as cur:
-        # Save the current (outgoing) password to history before replacing it
-        if current_md5 and current_md5 not in history_hashes:
-            cur.execute("INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, 'employee', %s)", (email, current_md5))
+        if current_md5 and current_md5 not in all_history_hashes:
+            cur.execute(
+                "INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, %s, %s)",
+                (email, hist_user_type, current_md5),
+            )
+        # Keep employee + vendor_employee in sync when the same email exists in both tables.
         cur.execute("UPDATE employee SET password = %s WHERE email = %s", (new_hashed, email))
-        cur.execute("INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, 'employee', %s)", (email, new_hashed))
+        cur.execute("UPDATE vendor_employee SET password = %s WHERE email = %s", (new_hashed, email))
+        cur.execute(
+            "INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, %s, %s)",
+            (email, hist_user_type, new_hashed),
+        )
         conn.commit()
     return jsonify({"success": True, "message": "Password updated successfully. You can now log in with your new password."})
 
@@ -685,33 +873,38 @@ def me():
     """Return current user info including panels and role (for frontend RBAC / menu visibility)."""
     from db import get_db
     conn = get_db()
-    cur = conn.cursor()
-    
     user_type = getattr(g, "user_type", "employee")
-    if user_type == "vendor":
-        # Vendor employees can also have profile pictures; fetch them from vendor_employee.
-        cur.execute(
-            "SELECT full_name, profile_picture FROM vendor_employee WHERE id = %s",
-            (g.user_id,),
-        )
-    else:
-        cur.execute(
-            "SELECT full_name, profile_picture FROM employee WHERE id = %s",
-            (g.user_id,),
-        )
-        
-    row = cur.fetchone()
+    with conn.cursor(dictionary=True) as cur:
+        if user_type == "vendor":
+            cur.execute(
+                "SELECT full_name, profile_picture, role AS user_role FROM vendor_employee WHERE id = %s",
+                (g.user_id,),
+            )
+        else:
+            cur.execute(
+                "SELECT full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+        row = cur.fetchone()
+
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
+
     # Panel type: 1 = management (PM/CEO/BIM etc), 2 = team leader, 3 = employee
-    user_role = (getattr(g, "user_role", None) or "").strip()
-    management_roles = ("Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead", "Vendor PM", "Vendor Bim Lead")
-    is_management = user_role in management_roles
-    cur.execute(
-        "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
-        (g.user_id, g.company_id),
+    user_role = (row.get("user_role") or getattr(g, "user_role", None) or "").strip()
+    management_roles = (
+        "Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead",
+        "Vendor PM", "Vendor Bim Lead", "Vendor BIM Lead", "Vendor", "Vendor Admin",
     )
-    is_team_leader = cur.fetchone() is not None
+    is_management = user_role in management_roles
+    is_team_leader = False
+    if user_type != "vendor":
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute(
+                "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
+                (g.user_id, g.company_id),
+            )
+            is_team_leader = cur.fetchone() is not None
     if is_management:
         panel_type = 1
     elif is_team_leader:
@@ -759,7 +952,7 @@ def admin_reset_password():
             email = emp_row["email"]
             cur.execute("SELECT password_hash FROM password_history WHERE email = %s AND user_type = 'employee' ORDER BY created_at DESC", (email,))
             history = cur.fetchall()
-            for h in history:
+            for h in history[:2]:
                 if h["password_hash"] == hashed:
                     return jsonify({"success": False, "message": "You cannot reuse a previous password for this user."}), 400
                     

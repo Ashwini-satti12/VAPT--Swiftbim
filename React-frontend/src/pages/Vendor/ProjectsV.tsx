@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
+import { vendorProjectIdQuery } from "../../utils/urlIdCrypto";
 import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
@@ -2557,7 +2558,7 @@ export default function ProjectsV() {
                                   e.stopPropagation();
                                   setOpenMenuProjectId(null);
                                   navigate(
-                                    `/v/milestones?project_id=${p.id}`,
+                                    `/v/milestones?${vendorProjectIdQuery(p.id)}`,
                                   );
                                 }}
                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"

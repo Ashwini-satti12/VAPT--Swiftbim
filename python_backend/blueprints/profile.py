@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
-from auth_middleware import project_app_required
+from auth_middleware import login_required
 from blueprints.employees import _validate_password_strength
 from werkzeug.utils import secure_filename
 from upload_resolver import secure_save_upload
@@ -13,7 +13,7 @@ bp = Blueprint("profile", __name__, url_prefix="/api/profile")
 
 
 @bp.route("", methods=["GET"])
-@project_app_required
+@login_required
 def get_profile():
     conn = get_db()
     cur = conn.cursor(dictionary=True)
@@ -95,13 +95,16 @@ def get_profile():
 
 
 @bp.route("", methods=["PUT", "PATCH"])
-@project_app_required
+@login_required
 def update_profile():
     # Support both JSON and multipart/form-data
     if request.is_json:
         data = request.get_json() or {}
     else:
         data = request.form
+
+    conn = get_db()
+    user_type = getattr(g, "user_type", "employee")
 
     # Handle file upload for profile picture
     profile_path = None
@@ -110,28 +113,26 @@ def update_profile():
         upload_root = current_app.config.get("UPLOAD_FOLDER")
         if upload_root:
             os.makedirs(upload_root, exist_ok=True)
-            employee_dir = os.path.join(upload_root, "employee")
-            os.makedirs(employee_dir, exist_ok=True)
+            subdir = "vendor_employee" if user_type == "vendor" else "employee"
+            upload_dir = os.path.join(upload_root, subdir)
+            os.makedirs(upload_dir, exist_ok=True)
             filename = secure_filename(file.filename)
-            # Add timestamp for uniqueness
             name, ext = os.path.splitext(filename)
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{name}_{timestamp}{ext}"
             saved, upload_err = secure_save_upload(
                 file,
-                employee_dir,
+                upload_dir,
                 category="image",
                 filename=filename,
                 app_config=current_app.config,
             )
             if upload_err:
                 return jsonify({"success": False, "message": upload_err}), 400
-            profile_path = f"employee/{os.path.basename(saved or filename)}"
+            profile_path = f"{subdir}/{os.path.basename(saved or filename)}"
 
-    conn = get_db()
-    cur = conn.cursor()
-    user_type = getattr(g, "user_type", "employee")
+    cur = conn.cursor(dictionary=True)
 
     def _to_db_value(value):
         """Convert nested JSON values (dict/list) into DB-safe scalars."""
@@ -168,14 +169,19 @@ def update_profile():
     if user_type == "vendor":
         allowed = ("full_name", "phone_number", "email", "address", "role")
     else:
-        allowed = ("full_name", "phone_number", "email", "dob", "doj", "address", "department")
-        
+        allowed = ("full_name", "phone_number", "email", "dob", "doj", "address", "department", "user_role")
+
     sets = []
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
             sets.append(f"`{key}` = %s")
             params.append(_to_db_value(data[key]))
+
+    # Navbar sends "role" for designation; employee table uses user_role.
+    if user_type != "vendor" and data.get("role") is not None:
+        sets.append("`user_role` = %s")
+        params.append(_to_db_value(data.get("role")))
             
     # Add profile picture to update if uploaded
     if profile_path:
@@ -191,22 +197,34 @@ def update_profile():
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
         
-    if user_type == "vendor":
-        params.extend([g.user_id])
-        cur.execute("UPDATE vendor_employee SET " + ", ".join(sets) + " WHERE id = %s", params)
-    else:
-        params.extend([g.user_id, g.company_id])
-        cur.execute("UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
-    conn.commit()
-        
-    # We use cur.rowcount to check if something was actually updated,
-    # but in some cases (no changes made) it might be 0 even if the user exists.
-    # To be safe, if the query didn't raise an exception, we consider it successful.
-    return jsonify({"success": True, "profile_picture": profile_path})
+    try:
+        if user_type == "vendor":
+            params.extend([g.user_id])
+            cur.execute("UPDATE vendor_employee SET " + ", ".join(sets) + " WHERE id = %s", params)
+        else:
+            params.extend([g.user_id, g.company_id])
+            cur.execute(
+                "UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s",
+                params,
+            )
+        conn.commit()
+    except Exception as exc:
+        current_app.logger.exception("Profile update failed")
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+    cur.execute(
+        "SELECT profile_picture FROM vendor_employee WHERE id = %s"
+        if user_type == "vendor"
+        else "SELECT profile_picture FROM employee WHERE id = %s AND Company_id = %s",
+        (g.user_id,) if user_type == "vendor" else (g.user_id, g.company_id),
+    )
+    pic_row = cur.fetchone() or {}
+    saved_pic = pic_row.get("profile_picture") or profile_path
+    return jsonify({"success": True, "profile_picture": saved_pic})
 
 
 @bp.route("/change-password", methods=["POST"])
-@project_app_required
+@login_required
 def change_password():
     data = request.get_json() or request.form
     current = data.get("current_password")
@@ -258,10 +276,11 @@ def change_password():
             (email, hist_user_type),
         )
         history = cur.fetchall()
-        history_hashes = {h["password_hash"] for h in history}
+        all_history_hashes = {h["password_hash"] for h in history}
+        # Block only the 2 most recently used passwords; older ones (3rd+) may be reused.
+        recent_blocked_hashes = {h["password_hash"] for h in history[:2]}
 
-        # Check new password against history
-        if new_hashed in history_hashes:
+        if new_hashed in recent_blocked_hashes:
             return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
 
         # Also check new password is not the same as current (covers werkzeug hashes too)
@@ -273,7 +292,7 @@ def change_password():
                 return jsonify({"success": False, "message": "You cannot reuse a previous password."}), 400
 
         # Save current password to history (if not already recorded) to prevent X->Y->X cycling
-        if stored_md5 and stored_md5 not in history_hashes:
+        if stored_md5 and stored_md5 not in all_history_hashes:
             cur.execute(
                 "INSERT INTO password_history (email, user_type, password_hash) VALUES (%s, %s, %s)",
                 (email, hist_user_type, stored_md5),

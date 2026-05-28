@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import { parseUrlId } from '../../utils/urlIdCrypto';
 import cardBg from '../../assets/cardbg.jpg';
 import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
 import callIcon from '../../assets/ProjectManager/Client/callicon.svg';
@@ -85,8 +86,8 @@ export default function ClientV() {
     const editParam = searchParams.get('edit');
     useEffect(() => {
         if (!editParam || !list.length) return;
-        const id = parseInt(editParam, 10);
-        if (!id || !list.some((x) => x.id === id)) return;
+        const id = parseUrlId(editParam);
+        if (id == null || !list.some((x) => x.id === id)) return;
         setEditId(id);
         api.get<Client & { address?: string; budget?: string }>(`/api/clients/${id}`).then(({ data }) => setEditForm({
             fullName: data.fullName ?? '',

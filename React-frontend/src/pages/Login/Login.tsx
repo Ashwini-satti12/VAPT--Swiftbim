@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import { getPasswordStrengthMessage } from "../../utils/employeeActive";
 import { PasswordStrengthHints } from "../../components/ProtectedRoute";
 import loginBackground from "../../assets/login_bg.png";
+import { homePathForUser } from "../../utils/authRoutes";
 
 type Step = "login" | "forgot" | "otp" | "reset";
 
@@ -22,28 +23,37 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resetToken, setResetToken] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  // const location = useLocation();
-  async function handleLogin(e: React.FormEvent) {
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCooldown((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    const form = e.currentTarget;
+    const emailVal = (form.elements.namedItem("email") as HTMLInputElement)?.value?.trim() || email.trim();
+    const passwordVal = (form.elements.namedItem("password") as HTMLInputElement)?.value || password;
+    if (emailVal !== email) setEmail(emailVal);
+    if (passwordVal !== password) setPassword(passwordVal);
+    if (!emailVal || !passwordVal) {
+      setError("Email and password are required");
+      return;
+    }
     setSubmitting(true);
-    const result = await login(email, password);
+    const result = await login(emailVal, passwordVal);
     setSubmitting(false);
 
     if (result.success && result.user) {
-      const { user_role } = result.user;
-
-      if (user_role === 'Technical Director') navigate("/td/dashboard", { replace: true });
-      else if (user_role === 'BIM Lead') navigate("/bl/dashboard", { replace: true });
-      else if (user_role === 'BIM Coordinator') navigate("/bc/dashboard", { replace: true });
-      else if (user_role === 'Vendor PM') navigate("/vpm/dashboard", { replace: true });
-      else if (user_role === 'Vendor BIM Lead' || user_role === 'Vendor Bim Lead') navigate("/vendor-bim-lead/dashboard", { replace: true });
-      else if (user_role === 'Vendor Employee') navigate("/ve/dashboard", { replace: true });
-      else if (user_role === 'Vendor' || user_role === 'Vendor Admin') navigate("/v/dashboard", { replace: true });
-      else if (user_role === 'BIM Modeler') navigate("/bm/dashboard", { replace: true });
-      else navigate("/dashboard", { replace: true });
+      navigate(homePathForUser(result.user), { replace: true });
     } else {
       setError(result.message || "Login failed");
     }
@@ -60,7 +70,9 @@ export default function Login() {
       );
       if (data.success) {
         setStep("otp");
-        setMessage("Enter the OTP sent to your email.");
+        setOtp("");
+        setMessage("Enter the 4-digit OTP sent to your email.");
+        setResendCooldown(60);
       } else setError(data.message || "Failed");
     } catch (err: unknown) {
       setError(
@@ -69,6 +81,35 @@ export default function Login() {
       );
     }
     setSubmitting(false);
+  }
+
+  async function handleResendOtp() {
+    if (!email.trim() || resendCooldown > 0 || resending) return;
+    setError("");
+    setMessage("");
+    setResending(true);
+    try {
+      const { data } = await api.post<{
+        success: boolean;
+        message?: string;
+        retry_after_seconds?: number;
+      }>("/api/auth/resend-otp", { email });
+      if (data.success) {
+        setOtp("");
+        setMessage(data.message || "A new code has been sent to your email.");
+        setResendCooldown(60);
+      } else {
+        setError(data.message || "Failed to resend code");
+      }
+    } catch (err: unknown) {
+      const resp = (err as { response?: { data?: { message?: string; retry_after_seconds?: number } } })
+        ?.response?.data;
+      if (resp?.retry_after_seconds) {
+        setResendCooldown(resp.retry_after_seconds);
+      }
+      setError(resp?.message || "Failed to resend code");
+    }
+    setResending(false);
   }
 
   async function handleOtp(e: React.FormEvent) {
@@ -119,8 +160,11 @@ export default function Login() {
       if (data.success) {
         setMessage("Password updated. You can now sign in.");
         setStep("login");
+        setPassword(password1);
         setPassword1("");
         setPassword2("");
+        setResetToken("");
+        setError("");
       } else setError(data.message || "Failed");
     } catch (err: unknown) {
       setError(
@@ -162,8 +206,8 @@ export default function Login() {
                   OTP Verification
                 </h2>
                 <p className="text-slate-600 text-sm md:text-base text-center">
-                  Please enter the verification code we just sent on your email
-                  address.
+                  Please enter the 4-digit verification code we sent to your email.
+                  It is valid for 10 minutes.
                 </p>
               </>
             ) : (
@@ -187,6 +231,11 @@ export default function Login() {
               {error}
             </div>
           )}
+          {message && step === "otp" && !error && (
+            <div className="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm border border-emerald-100">
+              {message}
+            </div>
+          )}
 
           {step === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -199,7 +248,9 @@ export default function Login() {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border border-[#ADADAD] text-slate-900 placeholder-[#808080] text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-[#DD4342]"
@@ -217,7 +268,9 @@ export default function Login() {
                   </label>
                   <input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg border border-[#ADADAD] text-slate-900 placeholder-[#808080] text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-[#DD4342] pr-10"
@@ -368,12 +421,29 @@ export default function Login() {
                 >
                   {submitting ? "Verifying..." : "Verify"}
                 </button>
+                <p className="text-sm text-slate-600 text-center">
+                  Didn&apos;t receive the code?{" "}
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resending || resendCooldown > 0}
+                    className="text-[#4285F4] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resending
+                      ? "Sending..."
+                      : resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s`
+                        : "Resend code"}
+                  </button>
+                </p>
                 <button
                   type="button"
                   onClick={() => {
                     setStep("forgot");
                     setError("");
+                    setMessage("");
                     setOtp("");
+                    setResendCooldown(0);
                   }}
                   className="text-sm text-slate-500 hover:text-slate-700"
                 >

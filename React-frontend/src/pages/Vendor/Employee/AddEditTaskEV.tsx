@@ -5,7 +5,6 @@ import {
   useSearchParams,
   useLocation,
   useNavigate,
-  useParams,
 } from "react-router-dom";
 import api from "../../../lib/api";
 import toast from "react-hot-toast";
@@ -15,6 +14,7 @@ import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeAct
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../../contexts/AuthContext";
 import { TimePickerWheel } from "../../../components/TimePickerWheel";
+import { useUrlIdParam } from "../../../hooks/useUrlIdParam";
 
 function formatTimeForDisplay(value: string): string {
   if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
@@ -410,14 +410,13 @@ export default function AddEditTaskEV({
   onBack?: () => void;
   onSuccess?: () => void;
 }) {
-  const { id: idParam } = useParams();
+  const idFromUrl = useUrlIdParam("id");
   const [searchParams] = useSearchParams();
   const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const editingTaskId =
-    propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
+  const editingTaskId = propTaskId ?? idFromUrl ?? null;
   const isEdit = editingTaskId != null;
 
   const listQs = useMemo(() => {

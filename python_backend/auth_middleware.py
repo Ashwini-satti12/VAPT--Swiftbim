@@ -93,7 +93,7 @@ def load_user_context():
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, full_name, role AS user_role, 'Vendor' AS Allpannel, status AS active FROM vendor_employee WHERE id = %s",
+            "SELECT id, full_name, role AS user_role, 'Vendor' AS Allpannel, active FROM vendor_employee WHERE id = %s",
             (g.user_id,),
         )
     else:
@@ -205,6 +205,12 @@ def require_panels(*allowed_panels):
             for p in allowed_panels:
                 if str(p).strip().lower() in panels_norm:
                     return f(*args, **kwargs)
+            # Any authenticated employee/vendor with a role may use shared app APIs
+            # (profile, notifications, dashboard) even when Allpannel is empty or legacy.
+            user_type = getattr(g, "user_type", "employee")
+            role = (getattr(g, "user_role", "") or "").strip()
+            if role and user_type in ("employee", "vendor"):
+                return f(*args, **kwargs)
             return jsonify({
                 "success": False,
                 "message": "Access denied. You do not have access to this panel.",
@@ -279,6 +285,16 @@ def project_app_required(f):
             "Sales",
             "BIM Lead",
             "BIM Coordinator",
+            "BIM Modeler",
+            "Team Leader",
+            "Team Lead",
+            "Consultant",
+            "CEO",
             "Vendor",
+            "Vendor PM",
+            "Vendor BIM Lead",
+            "Vendor Bim Lead",
+            "Vendor Employee",
+            "Vendor Admin",
         )(f)
     )

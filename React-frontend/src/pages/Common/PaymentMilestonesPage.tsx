@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { FiArrowUpRight } from "react-icons/fi";
 import api from "../../lib/api";
+import { encodeUrlId, parseUrlId, shouldEncryptUrlIds } from "../../utils/urlIdCrypto";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
@@ -254,6 +255,9 @@ export default function PaymentMilestonesPage({
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const isCommercial = location.pathname.startsWith("/td");
+  const encryptUrlIds = shouldEncryptUrlIds(location.pathname);
+  const projectIdForUrl = (id: number) =>
+    encryptUrlIds ? encodeUrlId(id) : String(id);
 
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [projectPickerId, setProjectPickerId] = useState<number | "all">("all");
@@ -268,7 +272,9 @@ export default function PaymentMilestonesPage({
   const [creatingId, setCreatingId] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [showProjectCards, setShowProjectCards] = useState<boolean>(
-    !Number(searchParams.get("project_id") || 0),
+    !(encryptUrlIds
+      ? parseUrlId(searchParams.get("project_id"))
+      : Number(searchParams.get("project_id") || 0)),
   );
 
   useEffect(() => {
@@ -339,7 +345,9 @@ export default function PaymentMilestonesPage({
         }
 
         setScopes(list);
-        const wanted = Number(searchParams.get("project_id") || 0);
+        const rawProjectId = searchParams.get("project_id");
+        const wanted =
+          (encryptUrlIds ? parseUrlId(rawProjectId) : Number(rawProjectId || 0)) || 0;
         const next = list.find((x) => x.project_id === wanted) || list[0] || null;
         setScope(next);
       } catch {
@@ -416,7 +424,7 @@ export default function PaymentMilestonesPage({
     const next = scopes.find((s) => s.project_id === projectId) || null;
     setScope(next);
     const params = new URLSearchParams(searchParams);
-    params.set("project_id", String(projectId));
+    params.set("project_id", projectIdForUrl(projectId));
     setSearchParams(params, { replace: true });
   };
 
@@ -438,7 +446,9 @@ export default function PaymentMilestonesPage({
         side: m.side,
         invoice_total: Number(m.amount || 0),
       });
-      navigate(`${isCommercial ? "/td/invoices" : "/v/invoices"}?project_id=${scope?.project_id || ""}`);
+      navigate(
+        `${isCommercial ? "/td/invoices" : "/v/invoices"}?project_id=${scope?.project_id ? projectIdForUrl(scope.project_id) : ""}`,
+      );
     } catch (e: any) {
       setError(e?.response?.data?.error || "Failed to generate invoice.");
     } finally {
@@ -507,7 +517,7 @@ export default function PaymentMilestonesPage({
                           type="button"
                           onClick={() =>
                             navigate(
-                              `${isCommercial ? "/td/invoices" : "/v/invoices"}?project_id=${scope?.project_id || ""}${isCommercialVendor ? "&side=vendor" : ""}`,
+                              `${isCommercial ? "/td/invoices" : "/v/invoices"}?project_id=${scope?.project_id ? projectIdForUrl(scope.project_id) : ""}${isCommercialVendor ? "&side=vendor" : ""}`,
                             )
                           }
                           className="bg-[#DD4342] text-white px-5 py-2 rounded-md text-sm font-medium"
@@ -551,7 +561,7 @@ export default function PaymentMilestonesPage({
                         type="button"
                         onClick={() =>
                           navigate(
-                            `${isCommercial ? "/td/invoices" : "/v/invoices"}?project_id=${scope?.project_id || ""}${isCommercialVendor ? "&side=vendor" : ""}`,
+                            `${isCommercial ? "/td/invoices" : "/v/invoices"}?project_id=${scope?.project_id ? projectIdForUrl(scope.project_id) : ""}${isCommercialVendor ? "&side=vendor" : ""}`,
                           )
                         }
                         className="bg-[#DD4342] text-white px-5 py-2 rounded-md text-sm font-medium"

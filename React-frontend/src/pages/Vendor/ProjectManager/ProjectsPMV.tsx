@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import api from "../../../lib/api";
+import { vendorProjectIdQuery } from "../../../utils/urlIdCrypto";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
@@ -2499,7 +2500,7 @@ export default function ProjectsPMV() {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
                                     navigate(
-                                      `/v/milestones?project_id=${p.id}`,
+                                      `/v/milestones?${vendorProjectIdQuery(p.id)}`,
                                     );
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"

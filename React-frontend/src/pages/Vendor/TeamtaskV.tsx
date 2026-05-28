@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
+import { encodeUrlId } from "../../utils/urlIdCrypto";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -1378,7 +1379,7 @@ export default function TeamtaskV() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate(`/v/mytasks/view/${task.id}`, { state: { task, from: "mytasks" } });
+    navigate(`/v/mytasks/view/${encodeUrlId(task.id)}`, { state: { task, from: "mytasks" } });
   };
 
   const confirmDeleteTask = () => {

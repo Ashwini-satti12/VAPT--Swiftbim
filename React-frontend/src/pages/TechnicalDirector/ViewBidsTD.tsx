@@ -415,7 +415,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
               </div>
             </div>
           </div>
-          
+
           <h2 className="md:hidden text-xl font-gantari font-semibold text-[#000000] truncate px-2">
             View Bid Details
           </h2>
@@ -444,11 +444,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
               className="w-full md:w-[150px] flex items-center justify-between md:justify-start gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 font-gantari text-[14px]"
             >
               <span
-                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                  selectedShowEntries === "show"
-                    ? "text-[#8B8B8B]"
-                    : "text-[#353535]"
-                }`}
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === "show"
+                  ? "text-[#8B8B8B]"
+                  : "text-[#353535]"
+                  }`}
               >
                 {selectedShowEntries === "show" ? (
                   "Show Entries"
@@ -468,13 +467,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                  showEntriesOpen ? "rotate-180" : ""
-                } ${
-                  selectedShowEntries === "show"
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                  } ${selectedShowEntries === "show"
                     ? "opacity-60 grayscale"
                     : "opacity-90"
-                }`}
+                  }`}
               />
             </button>
             {showEntriesOpen && (
@@ -491,11 +488,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
-                      selectedShowEntries === opt.value
-                        ? "text-[#353535] bg-[#F2F2F2]"
-                        : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                    }`}
+                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selectedShowEntries === opt.value
+                      ? "text-[#353535] bg-[#F2F2F2]"
+                      : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -700,171 +696,124 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {displayList.map((bid, index, array) => {
-                      const isRejected = bid.status === "lost";
-                      const busy = !!actionLoading[bid.id];
-                      const viewBusy = !!viewLoading[bid.id];
-                      const disableActionsForBid =
-                        busy ||
-                        (hasAcceptedBid &&
-                          bid.status !== "shortlisted" &&
-                          bid.status !== "lost");
-                      const slNo = (index + 1).toString().padStart(2, "0");
-                      const isLastRow = index === array.length - 1;
+                    const isRejected = bid.status === "lost";
+                    const busy = !!actionLoading[bid.id];
+                    const viewBusy = !!viewLoading[bid.id];
+                    const disableActionsForBid =
+                      busy ||
+                      (hasAcceptedBid &&
+                        bid.status !== "shortlisted" &&
+                        bid.status !== "lost");
+                    const slNo = (index + 1).toString().padStart(2, "0");
+                    const isLastRow = index === array.length - 1;
 
-                      return (
-                        <tr
-                          key={bid.id}
-                          className={`${isRejected ? "opacity-60" : ""} ${index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
-                        >
-                          {/* Sl.No */}
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
-                            {slNo}
-                          </td>
+                    return (
+                      <tr
+                        key={bid.id}
+                        className={`${isRejected ? "opacity-60" : ""} ${index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
+                      >
+                        {/* Sl.No */}
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                          {slNo}
+                        </td>
 
-                          {/* Vendor Name */}
-                          <td className="px-3 py-6 text-center text-[14px] font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {bid.vendor_name}
-                          </td>
+                        {/* Vendor Name */}
+                        <td className="px-3 py-6 text-center text-[14px] font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {bid.vendor_name}
+                        </td>
 
-                          {/* Email */}
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {bid.vendor_email || "—"}
-                          </td>
+                        {/* Email */}
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {bid.vendor_email || "—"}
+                        </td>
 
-                          {/* Bid Amount */}
-                          <td className="px-3 py-6 text-center text-[14px] font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {formatCurrency(
-                              bid.bid_amount,
-                              bid.opportunity_currency ||
-                                bid.opportunity_currency_display ||
-                                projectCurrency,
-                            )}
-                            {bid.bid_amount_original &&
+                        {/* Bid Amount */}
+                        <td className="px-3 py-6 text-center text-[14px] font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {formatCurrency(
+                            bid.bid_amount,
+                            bid.opportunity_currency ||
+                            bid.opportunity_currency_display ||
+                            projectCurrency,
+                          )}
+                          {bid.bid_amount_original &&
                             bid.bid_currency &&
                             (bid.bid_currency !==
                               (bid.opportunity_currency ||
                                 bid.opportunity_currency_display ||
                                 projectCurrency)) ? (
-                              <div className="text-[11px] font-medium text-[#616161] mt-1">
-                                {formatCurrency(bid.bid_amount_original, bid.bid_currency)} (vendor)
-                              </div>
-                            ) : null}
-                          </td>
+                            <div className="text-[11px] font-medium text-[#616161] mt-1">
+                              {formatCurrency(bid.bid_amount_original, bid.bid_currency)} (vendor)
+                            </div>
+                          ) : null}
+                        </td>
 
-                          {/* Timeline */}
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {bid.timeline || "—"}
-                          </td>
+                        {/* Timeline */}
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {bid.timeline || "—"}
+                        </td>
 
-                          {/* Team Size */}
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {bid.team_size > 0 ? bid.team_size : "—"}
-                          </td>
+                        {/* Team Size */}
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {bid.team_size > 0 ? bid.team_size : "—"}
+                        </td>
 
-                          {/* Bid Date */}
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {formatDate(bid.created_at)}
-                          </td>
+                        {/* Bid Date */}
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {formatDate(bid.created_at)}
+                        </td>
 
-                          {/* Rank */}
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                            <span
-                              className={`inline-flex px-3 py-2 rounded-md text-[14px] font-bold font-gantari ${getRankBg(bid.rank, bid.status)}`}
-                            >
-                              {isRejected ? "Rejected" : rankLabel(bid.rank)}
-                            </span>
-                          </td>
+                        {/* Rank */}
+                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <span
+                            className={`inline-flex px-3 py-2 rounded-md text-[14px] font-bold font-gantari ${getRankBg(bid.rank, bid.status)}`}
+                          >
+                            {isRejected ? "Rejected" : rankLabel(bid.rank)}
+                          </span>
+                        </td>
 
-                          {/* View Vendor → redirects to /td/partner/:id */}
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                            <button
-                              onClick={() => handleViewVendor(bid)}
-                              disabled={viewBusy}
-                              className="flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-md text-[14px] font-normal bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60 cursor-pointer"
-                              title="View vendor profile"
-                            >
-                              {viewBusy ? (
-                                <span className="animate-spin w-2 h-2 border-b-2 border-white rounded-full inline-block" />
-                              ) : (
-                                <img
-                                  src={viewIcon}
-                                  alt=""
-                                  className="w-4 h-4 object-contain"
-                                />
-                              )}
-                              View
-                            </button>
-                          </td>
-
-                          {/* Action */}
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                            {bid.status === "shortlisted" ? (
-                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-normal font-gantari bg-[#E6F4EA] text-[#1E7E34]">
-                                Accepted
-                              </span>
-                            ) : bid.status === "lost" ? (
-                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-normal font-gantari bg-[#FCE8E8] text-[#D93025]">
-                                Rejected
-                              </span>
+                        {/* View Vendor → redirects to /td/partner/:id */}
+                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <button
+                            onClick={() => handleViewVendor(bid)}
+                            disabled={viewBusy}
+                            className="flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-md text-[14px] font-normal bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60 cursor-pointer"
+                            title="View vendor profile"
+                          >
+                            {viewBusy ? (
+                              <span className="animate-spin w-2 h-2 border-b-2 border-white rounded-full inline-block" />
                             ) : (
-                              <div className="flex items-center justify-center gap-2">
-                                {/* Accept — icon only circle */}
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    disabled={disableActionsForBid}
-                                    onClick={() => handleAccept(bid)}
-                                    className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#008F22] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                                  >
-                                    {busy ? (
-                                      <span className="animate-spin w-3 h-3 border-b-2 border-current rounded-full inline-block" />
-                                    ) : (
-                                      <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2.5}
-                                          d="M5 13l4 4L19 7"
-                                        />
-                                      </svg>
-                                    )}
-                                  </button>
-                                  {isLastRow ? (
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                          Accept
-                                        </span>
-                                      </div>
-                                      <div className="relative z-10 -mt-[1px]">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" />
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="relative z-10">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" />
-                                      </div>
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                          Accept
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
+                              <img
+                                src={viewIcon}
+                                alt=""
+                                className="w-4 h-4 object-contain"
+                              />
+                            )}
+                            View
+                          </button>
+                        </td>
 
-                                {/* Reject — icon only circle */}
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    disabled={disableActionsForBid}
-                                    onClick={() => handleReject(bid)}
-                                    className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FFD9D9] text-[#E00100] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                                  >
+                        {/* Action */}
+                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          {bid.status === "shortlisted" ? (
+                            <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-normal font-gantari bg-[#E6F4EA] text-[#1E7E34]">
+                              Accepted
+                            </span>
+                          ) : bid.status === "lost" ? (
+                            <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-normal font-gantari bg-[#FCE8E8] text-[#D93025]">
+                              Rejected
+                            </span>
+                          ) : (
+                            <div className="flex items-center justify-center gap-2">
+                              {/* Accept — icon only circle */}
+                              <div className="relative group inline-flex shrink-0">
+                                <button
+                                  disabled={disableActionsForBid}
+                                  onClick={() => handleAccept(bid)}
+                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#008F22] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  {busy ? (
+                                    <span className="animate-spin w-3 h-3 border-b-2 border-current rounded-full inline-block" />
+                                  ) : (
                                     <svg
                                       className="w-4 h-4"
                                       fill="none"
@@ -874,41 +823,88 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
+                                        strokeWidth={2.5}
+                                        d="M5 13l4 4L19 7"
                                       />
                                     </svg>
-                                  </button>
-                                  {isLastRow ? (
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                          Reject
-                                        </span>
-                                      </div>
-                                      <div className="relative z-10 -mt-[1px]">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" />
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="relative z-10">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" />
-                                      </div>
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                          Reject
-                                        </span>
-                                      </div>
-                                    </div>
                                   )}
-                                </div>
+                                </button>
+                                {isLastRow ? (
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                      <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                        Accept
+                                      </span>
+                                    </div>
+                                    <div className="relative z-10 -mt-[1px]">
+                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                    <div className="relative z-10">
+                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" />
+                                    </div>
+                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                      <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                        Accept
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+
+                              {/* Reject — icon only circle */}
+                              <div className="relative group inline-flex shrink-0">
+                                <button
+                                  disabled={disableActionsForBid}
+                                  onClick={() => handleReject(bid)}
+                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FFD9D9] text-[#E00100] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                                {isLastRow ? (
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                      <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                        Reject
+                                      </span>
+                                    </div>
+                                    <div className="relative z-10 -mt-[1px]">
+                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                    <div className="relative z-10">
+                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" />
+                                    </div>
+                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                      <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                        Reject
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -924,11 +920,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                 type="button"
                 onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={safeTableCurrentPage === 1}
-                className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                  safeTableCurrentPage === 1
-                    ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
-                    : "text-[#353535]"
-                }`}
+                className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                  ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                  : "text-[#353535]"
+                  }`}
                 aria-label="Previous page"
               >
                 <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
@@ -949,11 +944,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                   setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))
                 }
                 disabled={safeTableCurrentPage >= tableTotalPages}
-                className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                  safeTableCurrentPage >= tableTotalPages
-                    ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
-                    : "text-[#353535]"
-                }`}
+                className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                  ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                  : "text-[#353535]"
+                  }`}
                 aria-label="Next page"
               >
                 <span className="inline-flex items-center">Next</span>
