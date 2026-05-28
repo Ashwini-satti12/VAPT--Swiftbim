@@ -6,3 +6,5 @@ PyJWT==2.8.0
 Werkzeug==3.0.1
 cryptography==43.0.3
 reportlab==4.2.2
+# VAPT: HTML sanitisation for XSS protection (used by security.py)
+bleach==6.1.0

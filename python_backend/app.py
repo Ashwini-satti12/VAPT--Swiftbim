@@ -4,6 +4,7 @@ All PHP API endpoints have been converted to Flask blueprints.
 """
 import os
 from flask import Flask, send_from_directory, request
+from security import apply_security_headers
 from flask_cors import CORS
 from config import Config
 from db import mysql
@@ -144,13 +145,9 @@ def create_app(config_class=Config):
                 response.headers["Authorization"] = f"Bearer {token}"
         return response
 
-    @app.after_request
-    def _upload_security_headers(response):
-        """VAPT: prevent MIME sniffing on served uploads."""
-        if request.path.startswith(("/uploads/", "/static/uploads/")):
-            response.headers["X-Content-Type-Options"] = "nosniff"
-            response.headers["Content-Security-Policy"] = "default-src 'none'"
-        return response
+    # VAPT: global XSS protection + secure headers (replaces the old narrow
+    # _upload_security_headers hook).  Covers ALL responses: API, uploads, static.
+    app.after_request(apply_security_headers)
 
     # Serve uploaded files (e.g., employee profile pictures)
     @app.route("/uploads/<path:filename>")
