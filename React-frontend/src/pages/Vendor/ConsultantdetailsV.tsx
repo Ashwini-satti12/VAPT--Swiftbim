@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useUrlIdParam } from '../../hooks/useUrlIdParam';
+import { encodeUrlId } from '../../utils/urlIdCrypto';
 import api from '../../lib/api';
 
 interface EmployeeDetailType {
@@ -20,12 +22,12 @@ interface EmployeeDetailType {
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 export default function ConsultantdetailsV() {
-    const { id } = useParams<{ id: string }>();
+    const id = useUrlIdParam('id');
     const [emp, setEmp] = useState<EmployeeDetailType | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!id) return;
+        if (id == null) return;
         api.get<EmployeeDetailType>(`/api/employees/${id}`).then(({ data }) => setEmp(data)).catch(() => setEmp(null)).finally(() => setLoading(false));
     }, [id]);
 
@@ -61,7 +63,7 @@ export default function ConsultantdetailsV() {
                             <span className={`inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${emp.active === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>{emp.active || 'inactive'}</span>
                         </div>
                     </div>
-                    <Link to={`/v/consultants?edit=${emp.id}`} className="px-4 py-2 rounded-lg border border-[#3d3399] text-[#3d3399] font-medium hover:bg-[#3d3399]/10">Edit</Link>
+                    <Link to={`/v/consultants?edit=${encodeUrlId(emp.id)}`} className="px-4 py-2 rounded-lg border border-[#3d3399] text-[#3d3399] font-medium hover:bg-[#3d3399]/10">Edit</Link>
                 </div>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div><dt className="text-slate-500">Employee ID</dt><dd className="font-medium text-slate-800">{emp.empid ?? '-'}</dd></div>

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
+import { encodeUrlId, parseUrlId } from "../../utils/urlIdCrypto";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
@@ -292,6 +293,7 @@ export default function InvoicesPage() {
   const navigate = useNavigate();
   const isCommercial = location.pathname.startsWith("/td");
   const isVendor = location.pathname.startsWith("/v");
+  const projectIdForUrl = (id: number) => (isVendor ? encodeUrlId(id) : String(id));
   const [searchParams, setSearchParams] = useSearchParams();
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [scopeId, setScopeId] = useState<number | null>(null);
@@ -348,7 +350,8 @@ export default function InvoicesPage() {
       .then(({ data }) => {
         const list = Array.isArray(data) ? data : [];
         setScopes(list);
-        const q = Number(searchParams.get("project_id") || 0);
+        const rawPid = searchParams.get("project_id");
+        const q = (isVendor ? parseUrlId(rawPid) : Number(rawPid || 0)) || 0;
         const s = q ? list.find((x) => x.project_id === q) : null;
         setScopeId(s?.project_id || null);
       })
@@ -381,7 +384,7 @@ export default function InvoicesPage() {
   const onScopeChange = (pid: number) => {
     setScopeId(pid);
     const next = new URLSearchParams(searchParams);
-    next.set("project_id", String(pid));
+    next.set("project_id", projectIdForUrl(pid));
     setSearchParams(next, { replace: true });
   };
 
@@ -503,7 +506,7 @@ export default function InvoicesPage() {
                       onClick={() => {
                         if (!scopeId) return;
                         const base = isCommercial ? "/td/invoices" : "/v/invoices";
-                        navigate(`${base}/${inv.id}?project_id=${scopeId}`, {
+                        navigate(`${base}/${isVendor ? encodeUrlId(inv.id) : inv.id}?project_id=${projectIdForUrl(scopeId)}`, {
                           state: { returnTo: `${location.pathname}${location.search}` },
                         });
                       }}
@@ -522,7 +525,7 @@ export default function InvoicesPage() {
                         onClick={() => {
                           const safe = String(inv.invoice_number || `invoice-${inv.id}`).replace(/[^\w-]+/g, "_");
                           const qs = new URLSearchParams();
-                          if (scopeId) qs.set("project_id", String(scopeId));
+                          if (scopeId) qs.set("project_id", projectIdForUrl(scopeId));
                           void downloadAuthedPdf(
                             `/api/payment-milestones/new-swiftbim/invoices/${inv.id}/pdf?${qs.toString()}`,
                             `${safe}.pdf`,

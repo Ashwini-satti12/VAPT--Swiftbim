@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
+import { encodeUrlId } from '../../utils/urlIdCrypto';
 import type { Vendor } from '../TechnicalDirector/PartnerView/types';
 import PartnerSidebar from '../TechnicalDirector/PartnerView/PartnerSidebar';
 import CompanyDetails from '../TechnicalDirector/PartnerView/components/CompanyDetails';
@@ -227,7 +228,7 @@ export default function CompanyProfileV() {
                         vendor={activeVendor}
                         editable={editMode}
                         onAdd={() => navigate(`${companyProfileResourcesPath}/new`)}
-                        onEdit={(id) => navigate(`${companyProfileResourcesPath}/${id}`)}
+                        onEdit={(id) => navigate(`${companyProfileResourcesPath}/${encodeUrlId(id)}`)}
                         onDelete={async (id) => {
                             if (!window.confirm('Delete this resource profile?')) return;
                             try {

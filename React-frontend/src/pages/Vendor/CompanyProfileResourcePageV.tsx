@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
+import { parseUrlId } from '../../utils/urlIdCrypto';
 import type { ResourceProfile } from '../TechnicalDirector/PartnerView/types';
 import ResourceProfileForm from './components/ResourceProfileForm';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
@@ -49,8 +50,8 @@ export default function CompanyProfileResourcePageV() {
             return;
         }
 
-        const id = Number(resourceId);
-        if (!Number.isFinite(id)) {
+        const id = parseUrlId(resourceId);
+        if (id == null) {
             setLoadError('Invalid resource.');
             setLoading(false);
             return;

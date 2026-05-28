@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
+import { homePathForUser } from '../../utils/authRoutes';
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
   new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
@@ -240,15 +241,8 @@ export default function DashboardPM() {
 
   useEffect(() => {
     if (!user || location.pathname !== '/dashboard') return;
-    const { user_role } = user;
-    if (user_role === 'Technical Director') navigate("/td/dashboard", { replace: true });
-    else if (user_role === 'BIM Lead') navigate("/bl/dashboard", { replace: true });
-    else if (user_role === 'BIM Coordinator') navigate("/bc/dashboard", { replace: true });
-    else if (user_role === 'Vendor PM') navigate("/vpm/dashboard", { replace: true });
-    else if (user_role === 'Vendor BIM Lead' || user_role === 'Vendor Bim Lead') navigate("/vendor-bim-lead/dashboard", { replace: true });
-    else if (user_role === 'Vendor Employee') navigate("/ve/dashboard", { replace: true });
-    else if (user_role === 'Vendor' || user_role === 'Vendor Admin') navigate("/v/dashboard", { replace: true });
-    else if (user_role === 'BIM Modeler') navigate("/bm/dashboard", { replace: true });
+    const target = homePathForUser(user);
+    if (target !== '/dashboard') navigate(target, { replace: true });
   }, [user, navigate, location.pathname]);
 
   useEffect(() => {

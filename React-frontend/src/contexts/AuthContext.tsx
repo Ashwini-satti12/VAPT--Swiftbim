@@ -144,7 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(jwt, data.expires_at);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
-          await confirmLoginWithBearer('/api/auth/login');
+          try {
+            await confirmLoginWithBearer('/api/auth/login');
+          } catch {
+            /* Session is already valid from step 1; bearer confirm is optional. */
+          }
           return { success: true, user: u };
         }
         return { success: false, message: data.message || 'Login failed' };
@@ -173,7 +177,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(jwt, data.expires_at);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
-          await confirmLoginWithBearer('/api/auth/client-login');
+          try {
+            await confirmLoginWithBearer('/api/auth/client-login');
+          } catch {
+            /* Session is already valid from step 1; bearer confirm is optional. */
+          }
           return { success: true };
         }
         return { success: false, message: data.message || 'Login failed' };

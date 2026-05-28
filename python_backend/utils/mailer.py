@@ -252,6 +252,46 @@ def send_employee_profile_updated_email(email, full_name, updated_fields=None, u
 
     return _send_mail(email, subject, "\n".join(body_lines))
 
+def send_password_reset_otp_email(email, full_name, otp, *, expires_minutes=10):
+    """Send a 4-digit OTP for forgot-password verification."""
+    to_email = (email or "").strip()
+    name = (full_name or "").strip() or "there"
+    code = str(otp).strip()
+
+    subject = "SwiftBIM password reset verification code"
+    body_lines = [
+        f"Hello {name},",
+        "",
+        "You requested to reset your SwiftBIM password.",
+        "",
+        f"Your verification code is: {code}",
+        "",
+        f"This code expires in {expires_minutes} minutes.",
+        "If you did not request a password reset, you can ignore this email.",
+        "",
+        "Regards,",
+        "SwiftBIM Team",
+    ]
+    body = "\n".join(body_lines)
+
+    html = f"""<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;color:#222;line-height:1.5;max-width:520px;">
+<p>Hello {name},</p>
+<p>You requested to reset your <strong>SwiftBIM</strong> password.</p>
+<p style="margin:24px 0;">
+  <span style="display:inline-block;font-size:28px;font-weight:bold;letter-spacing:8px;
+    padding:12px 20px;background:#f5f5f5;border-radius:8px;border:1px solid #e0e0e0;">
+    {code}
+  </span>
+</p>
+<p>This code expires in <strong>{expires_minutes} minutes</strong>.</p>
+<p>If you did not request a password reset, you can safely ignore this email.</p>
+<p>Regards,<br>SwiftBIM Team</p>
+</body></html>"""
+
+    return _send_mail(to_email, subject, body, html_body=html)
+
+
 def send_new_device_alert(email, full_name, ip_address, device_info, time_str):
     """Notify user of a login from a new device/IP."""
     subject = "Security Alert: New Device Login"

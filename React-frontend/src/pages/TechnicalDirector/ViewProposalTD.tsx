@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
+import { parseUrlId } from "../../utils/urlIdCrypto";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addressIcon from "../../assets/TechnicalDirector/Vector.svg";
 import websiteIcon from "../../assets/TechnicalDirector/world-wide-web 1.svg";
@@ -134,12 +135,16 @@ export default function ViewProposalTD() {
   const [searchParams] = useSearchParams();
   const state: any = (location && (location as any).state) || {};
   const bid = state?.bid || null;
-  const proposalId =
-    state?.proposalId || Number(searchParams.get("proposalId") || 0) || null;
   const source = state?.source || searchParams.get("source") || "td_proposals";
   const returnTo = state?.returnTo || "/td/proposals";
   const isVendorView =
     location.pathname.startsWith("/v") || returnTo.startsWith("/v");
+  const rawProposalParam = searchParams.get("proposalId");
+  const proposalIdFromQuery = isVendorView
+    ? parseUrlId(rawProposalParam)
+    : Number(rawProposalParam || 0) || null;
+  const proposalId =
+    state?.proposalId || proposalIdFromQuery || null;
 
   const [loading, setLoading] = useState(!!proposalId);
   const [proposal, setProposal] = useState<Proposal | null>(null);

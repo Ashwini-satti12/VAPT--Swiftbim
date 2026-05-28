@@ -6,6 +6,7 @@ import {
     useNavigate,
 } from "react-router-dom";
 import api from "../../../lib/api";
+import { encodeUrlId } from "../../../utils/urlIdCrypto";
 import toast from "react-hot-toast";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
@@ -618,7 +619,7 @@ export default function TeamtaskPMV() {
                                     key={task.id}
                                     task={task}
                                     status={stat as any}
-                                    onViewTask={t => navigate(`/vpm/teamtasks/view/${t.id}`, { state: { task: t } })}
+                                    onViewTask={t => navigate(`/vpm/teamtasks/view/${encodeUrlId(t.id)}`, { state: { task: t } })}
                                     onEditTask={t => navigate("/vpm/teamtasks/edit", { state: { task: t, from: "teamtasks" } })}
                                     onDeleteTask={t => setDeleteTaskId(t.id)}
                                 />

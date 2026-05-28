@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useUrlIdParam } from "../../../hooks/useUrlIdParam";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api, { appApiBase } from "../../../lib/api";
@@ -209,7 +210,7 @@ export default function MyTaskViewEV({
   taskId?: number;
   onBack?: () => void;
 }) {
-  const { id } = useParams<{ id: string }>();
+  const id = useUrlIdParam("id");
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as { task?: Task } | null;
@@ -344,7 +345,7 @@ export default function MyTaskViewEV({
   }, [task]);
 
   useEffect(() => {
-    const tid = propTaskId ?? initialTask?.id ?? Number(id);
+    const tid = propTaskId ?? initialTask?.id ?? id;
     if (!tid || Number.isNaN(tid)) {
       setLoading(false);
       return;

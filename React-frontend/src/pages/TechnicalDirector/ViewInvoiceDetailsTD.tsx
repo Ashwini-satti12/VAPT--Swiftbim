@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { toast } from "react-hot-toast";
 import { IoClose } from "react-icons/io5";
 import api from "../../lib/api";
+import { parseUrlId } from "../../utils/urlIdCrypto";
 
 type PaymentRow = {
   id: number;
@@ -115,11 +116,19 @@ export default function ViewInvoiceDetailsTD() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const projectId = searchParams.get("project_id") || "";
+  const isVendorInvoice = location.pathname.startsWith("/v/invoices");
+  const projectIdParam = searchParams.get("project_id") || "";
+  const projectId = isVendorInvoice
+    ? String(parseUrlId(projectIdParam) ?? "")
+    : projectIdParam;
   const [detail, setDetail] = useState<InvoiceViewDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const idNum = invoiceId ? parseInt(invoiceId, 10) : NaN;
+  const idNum = isVendorInvoice
+    ? (parseUrlId(invoiceId) ?? NaN)
+    : invoiceId
+      ? parseInt(invoiceId, 10)
+      : NaN;
 
   useEffect(() => {
     if (!Number.isFinite(idNum) || !projectId) {
