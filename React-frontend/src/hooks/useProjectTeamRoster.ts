@@ -14,7 +14,7 @@ export type RosterEmployeeLike = PmEmployeeLike & {
   id: number | string;
   full_name?: string;
   profile_picture?: string;
-  vendor_employee_id?: number | string;
+  vendor_employee_id?: number | string | null;
 };
 
 export type ProjectWithVendorProfiles = PmProjectTeamLike & {
@@ -314,9 +314,9 @@ export function mapVendorProjectFromApi<T extends Record<string, unknown>>(row: 
 
 export function toVendorProjectTeamLike(
   proj: ProjectWithVendorProfiles & {
-    project_manager_name?: string;
-    lead_name?: string;
-    bim_coordinator_name?: string;
+    project_manager_name?: string | null;
+    lead_name?: string | null;
+    bim_coordinator_name?: string | null;
   },
 ): ProjectWithVendorProfiles {
   return {

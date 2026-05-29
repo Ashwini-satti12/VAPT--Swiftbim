@@ -6,7 +6,7 @@ import { clearAuthStorage, redirectToLogin } from "../lib/api";
 export default function PageTimerGuard() {
   const location = useLocation();
   const [secondsLeft, setSecondsLeft] = useState(1800); // 30 minutes = 1800 seconds
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check if current page is public auth page
   const isAuthPage = ["/login", "/client-login", "/"].includes(location.pathname);

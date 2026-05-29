@@ -22,6 +22,7 @@ import {
   mapVendorProjectFromApi,
   toVendorProjectTeamLike,
   useProjectTeamRoster,
+  type RosterEmployeeLike,
 } from "../../../hooks/useProjectTeamRoster";
 import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
 import ProjectDocumentsSection from "../../../components/ProjectDocumentsSection";
@@ -285,9 +286,9 @@ export default function VendorBimLeadProjects() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
-  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<Employee[]>(
-    [],
-  );
+  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<
+    RosterEmployeeLike[]
+  >([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [clientsList, setClientsList] = useState<
     Array<{ id: number; fullName?: string; full_name?: string }>
@@ -369,13 +370,15 @@ export default function VendorBimLeadProjects() {
     projectManagers.find((e) => Number(e.id) === Number(id)) ||
     bimLeads.find((e) => Number(e.id) === Number(id)) ||
     allEmployees.find((e) => Number(e.id) === Number(id));
-  const openMemberProfile = (member?: Employee) => {
+  const openMemberProfile = (member?: Employee | RosterEmployeeLike) => {
     if (!member) return;
+    const extra = member as Employee & Record<string, unknown>;
     setSelectedMember({
-      ...member,
-      employee_id: member.employee_id || member.empid,
-      phone: member.phone || member.phone_number,
-      user_role: member.user_role || member.role || member.designation,
+      ...extra,
+      id: Number(member.id),
+      employee_id: extra.employee_id || extra.empid,
+      phone: extra.phone || extra.phone_number,
+      user_role: extra.user_role || extra.role || extra.designation,
     });
     setShowMemberProfileModal(true);
   };
@@ -396,7 +399,7 @@ export default function VendorBimLeadProjects() {
       .then(({ data }) =>
         setList(
           (data.projects ?? []).map(
-            (row) => mapVendorProjectFromApi(row) as Project,
+            (row) => mapVendorProjectFromApi(row) as unknown as Project,
           ),
         ),
       )

@@ -9,13 +9,13 @@ export type PmEmployeeLike = {
 };
 
 export type PmProjectTeamLike = {
-  project_manager_id?: string | null;
+  project_manager_id?: string | number | null;
   project_manager_name?: string | null;
   project_manager?: string | null;
-  lead_id?: string | null;
+  lead_id?: string | number | null;
   lead_name?: string | null;
   bim_lead?: string | null;
-  bim_coordinator_id?: string | null;
+  bim_coordinator_id?: string | number | null;
   bim_coordinator_name?: string | null;
   bim_co_ordinator?: string | null;
   member?: string | null;
@@ -35,9 +35,9 @@ export type PmTeamRosterEntry = {
 const rosterKey = (id: number | string, name: string) =>
   id ? `id:${id}` : `name:${name}`;
 
-export function splitCsv(value?: string | null): string[] {
-  if (!value) return [];
-  return value
+export function splitCsv(value?: string | number | null): string[] {
+  if (value == null || value === "") return [];
+  return String(value)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -53,8 +53,8 @@ function resolveById(
 }
 
 function namesFromIds(
-  idsCsv: string | undefined | null,
-  namesCsv: string | undefined | null,
+  idsCsv: string | number | undefined | null,
+  namesCsv: string | number | undefined | null,
   employees: PmEmployeeLike[],
 ): PmEmployeeLike[] {
   const names = splitCsv(namesCsv);

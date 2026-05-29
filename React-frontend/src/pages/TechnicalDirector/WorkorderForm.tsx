@@ -420,7 +420,7 @@ export default function WorkorderForm() {
               paymentTerms: proposal.payment_terms ? formatPaymentTermsToHtml(proposal.payment_terms) : prev.paymentTerms || "",
               additionalTerms: proposal.additional_terms || proposal.additionalTerms || prev.additionalTerms || "",
             }));
-            setVendorDisplayName(prev => proposal.vendor_name || prev || "");
+            setVendorDisplayName((prev: string) => proposal.vendor_name || prev || "");
             if (proposal.payment_terms) {
               setPaymentRows(parsePaymentTermsRows(proposal.payment_terms));
             }

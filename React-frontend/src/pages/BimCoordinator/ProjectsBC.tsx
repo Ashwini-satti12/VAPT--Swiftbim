@@ -928,7 +928,7 @@ export default function ProjectsBC() {
       (c) => String(c.id) === String(p.client_id),
     );
     setCreateClientName(
-      foundClient ? foundClient.full_name : (p.client_name ?? ""),
+      foundClient ? (foundClient.full_name ?? "") : (p.client_name ?? ""),
     );
     const pmList = (p.project_manager_name || "")
       .split(",")
