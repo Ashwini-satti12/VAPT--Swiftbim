@@ -39,7 +39,8 @@ def _create_access_token(*, user_id, company_id, email, user_type):
 def _create_refresh_token(*, user_id, company_id, email, user_type):
     """Longer-lived refresh token (stored in cookie for browser session persistence)."""
     now = int(time.time())
-    expires_in = Config.JWT_REFRESH_TOKEN_EXPIRES
+    # Default 7 days if Config on server predates refresh-token support
+    expires_in = int(getattr(Config, "JWT_REFRESH_TOKEN_EXPIRES", 7 * 24 * 60 * 60))
     payload = {
         "user_id": user_id,
         "company_id": company_id,
