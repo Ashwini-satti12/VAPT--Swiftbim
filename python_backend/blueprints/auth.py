@@ -126,7 +126,7 @@ def _generate_otp() -> str:
 
 def _ensure_vendor_otp_column(cur) -> None:
     cur.execute("SHOW COLUMNS FROM vendor_employee LIKE 'OTP'")
-    if not cur.fetchone():
+    if not cur.fetchall():
         cur.execute("ALTER TABLE vendor_employee ADD COLUMN OTP VARCHAR(255) DEFAULT NULL")
 
 
@@ -136,7 +136,8 @@ def _lookup_reset_account(cur, email: str):
         "SELECT id, full_name, profile_picture, email FROM employee WHERE email = %s LIMIT 1",
         (email,),
     )
-    row = cur.fetchone()
+    rows = cur.fetchall()
+    row = rows[0] if rows else None
     if row:
         return "employee", row
 
@@ -144,7 +145,8 @@ def _lookup_reset_account(cur, email: str):
         "SELECT id, full_name, profile_picture, email FROM vendor_employee WHERE email = %s LIMIT 1",
         (email,),
     )
-    row = cur.fetchone()
+    rows = cur.fetchall()
+    row = rows[0] if rows else None
     if row:
         return "vendor", row
     return None, None
@@ -173,17 +175,19 @@ def _verify_stored_otp(cur, email: str, otp: str):
         "SELECT id FROM employee WHERE email = %s AND OTP = %s LIMIT 1",
         (email, otp),
     )
-    row = cur.fetchone()
+    rows = cur.fetchall()
+    row = rows[0] if rows else None
     if row:
         return "employee", row["id"]
 
     cur.execute("SHOW COLUMNS FROM vendor_employee LIKE 'OTP'")
-    if cur.fetchone():
+    if cur.fetchall():
         cur.execute(
             "SELECT id FROM vendor_employee WHERE email = %s AND OTP = %s LIMIT 1",
             (email, otp),
         )
-        row = cur.fetchone()
+        rows = cur.fetchall()
+        row = rows[0] if rows else None
         if row:
             return "vendor", row["id"]
     return None, None
@@ -325,14 +329,16 @@ def _session_confirm_from_bearer(*, allowed_user_types):
                 "SELECT id, full_name, profile_picture, role AS user_role FROM vendor_employee WHERE id = %s",
                 (user_id,),
             )
-            row = cur.fetchone()
+            rows = cur.fetchall()
+            row = rows[0] if rows else None
     elif user_type == "client":
         with conn.cursor(dictionary=True) as cur:
             cur.execute(
                 "SELECT id, fullName AS full_name, email FROM clientinformation WHERE id = %s",
                 (user_id,),
             )
-            row = cur.fetchone()
+            rows = cur.fetchall()
+            row = rows[0] if rows else None
     else:
         with conn.cursor(dictionary=True) as cur:
             if company_id:
@@ -345,7 +351,8 @@ def _session_confirm_from_bearer(*, allowed_user_types):
                     "SELECT id, full_name, profile_picture, user_role FROM employee WHERE id = %s",
                     (user_id,),
                 )
-            row = cur.fetchone()
+            rows = cur.fetchall()
+            row = rows[0] if rows else None
 
     if not row:
         return None
@@ -400,10 +407,12 @@ def login():
     # Pre-check locking
     with conn.cursor(dictionary=True) as cur:
         cur.execute("SELECT account_locked_until FROM employee WHERE email = %s", (email,))
-        lock_row = cur.fetchone()
+        rows = cur.fetchall()
+        lock_row = rows[0] if rows else None
         if not lock_row:
             cur.execute("SELECT account_locked_until FROM vendor_employee WHERE email = %s", (email,))
-            lock_row = cur.fetchone()
+            rows = cur.fetchall()
+            lock_row = rows[0] if rows else None
         
         if lock_row and lock_row.get("account_locked_until"):
             if lock_row["account_locked_until"] > datetime.now():
@@ -442,13 +451,15 @@ def login():
         # If neither matches the password, check if email exists to return proper message
         with conn.cursor(dictionary=True) as cur:
             cur.execute("SELECT id, failed_login_attempts FROM employee WHERE email = %s", (email,))
-            e_match = cur.fetchone()
+            rows = cur.fetchall()
+            e_match = rows[0] if rows else None
             if e_match:
                 table = "employee"
                 match = e_match
             else:
                 cur.execute("SELECT id, failed_login_attempts FROM vendor_employee WHERE email = %s", (email,))
-                v_match = cur.fetchone()
+                rows = cur.fetchall()
+                v_match = rows[0] if rows else None
                 if v_match:
                     table = "vendor_employee"
                     match = v_match
@@ -495,7 +506,8 @@ def login():
                     "SELECT contact_mobile FROM new_swiftbim.vendor_onboarding WHERE id = %s LIMIT 1",
                     (company_id,),
                 )
-                vo = cur.fetchone() or {}
+                rows = cur.fetchall()
+                vo = rows[0] if rows else {}
                 onboarding_phone = (vo.get("contact_mobile") or "").strip()
                 current_phone = (row.get("phone_number") or "").strip()
                 if onboarding_phone and onboarding_phone != current_phone:
@@ -519,7 +531,7 @@ def login():
         device_info = request.user_agent.string or ""
         
         cur.execute("SELECT id FROM user_devices WHERE email = %s AND user_type = %s AND ip_address = %s AND device_info = %s", (email, user_type, ip_addr, device_info))
-        if not cur.fetchone():
+        if not cur.fetchall():
             cur.execute("INSERT INTO user_devices (email, user_type, ip_address, device_info) VALUES (%s, %s, %s, %s)", (email, user_type, ip_addr, device_info))
             try:
                 from utils.mailer import send_new_device_alert
@@ -537,7 +549,7 @@ def login():
             "SELECT id FROM attendance WHERE employee_id = %s AND date = %s",
             (email, today),
         )
-        if cur.fetchone() is None:
+        if not cur.fetchall():
             time_in = datetime.now().strftime("%H:%M:%S")
             cur.execute(
                 "INSERT INTO attendance (employee_id, date, time_in, status, send, Company_id) VALUES (%s, %s, %s, '1', 0, %s)",
@@ -584,7 +596,8 @@ def client_login():
     conn = get_db()
     with conn.cursor(dictionary=True) as cur:
         cur.execute("SELECT id, fullName, email, password, Company_id, account_locked_until, failed_login_attempts FROM clientinformation WHERE email = %s", (email,))
-        row = cur.fetchone()
+        rows = cur.fetchall()
+        row = rows[0] if rows else None
 
     if not row:
         return jsonify({"success": False, "message": "The email ID is not available."}), 401
@@ -677,7 +690,8 @@ def logout():
                         "SELECT id, time_in FROM attendance WHERE employee_id = %s AND date = %s AND Company_id = %s ORDER BY id DESC LIMIT 1",
                         (email, today, g.company_id),
                     )
-                    arow = cur.fetchone() or {}
+                    rows = cur.fetchall()
+                    arow = rows[0] if rows else {}
                     att_id = arow.get("id")
                     time_in = _pick_time(arow.get("time_in"))
                     if not att_id:
@@ -685,7 +699,8 @@ def logout():
                             "SELECT id, time_in FROM attendance WHERE employee_id = %s AND date = %s ORDER BY id DESC LIMIT 1",
                             (email, today),
                         )
-                        arow = cur.fetchone() or {}
+                        rows = cur.fetchall()
+                        arow = rows[0] if rows else {}
                         att_id = arow.get("id")
                         time_in = _pick_time(arow.get("time_in"))
 
@@ -827,7 +842,8 @@ def reset_password():
 
     with conn.cursor(dictionary=True) as cur:
         cur.execute(f"SELECT password FROM {password_table} WHERE email = %s", (email,))
-        emp_row = cur.fetchone() or {}
+        rows = cur.fetchall()
+        emp_row = rows[0] if rows else {}
         current_stored = (emp_row.get("password") or "").strip()
         current_md5 = current_stored if not (current_stored.startswith("scrypt:") or current_stored.startswith("pbkdf2:")) else None
 
@@ -885,7 +901,8 @@ def me():
                 "SELECT full_name, profile_picture, user_role FROM employee WHERE id = %s AND Company_id = %s",
                 (g.user_id, g.company_id),
             )
-        row = cur.fetchone()
+        rows = cur.fetchall()
+        row = rows[0] if rows else None
 
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
@@ -904,7 +921,7 @@ def me():
                 "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
                 (g.user_id, g.company_id),
             )
-            is_team_leader = cur.fetchone() is not None
+            is_team_leader = bool(cur.fetchall())
     if is_management:
         panel_type = 1
     elif is_team_leader:
@@ -947,7 +964,8 @@ def admin_reset_password():
     with conn.cursor(dictionary=True) as cur:
         # Check password history
         cur.execute("SELECT email FROM employee WHERE id = %s AND Company_id = %s", (user_id, g.company_id))
-        emp_row = cur.fetchone()
+        rows = cur.fetchall()
+        emp_row = rows[0] if rows else None
         if emp_row:
             email = emp_row["email"]
             cur.execute("SELECT password_hash FROM password_history WHERE email = %s AND user_type = 'employee' ORDER BY created_at DESC", (email,))
