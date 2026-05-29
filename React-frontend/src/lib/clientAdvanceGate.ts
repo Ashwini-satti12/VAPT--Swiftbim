@@ -34,11 +34,11 @@ export function buildAdvancePaymentMilestonesHref(
   const qs = new URLSearchParams();
   qs.set("project_id", String(pid));
   const cid = project.swiftbim_contract_internal_id;
-  if (cid != null && cid !== "" && Number(cid) > 0) {
+  if (cid != null && Number(cid) > 0) {
     qs.set("contract_id", String(cid));
   }
   const prop = project.swiftbim_proposal_id;
-  if (prop != null && prop !== "" && Number(prop) > 0) {
+  if (prop != null && Number(prop) > 0) {
     qs.set("proposal_id", String(prop));
   }
   const name = (project.project_name || "").trim();

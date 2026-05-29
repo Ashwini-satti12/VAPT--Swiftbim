@@ -18,6 +18,7 @@ import {
   mapVendorProjectFromApi,
   toVendorProjectTeamLike,
   useProjectTeamRoster,
+  type RosterEmployeeLike,
 } from "../../../hooks/useProjectTeamRoster";
 import type { PmTeamRosterEntry } from "../../../utils/projectTeamRoster";
 import ProjectDocumentsSection from "../../../components/ProjectDocumentsSection";
@@ -392,9 +393,9 @@ export default function ProjectEV() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
-  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<Employee[]>(
-    [],
-  );
+  const [vendorTeamEmployees, setVendorTeamEmployees] = useState<
+    RosterEmployeeLike[]
+  >([]);
 
   const [showProjectView, setShowProjectView] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -423,8 +424,8 @@ export default function ProjectEV() {
   const apiBaseForFiles = getProjectApiBase(String(api.defaults.baseURL || ""));
 
   const { teamRosterForProject, resolveProjectMember } = useProjectTeamRoster(
-    allEmployees,
-    resourceProfiles,
+    allEmployees as RosterEmployeeLike[],
+    resourceProfiles as RosterEmployeeLike[],
     vendorTeamEmployees,
   );
   const teamRosterForVendorProject = (proj: Project) =>
@@ -439,13 +440,17 @@ export default function ProjectEV() {
 
   const getEmployeeName = (id: any) => resolveVendorMember(id)?.full_name || "";
 
-  const openMemberProfile = (member?: VendorResourceProfileRow) => {
+  const openMemberProfile = (
+    member?: VendorResourceProfileRow | RosterEmployeeLike,
+  ) => {
     if (!member) return;
+    const extra = member as VendorResourceProfileRow & Record<string, unknown>;
     setSelectedMember({
-      ...member,
-      employee_id: member.employee_id || member.empid,
-      phone: member.phone || member.phone_number,
-      user_role: member.user_role || member.role || member.designation,
+      ...extra,
+      id: Number(member.id),
+      employee_id: extra.employee_id || extra.empid,
+      phone: extra.phone || extra.phone_number,
+      user_role: extra.user_role || extra.role || extra.designation,
     });
     setShowMemberProfileModal(true);
   };

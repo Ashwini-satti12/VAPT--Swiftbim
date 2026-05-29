@@ -204,7 +204,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       /* ignore — local session is cleared below */
     }
     setToken(null);
-    setRefreshToken(null);
+    setRefreshTokenState(null);
+    localStorage.removeItem('refreshToken');
     setUser(null);
     clearAuthStorage();
   }, [setToken, user?.user_type]);

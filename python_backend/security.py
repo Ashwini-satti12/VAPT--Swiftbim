@@ -204,6 +204,16 @@ _CSP_API = (
     "frame-ancestors 'none';"
 )
 
+_CSP_FRONTEND = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob: https:; "
+    "font-src 'self' data:; "
+    "connect-src 'self' https: http: ws: wss:; "
+    "frame-ancestors 'self';"
+)
+
 # Upload / static file serving – allow images inline, block everything else.
 _CSP_UPLOADS = (
     "default-src 'none'; "
@@ -215,12 +225,9 @@ _CSP_UPLOADS = (
 # Restrictive Permissions-Policy: opt out of every powerful browser feature.
 _PERMISSIONS_POLICY = (
     "accelerometer=(), "
-    "ambient-light-sensor=(), "
     "autoplay=(), "
-    "battery=(), "
     "camera=(), "
     "display-capture=(), "
-    "document-domain=(), "
     "encrypted-media=(), "
     "fullscreen=(self), "
     "geolocation=(), "
@@ -287,9 +294,9 @@ def apply_security_headers(response):
         "max-age=31536000; includeSubDomains; preload"
     )
 
-    # Suppress framework fingerprinting
-    response.headers.remove("X-Powered-By")
-    response.headers.remove("Server")
+    # Suppress framework fingerprinting (pop, not remove – remove() has no default arg)
+    response.headers.pop("X-Powered-By", None)
+    response.headers.pop("Server", None)
 
     # ------------------------------------------------------------------
     # 2. API JSON endpoints – strict CSP + no caching
@@ -311,10 +318,10 @@ def apply_security_headers(response):
             "Cache-Control", "private, max-age=3600, no-transform"
         )
 
-    # ------------------------------------------------------------------
-    # 4. Everything else (health check, root, etc.)
-    # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# 4. Everything else (frontend pages)
+# ------------------------------------------------------------------
     else:
-        response.headers.setdefault("Content-Security-Policy", _CSP_API)
+        response.headers.setdefault("Content-Security-Policy", _CSP_FRONTEND)
 
     return response

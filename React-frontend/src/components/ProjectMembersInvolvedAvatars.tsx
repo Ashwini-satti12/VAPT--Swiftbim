@@ -33,6 +33,7 @@ export default function ProjectMembersInvolvedAvatars({
   const avatar = (entry: PmTeamRosterEntry) => {
     const emp = resolveMember(entry.id);
     if (!emp && !entry.profile_picture) return null;
+    const displayName = emp?.full_name || entry.full_name;
     const url =
       getRosterProfileUrl(entry, profileUserType) ||
       (emp?.id && emp.profile_picture
@@ -44,24 +45,28 @@ export default function ProjectMembersInvolvedAvatars({
           )
         : null);
 
+    const handleActivate = () => {
+      if (emp) onMemberClick(emp);
+    };
+
     return (
       <div key={String(entry.id)} className="relative group shrink-0">
         <div
           role="button"
-          tabIndex={0}
+          tabIndex={emp ? 0 : -1}
           className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-          onClick={() => onMemberClick(emp)}
+          onClick={handleActivate}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              onMemberClick(emp);
+              handleActivate();
             }
           }}
         >
           {url ? (
             <img
               src={url}
-              alt={emp.full_name || entry.full_name}
+              alt={displayName}
               className="w-full h-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = ProfileIcon;
@@ -69,12 +74,12 @@ export default function ProjectMembersInvolvedAvatars({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-              {(emp.full_name || entry.full_name || "U").charAt(0).toUpperCase()}
+              {(displayName || "U").charAt(0).toUpperCase()}
             </div>
           )}
         </div>
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-          {emp.full_name || entry.full_name}
+          {displayName}
         </div>
       </div>
     );

@@ -90,7 +90,8 @@ export interface Task {
   due_date?: string;
   project_name?: string;
   start_date?: string;
-  progress?: number;
+  progress?: number | string;
+  reviewer_progress?: string | number;
   module?: string;
   type?: string;
   start_time?: string;
@@ -459,11 +460,11 @@ function TaskCard({
   // isUnderReview for TAG display
   const isUnderReview =
     !isSelf &&
-    (realProgress === 95 || realProgress === "95" || (task as any).reviewer_progress === "50") &&
+    (Number(realProgress) === 95 || (task as any).reviewer_progress === "50") &&
     task.Approval?.toLowerCase() !== "approved";
 
   // Progress to display on this specific card in this specific column
-  const progress = (status === "todo" && (realProgress === 95 || realProgress === "95") && isOwner)
+  const progress = (status === "todo" && (Number(realProgress) === 95) && isOwner)
     ? 0
     : (status === "in_progress" && (task as any).reviewer_progress === "50" && isOwner)
       ? 50
@@ -890,7 +891,7 @@ quarterAgo.setMonth(now.getMonth() - 3);
     const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
     const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-    const isUnderReviewForMe = isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && normalizeStatus(t.status) === "completed";
+    const isUnderReviewForMe = isOwner && isAssignedToOthers && (Number(progress) === 95) && normalizeStatus(t.status) === "completed";
     const isCorrectionForMe = isOwner && isAssignedToOthers && (t as any).reviewer_progress === "50";
 
     if (!isTeam) {
